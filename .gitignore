@@ -1,0 +1,34 @@
+﻿# Android/Gradle
+.gradle/
+build/
+*/build/
+local.properties
+*.iml
+.idea/
+*.log
+*.hprof
+.cxx/
+captures/
+.externalNativeBuild/
+
+# Keystore / secrets
+*.keystore
+*.jks
+keystore.properties
+app/keystore.properties
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Build artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Mapping (keep for crash deobfuscation)
+# !app/build/outputs/mapping/
+gradle/wrapper/gradle.zip

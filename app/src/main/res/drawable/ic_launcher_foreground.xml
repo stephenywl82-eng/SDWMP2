@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Steven v2.0 · 白底+红黄蓝绿四色唱片纹 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 白色圆形背景 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0"/>
+    <!-- 四色唱片纹（每象限不同色） -->
+    <!-- 顶部象限 - 红色 -->
+    <path
+        android:fillColor="#FF3B30"
+        android:pathData="M54,54L54,16A38,38 0 0,1 92,54Z"/>
+    <!-- 右象限 - 黄色 -->
+    <path
+        android:fillColor="#FFCC00"
+        android:pathData="M54,54L92,54A38,38 0 0,1 54,92Z"/>
+    <!-- 底部象限 - 蓝色 -->
+    <path
+        android:fillColor="#007AFF"
+        android:pathData="M54,54L54,92A38,38 0 0,1 16,54Z"/>
+    <!-- 左象限 - 绿色 -->
+    <path
+        android:fillColor="#34C759"
+        android:pathData="M54,54L16,54A38,38 0 0,1 54,16Z"/>
+    <!-- 黑色内圆（唱片轴心） -->
+    <path
+        android:fillColor="#1A1A1F"
+        android:pathData="M54,54m-16,0a16,16 0,1 1,32 0a16,16 0,1 1,-32 0"/>
+    <!-- 白色播放三角形（居中） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,42L48,66L64,54Z"/>
+</vector>

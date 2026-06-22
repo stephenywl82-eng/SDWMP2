@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="WaveSeekBar">
+        <attr name="wsbTrackColor" format="color" />
+        <attr name="wsbProgressColor" format="color" />
+        <attr name="wsbWaveColor" format="color" />
+        <attr name="wsbThumbColor" format="color" />
+        <attr name="wsbThumbRingColor" format="color" />
+    </declare-styleable>
+</resources>

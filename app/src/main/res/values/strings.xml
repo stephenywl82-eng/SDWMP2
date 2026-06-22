@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Moto music</string>
+    <string name="no_music_found">No music files found</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="now_playing">Now Playing</string>
+    <string name="unknown_artist">Unknown Artist</string>
+    <string name="unknown_album">Unknown Album</string>
+    <string name="widget_music_desc">MOTO Music Player — quick playback controls and track info</string>
+    <string name="widget_music_3x2_desc">MOTO Music — large album art with playback controls</string>
+</resources>
