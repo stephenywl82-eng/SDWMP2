@@ -1163,6 +1163,18 @@ class MusicService : MediaSessionService() {
                 Log.i(TAG, "OboeDirect: song completed, playing next")
                 handler.post { playNext() }
             }
+            newPlayer.onPlayStateChanged = { isPlaying ->
+                handler.post {
+                    if (!isDestroyed) {
+                        notifyPlayStateChanged(isPlaying)
+                        updateNotification()
+                        // Sync ExoPlayer playback state so MediaSession doesn't drift
+                        try {
+                            exoPlayer?.playWhenReady = isPlaying
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
             newPlayer.onError = { msg ->
                 oboeFlowTrace = "274C error: $msg, fallback to ExoPlayer"
                 Log.e(TAG, "OboeDirect error: $msg")

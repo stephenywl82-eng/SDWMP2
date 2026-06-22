@@ -44,6 +44,9 @@ class OboeDirectPlayer(private val context: Context) {
     // Listener for playback events
     var onCompletion: (() -> Unit)? = null
     var onError: ((String) -> Unit)? = null
+    /** Callback when native stream state changes (play ↔ pause).
+     *  Called from ANY thread; callers must post to main thread for UI/MediaSession. */
+    var onPlayStateChanged: ((isPlaying: Boolean) -> Unit)? = null
 
     // ---- Native methods ----
     private external fun nativeOpen(filePath: String): Boolean
@@ -169,6 +172,7 @@ class OboeDirectPlayer(private val context: Context) {
             val result = nativePlay()
             if (result) {
                 isPlaying = true
+                onPlayStateChanged?.invoke(true)
                 // Start monitoring thread for completion
                 startCompletionMonitor()
             }
@@ -188,6 +192,7 @@ class OboeDirectPlayer(private val context: Context) {
         try {
             nativePause()
             isPlaying = false
+            onPlayStateChanged?.invoke(false)
         } catch (e: Exception) {
             Log.e(TAG, "Exception in pause: ${e.message}")
         }
@@ -202,6 +207,7 @@ class OboeDirectPlayer(private val context: Context) {
             val result = nativeResume()
             if (result) {
                 isPlaying = true
+                onPlayStateChanged?.invoke(true)
                 startCompletionMonitor()
             }
             return result
@@ -228,6 +234,7 @@ class OboeDirectPlayer(private val context: Context) {
      */
     fun stop() {
         // 【V7.01】先中断 monitor 线程并等待其结束，防止竞态条件
+        val wasPlaying = isPlaying
         isPlaying = false  // 先Settings标志，让 monitor 线程退出循环
         monitorThread?.interrupt()
         try {
@@ -241,6 +248,9 @@ class OboeDirectPlayer(private val context: Context) {
             Log.e(TAG, "Exception in stop: ${e.message}")
         }
         isPrepared = false
+        if (wasPlaying) {
+            onPlayStateChanged?.invoke(false)
+        }
         currentFilePath = null
         // 【V7.21】Close FD
         try { parcelFd?.close() } catch (_: Exception) {}
@@ -276,6 +286,7 @@ class OboeDirectPlayer(private val context: Context) {
                     if (nativeIsEos()) {
                         Log.i(TAG, "Playback completed (EOS)")
                         isPlaying = false
+                        onPlayStateChanged?.invoke(false)
                         onCompletion?.invoke()
                         break
                     }
@@ -288,6 +299,7 @@ class OboeDirectPlayer(private val context: Context) {
                     if (nativeIsEos()) {
                         Log.i(TAG, "Playback completed (EOS detected after interrupt)")
                         isPlaying = false
+                        onPlayStateChanged?.invoke(false)
                         onCompletion?.invoke()
                     }
                 } catch (_: Exception) {}
