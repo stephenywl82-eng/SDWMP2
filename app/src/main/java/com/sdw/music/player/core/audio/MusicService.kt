@@ -88,8 +88,10 @@ class MusicService : MediaSessionService() {
     private var dspEqEnabled: Boolean = false
 
     // [V8.x] AudioDeviceCallback: detect USB DAC hotplug -> restart Oboe Exclusive
+    private var oboeUsbGuardMs: Long = 0L  // [V8.1] prevent race: Oboe startup itself triggers device-add callback
     private val usbDacCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            if (System.currentTimeMillis() < oboeUsbGuardMs) return  // startup race guard
             val hasUsbDac = addedDevices.any { d ->
                 d.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
                 d.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
@@ -1225,6 +1227,7 @@ class MusicService : MediaSessionService() {
 
             // Oboe succeeded, post UI updates back to main thread
             oboeFailureCount = 0
+            oboeUsbGuardMs = System.currentTimeMillis() + 5000L  // [V8.1] block USB-DAC race for 5s
             oboeFlowTrace = "2705 Oboe OK (mode=${newPlayer.getDspMode()?.displayName}, exclusive=${newPlayer.isExclusiveMode()})"
 
             handler.post {
