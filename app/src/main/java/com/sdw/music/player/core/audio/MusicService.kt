@@ -671,7 +671,7 @@ class MusicService : MediaSessionService() {
         // ??????????????????????????
         player.setSkipSilenceEnabled(false)
         // ??Steven v1.6?????Playlists,???? STATE_ENDED ?? seekToNext ????��
-        player.repeatMode = Player.REPEAT_MODE_ALL
+        player.repeatMode = Player.REPEAT_MODE_OFF
 
         // volume ???? 1.0 ??????
 
@@ -1246,13 +1246,14 @@ class MusicService : MediaSessionService() {
                 Log.i(TAG, "DSP mode restored: ${when (savedDspMode) { -1 -> "OFF"; 1 -> "CAT_MODE"; else -> "STEVEN_SPECIAL" }}")
                 EqualizerManager.restoreSettings(this@MusicService)
 
-                // Only sync ExoPlayer playlist when NOT in Oboe mode.
-                // Oboe plays directly via native AAudio — keeping ExoPlayer prepared
-                // wastes CPU on parallel MediaCodec decoding in the background.
-                if (!isOboeDirectMode()) {
+                // [V8.1] Always sync ExoPlayer playlist so ForwardingPlayer.getCurrentMediaItem()
+                // returns correct metadata (system notification / lock screen / car / Wear OS).
+                // In Oboe mode: update MediaItem without prepare() — avoids CPU waste on
+                // parallel MediaCodec decoding since audio is driven by OboeDirectPlayer.
                 exoPlayer?.let { player ->
                     val existingPlaylistSize = player.mediaItemCount
                     val isSamePlaylist = existingPlaylistSize == songs.size
+                    val isOboe = isOboeDirectMode()
 
                     if (isSamePlaylist) {
                         val artworkUri = if (song.albumArtUri.isNotEmpty()) android.net.Uri.parse(song.albumArtUri) else null
@@ -1271,7 +1272,6 @@ class MusicService : MediaSessionService() {
                             )
                             .build()
                         player.replaceMediaItem(index, newMediaItem)
-                        player.seekTo(index, 0L)
                     } else {
                         val mediaItems = songs.map { s ->
                             val artworkUri = if (s.albumArtUri.isNotEmpty()) android.net.Uri.parse(s.albumArtUri) else null
@@ -1293,11 +1293,12 @@ class MusicService : MediaSessionService() {
                         }
                         player.setMediaItems(mediaItems, index, 0L)
                     }
-                    player.prepare()
-                    // [V8.x] ForwardingPlayer now overrides playbackState+playWhenReady
-                    // based on OboeDirectPlayer state, so ExoPlayer stays idle.
+                    // Only prepare + seekTo when ExoPlayer is actually driving audio
+                    if (!isOboe) {
+                        player.seekTo(index, 0L)
+                        player.prepare()
+                    }
                 }
-                } // if (!isOboeDirectMode())
 
                 notifyPlayStateChanged(true)
                 notifySongChanged(song)
@@ -1982,7 +1983,7 @@ class MusicService : MediaSessionService() {
             .build()
 
         newPlayer.setSkipSilenceEnabled(false)
-        newPlayer.repeatMode = Player.REPEAT_MODE_ALL
+        newPlayer.repeatMode = Player.REPEAT_MODE_OFF
         newPlayer.shuffleModeEnabled = isShuffleMode
 
         // ?????????????
