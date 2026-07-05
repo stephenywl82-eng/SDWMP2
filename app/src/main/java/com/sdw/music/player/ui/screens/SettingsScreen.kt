@@ -2,8 +2,10 @@
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -13,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -20,7 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sdw.music.player.R
 import com.sdw.music.player.EqualizerManager
+import com.sdw.music.player.core.audio.UsbDacManager
 import com.sdw.music.player.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +47,15 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 .getInt("mode", -1)
         )
     }
+    var usbExclusiveEnabled by remember(refreshTrigger) {
+        mutableStateOf(
+            context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                .getBoolean("usb_exclusive", false)
+        )
+    }
+    var usbAvailable by remember { mutableStateOf(false) }
+    var usbDacName by remember { mutableStateOf("") }
+    var usbActive by remember { mutableStateOf(false) }
     var audioOutput by remember(refreshTrigger) {
         mutableStateOf(
             context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
@@ -118,7 +133,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                     subtitle = "Current: " + audioOutput
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     listOf("AudioTrack", "OpenSL ES", "AAudio", "Oboe Exclusive").forEach { mode ->
@@ -173,6 +188,81 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 }
                 Spacer(Modifier.height(8.dp))
             }
+            item { SettingsDivider() }
+            // === Hardware Exclusive Mode (Bypass Android Mixer) ===
+            item {
+                SettingsSectionTitle("USB DAC Exclusive")
+            }
+            item {
+                val prefs = context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                LaunchedEffect(usbExclusiveEnabled, refreshTrigger) {
+                    if (usbExclusiveEnabled) {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                UsbDacManager.init(context)
+                                val dacs = UsbDacManager.findDacs()
+                                usbAvailable = dacs.isNotEmpty()
+                                usbDacName = dacs.firstOrNull()?.name ?: ""
+                            } catch (_: Exception) { /* USB unavailable */ }
+                        }
+                    } else {
+                        usbAvailable = false
+                        usbDacName = ""
+                    }
+                    usbActive = usbExclusiveEnabled && UsbDacManager.isStreaming()
+                }
+
+                SettingsItem(
+                    icon = Icons.Default.Usb,
+                    title = "Hardware Exclusive Mode",
+                    subtitle = when {
+                        usbActive -> "Active — $usbDacName"
+                        usbExclusiveEnabled && usbAvailable -> "$usbDacName connected"
+                        usbExclusiveEnabled -> "Waiting for USB DAC…"
+                        else -> "Bypass Android mixer (requires USB DAC)"
+                    }
+                ) {}
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Switch(
+                        checked = usbExclusiveEnabled,
+                        onCheckedChange = { enabled ->
+                            usbExclusiveEnabled = enabled
+                            prefs.edit().putBoolean("usb_exclusive", enabled).apply()
+                            refreshTrigger++
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = AccentPurple,
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = DarkCard
+                        )
+                    )
+                    Text(
+                        if (usbExclusiveEnabled) "On" else "Off",
+                        color = TextSecondary,
+                        fontSize = 13.sp
+                    )
+                }
+
+                if (usbExclusiveEnabled && usbAvailable) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("✓", color = Color(0xFF4CAF50), fontSize = 14.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text("$usbDacName detected", color = Color(0xFF4CAF50), fontSize = 13.sp)
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+            }
+            item { SettingsDivider() }
             item {
                 val edgeLightPref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
                 var edgeLightEnabled by remember(refreshTrigger) {
@@ -190,6 +280,84 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                         refreshTrigger++
                     }
                 )
+                Spacer(Modifier.height(8.dp))
+            }
+            item { SettingsDivider() }
+
+            // === USB DAC Exclusive ===
+            item {
+                SettingsSectionTitle("USB DAC Exclusive")
+            }
+            item {
+                // Detection trigger on usbExclusiveEnabled change
+                LaunchedEffect(usbExclusiveEnabled, refreshTrigger) {
+                    if (usbExclusiveEnabled) {
+                        withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            UsbDacManager.init(context)
+                            val dacs = UsbDacManager.findDacs()
+                            usbAvailable = dacs.isNotEmpty()
+                            usbDacName = if (dacs.isNotEmpty()) dacs.first().name else ""
+                        }
+                    }
+                    usbActive = usbExclusiveEnabled && UsbDacManager.isStreaming()
+                }
+
+                SettingsItem(
+                    icon = Icons.Default.Usb,
+                    title = "Hardware Exclusive Mode",
+                    subtitle = when {
+                        usbActive -> "Active — $usbDacName"
+                        usbExclusiveEnabled && usbAvailable -> "Ready — $usbDacName connected"
+                        usbExclusiveEnabled -> "Waiting for USB DAC…"
+                        else -> "Disabled"
+                    }
+                ) { }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Switch(
+                        checked = usbExclusiveEnabled,
+                        onCheckedChange = { enabled ->
+                            usbExclusiveEnabled = enabled
+                            context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                                .edit().putBoolean("usb_exclusive", enabled).apply()
+                            refreshTrigger++
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = androidx.compose.ui.graphics.Color.White,
+                            checkedTrackColor = AccentPurple
+                        )
+                    )
+                    Text(
+                        if (usbExclusiveEnabled) "On" else "Off",
+                        color = TextSecondary,
+                        fontSize = 14.sp
+                    )
+                }
+
+                // Show DAC detected indicator
+                if (usbExclusiveEnabled && usbAvailable) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "✓ $usbDacName",
+                            color = Color(0xFF4CAF50),
+                            fontSize = 13.sp
+                        )
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
             }
             item { SettingsDivider() }
