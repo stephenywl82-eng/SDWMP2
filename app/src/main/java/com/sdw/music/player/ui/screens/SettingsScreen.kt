@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.ui.screens
+package com.sdw.music.player.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -282,86 +282,6 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 )
                 Spacer(Modifier.height(8.dp))
             }
-            item { SettingsDivider() }
-
-            // === USB DAC Exclusive ===
-            item {
-                SettingsSectionTitle("USB DAC Exclusive")
-            }
-            item {
-                // Detection trigger on usbExclusiveEnabled change
-                LaunchedEffect(usbExclusiveEnabled, refreshTrigger) {
-                    if (usbExclusiveEnabled) {
-                        withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            UsbDacManager.init(context)
-                            val dacs = UsbDacManager.findDacs()
-                            usbAvailable = dacs.isNotEmpty()
-                            usbDacName = if (dacs.isNotEmpty()) dacs.first().name else ""
-                        }
-                    }
-                    usbActive = usbExclusiveEnabled && UsbDacManager.isStreaming()
-                }
-
-                SettingsItem(
-                    icon = Icons.Default.Usb,
-                    title = "Hardware Exclusive Mode",
-                    subtitle = when {
-                        usbActive -> "Active — $usbDacName"
-                        usbExclusiveEnabled && usbAvailable -> "Ready — $usbDacName connected"
-                        usbExclusiveEnabled -> "Waiting for USB DAC…"
-                        else -> "Disabled"
-                    }
-                ) { }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Switch(
-                        checked = usbExclusiveEnabled,
-                        onCheckedChange = { enabled ->
-                            usbExclusiveEnabled = enabled
-                            context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-                                .edit().putBoolean("usb_exclusive", enabled).apply()
-                            refreshTrigger++
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = androidx.compose.ui.graphics.Color.White,
-                            checkedTrackColor = AccentPurple
-                        )
-                    )
-                    Text(
-                        if (usbExclusiveEnabled) "On" else "Off",
-                        color = TextSecondary,
-                        fontSize = 14.sp
-                    )
-                }
-
-                // Show DAC detected indicator
-                if (usbExclusiveEnabled && usbAvailable) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "✓ $usbDacName",
-                            color = Color(0xFF4CAF50),
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-            item { SettingsDivider() }
-
             // === Widget ===
             item {
                 SettingsSectionTitle("Widget")
