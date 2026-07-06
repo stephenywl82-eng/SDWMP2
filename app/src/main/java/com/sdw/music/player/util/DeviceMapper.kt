@@ -16,7 +16,7 @@ object DeviceMapper {
         "XT2637" to "Edge 70 Pro",
         "XT2607-1" to "Edge 70 Pro+",
         "XT2607-2" to "Edge 70 Pro+",
-        "XT2607-3" to "Edge 70 Pro",
+        "XT2607-3" to "Edge 70 Pro+",
         "XT2607" to "Edge 70 Pro",
         "XT2603" to "Signature",
 
