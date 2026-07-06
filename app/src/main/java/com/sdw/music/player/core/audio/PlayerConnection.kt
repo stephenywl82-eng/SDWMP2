@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.core.audio
+package com.sdw.music.player.core.audio
 
 import android.content.ComponentName
 import android.content.Context
@@ -19,13 +19,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * 连接层：UI (ViewModel) ↔ MusicService (MediaSessionService)
+ * 杩炴帴灞傦細UI (ViewModel) ? MusicService (MediaSessionService)
  * 
- * 使用流程：
- * 1. UI 层创建 PlayerConnection 实例（或通过 Hilt 注入）
- * 2. connect() 建立 MediaController 连接
- * 3. UI 通过 setSongs() SettingsPlaylists，通过 playSong() 播放
- * 4. UI 通过 state flow 观察播放状态变化
+ * 浣跨敤娴佺▼锛?
+ * 1. UI 灞傚垱寤?PlayerConnection 瀹炰緥锛堟垨閫氳繃 Hilt 娉ㄥ叆锛?
+ * 2. connect() 寤虹珛 MediaController 杩炴帴
+ * 3. UI 閫氳繃 setSongs() SettingsPlaylists锛岄€氳繃 playSong() 鎾斁
+ * 4. UI 閫氳繃 state flow 瑙傚療鎾斁鐘舵€佸彉鍖?
  */
 class PlayerConnection(private val context: Context) {
 
@@ -35,7 +35,7 @@ class PlayerConnection(private val context: Context) {
     private var connected = false
     private var pendingPlayIndex: Int = -1
 
-    // 播放状态
+    // 鎾斁鐘舵€?
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
@@ -60,8 +60,11 @@ class PlayerConnection(private val context: Context) {
     private val _songList = MutableStateFlow<List<Song>>(emptyList())
     val songList: StateFlow<List<Song>> = _songList.asStateFlow()
 
-    // 进度更新 job
+    // 杩涘害鏇存柊 job
     private var positionJob: Job? = null
+
+    // Oboe 鐙崰妯″紡鍏滃簳锛氱洿鎺ユ敹闆?MusicService.songChangedFlow锛堜笉鐢ㄦ帴鍙ｏ紝闃?R8 鎿﹂櫎锛?
+    private var oboeSongJob: Job? = null
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -76,7 +79,7 @@ class PlayerConnection(private val context: Context) {
                 }
             }
             if (state == Player.STATE_ENDED) {
-                // 自动下一首（歌单为空则跳过）
+                // 鑷姩涓嬩竴棣栵紙姝屽崟涓虹┖鍒欒烦杩囷級
                 val size = _songList.value.size
                 if (size > 0) {
                     val nextIndex = (_currentSongIndex.value + 1) % size
@@ -104,12 +107,12 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 连接 MediaController 到 MusicService
-     * 幂等：已连接则跳过，防止重复创建 MediaController
+     * 杩炴帴 MediaController 鍒?MusicService
+     * 骞傜瓑锛氬凡杩炴帴鍒欒烦杩囷紝闃叉閲嶅鍒涘缓 MediaController
      */
     fun connect() {
         if (connected && controller != null) return
-        // 先断On旧连接，防止多实例残留
+        // 鍏堟柇On鏃ц繛鎺ワ紝闃叉澶氬疄渚嬫畫鐣?
         disconnect()
         val sessionToken = SessionToken(context, ComponentName(context, MusicService::class.java))
         controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
@@ -117,17 +120,20 @@ class PlayerConnection(private val context: Context) {
             controller = controllerFuture?.get()
             controller?.addListener(playerListener)
             connected = true
+            // Oboe 模式兜底：MediaController.onMediaItemTransition 不触发
+            // 直接收集 MusicService.StateFlow 同步元数据（不用接口，防 R8 擦除）
+            startOboeSongSync()
             // 如果有待播请求，执行
             if (pendingPlayIndex >= 0) {
                 playSong(pendingPlayIndex)
                 pendingPlayIndex = -1
             }
-            // 同步初始状态
+            // 鍚屾鍒濆鐘舵€?
             controller?.let {
                 _isPlaying.value = it.isPlaying
                 _durationMs.value = it.duration.coerceAtLeast(0)
                 _currentSongIndex.value = it.currentMediaItemIndex
-                // 【v7.XX】重连时恢复当前歌曲（从Playlists或元数据）
+                // 銆恦7.XX銆戦噸杩炴椂鎭㈠褰撳墠姝屾洸锛堜粠Playlists鎴栧厓鏁版嵁锛?
                 val restoredIdx = it.currentMediaItemIndex
                 val songs = _songList.value
                 if (restoredIdx in songs.indices) {
@@ -149,7 +155,7 @@ class PlayerConnection(private val context: Context) {
                 _shuffleEnabled.value = it.shuffleModeEnabled
                 _repeatMode.value = it.repeatMode
                 if (it.isPlaying) startPositionUpdates()
-                // 【v7.XX】重连时尝试恢复Playlists
+                // 銆恦7.XX銆戦噸杩炴椂灏濊瘯鎭㈠Playlists
                 if (_songList.value.isEmpty() && it.mediaItemCount > 0) {
                     val recoveredSongs = mutableListOf<Song>()
                     for (i in 0 until it.mediaItemCount) {
@@ -170,9 +176,9 @@ class PlayerConnection(private val context: Context) {
                         _songList.value = recoveredSongs
                     }
                 }
-                // 【修复】进程被杀后 Service 已重建 → controller 无 mediaItem
-                // 从 SharedPreferences 恢复播放状态并重新 setMediaItems
-                // 【关键修复】延迟 500ms 等 MediaController 完成初始同步
+                // 銆愪慨澶嶃€戣繘绋嬭鏉€鍚?Service 宸查噸寤?鈫?controller 鏃?mediaItem
+                // 浠?SharedPreferences 鎭㈠鎾斁鐘舵€佸苟閲嶆柊 setMediaItems
+                // 銆愬叧閿慨澶嶃€戝欢杩?500ms 绛?MediaController 瀹屾垚鍒濆鍚屾
                 if (it.mediaItemCount == 0 && _songList.value.isNotEmpty()) {
                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                         if (controller?.isConnected == true && controller?.mediaItemCount == 0 && controller?.isPlaying == false && _songList.value.isNotEmpty()) {
@@ -185,14 +191,16 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 断开连接
-     * 【修复】不再调用 MediaController.releaseFuture()，保留底层连接。
-     * 原因：MediaSessionService 检测到最后一个 Controller 断开会自动 stopSelf()，
-     * 导致手势返回桌面时播放中断。保留连接让 Service 不会误判为「无客户端」而自毁。
+     * 鏂紑杩炴帴
+     * 銆愪慨澶嶃€戜笉鍐嶈皟鐢?MediaController.releaseFuture()锛屼繚鐣欏簳灞傝繛鎺ャ€?
+     * 鍘熷洜锛歁ediaSessionService 妫€娴嬪埌鏈€鍚庝竴涓?Controller 鏂紑浼氳嚜鍔?stopSelf()锛?
+     * 瀵艰嚧鎵嬪娍杩斿洖妗岄潰鏃舵挱鏀句腑鏂€備繚鐣欒繛鎺ヨ Service 涓嶄細璇垽涓恒€屾棤瀹㈡埛绔€嶈€岃嚜姣併€?
      */
     fun disconnect() {
         if (!connected && controller == null) return
         stopPositionUpdates()
+        oboeSongJob?.cancel()
+        oboeSongJob = null
         try {
             controller?.removeListener(playerListener)
         } catch (e: Exception) {
@@ -202,22 +210,31 @@ class PlayerConnection(private val context: Context) {
         controllerFuture = null
         connected = false
         pendingPlayIndex = -1
-        // 不再 releaseFuture — 保持底层 MediaController 与 Service 的连接
-        // 重连时 connect() 会创建新的 MediaController，旧的会随进程生命周期自然释放
+        // 涓嶅啀 releaseFuture 鈥?淇濇寔搴曞眰 MediaController 涓?Service 鐨勮繛鎺?
+        // 閲嶈繛鏃?connect() 浼氬垱寤烘柊鐨?MediaController锛屾棫鐨勪細闅忚繘绋嬬敓鍛藉懆鏈熻嚜鐒堕噴鏀?
+    }
+
+    private fun startOboeSongSync() {
+        oboeSongJob?.cancel()
+        oboeSongJob = scope.launch {
+            MusicService.songChangedFlow.collect { song ->
+                if (song != null) _currentSong.value = song
+            }
+        }
     }
 
     /**
-     * SettingsPlaylists（不立即播放）
+     * SettingsPlaylists锛堜笉绔嬪嵆鎾斁锛?
      */
     fun setSongs(songs: List<Song>, updateGlobal: Boolean = true) {
         _songList.value = songs
-        // 同步到 MusicService
+        // 鍚屾鍒?MusicService
         scope.launch {
             if (updateGlobal) SongRepository.setSongs(songs)
         }
     }
 
-    /** 编辑歌曲元数据后同步 Connection 内的 Song 副本，防止 currentSong 回调覆盖新标题 */
+    /** 缂栬緫姝屾洸鍏冩暟鎹悗鍚屾 Connection 鍐呯殑 Song 鍓湰锛岄槻姝?currentSong 鍥炶皟瑕嗙洊鏂版爣棰?*/
     fun updateSongInList(songId: Long, newTitle: String, newArtist: String) {
         _songList.value = _songList.value.map {
             if (it.id == songId) it.copy(title = newTitle, artist = newArtist) else it
@@ -229,7 +246,7 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 播放指定索引的歌曲
+     * 鎾斁鎸囧畾绱㈠紩鐨勬瓕鏇?
      */
     fun playSong(index: Int) {
         val songs = _songList.value
@@ -238,13 +255,13 @@ class PlayerConnection(private val context: Context) {
             pendingPlayIndex = index
             return
         }
-        // 【V7.82】Oboe模式下直接调用MusicService，绕过MediaController（ExoPlayer空闲不响应）
+        // 銆怴7.82銆慜boe妯″紡涓嬬洿鎺ヨ皟鐢∕usicService锛岀粫杩嘙ediaController锛圗xoPlayer绌洪棽涓嶅搷搴旓級
         if (MusicService.instance?.isOboeDirectMode() == true) {
             android.util.Log.d("PlayerConnection", "playSong: Oboe mode, delegating to MusicService")
             MusicService.instance?.playSong(index)
             _currentSongIndex.value = index
             _currentSong.value = songs[index]
-            // 【V7.xx】Oboe模式ExoPlayer无状态变化，不会触发onIsPlayingChanged，手动启动进度更新
+            // 銆怴7.xx銆慜boe妯″紡ExoPlayer鏃犵姸鎬佸彉鍖栵紝涓嶄細瑙﹀彂onIsPlayingChanged锛屾墜鍔ㄥ惎鍔ㄨ繘搴︽洿鏂?
             _isPlaying.value = true
             startPositionUpdates()
             return
@@ -272,10 +289,10 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 播放/暂停切换
+     * 鎾斁/鏆傚仠鍒囨崲
      */
     fun togglePlayPause() {
-        // 【V7.82】Oboe模式下直接操作MusicService，绕过MediaController
+        // 銆怴7.82銆慜boe妯″紡涓嬬洿鎺ユ搷浣淢usicService锛岀粫杩嘙ediaController
         if (MusicService.instance?.isOboeDirectMode() == true) {
             val svc = MusicService.instance!!
             if (svc.isPlaying()) {
@@ -307,15 +324,15 @@ class PlayerConnection(private val context: Context) {
     fun skipToPrevious() {
         if (MusicService.instance?.isOboeDirectMode() == true) {
             MusicService.instance?.playPrevious()
-            // 【V7.xx】Oboe切歌后手动启动进度更新
-            // 同步更新 Connection 侧的歌曲索引（否则UI显示旧曲目信息，duration不对）
+            // 銆怴7.xx銆慜boe鍒囨瓕鍚庢墜鍔ㄥ惎鍔ㄨ繘搴︽洿鏂?
+            // 鍚屾鏇存柊 Connection 渚х殑姝屾洸绱㈠紩锛堝惁鍒橴I鏄剧ず鏃ф洸鐩俊鎭紝duration涓嶅锛?
             val svc = MusicService.instance!!
             val newIdx = MusicService.currentIndex
             val songs = _songList.value
             if (newIdx in songs.indices) {
                 _currentSongIndex.value = newIdx
                 _currentSong.value = songs[newIdx]
-                // 从 MusicService 获取真实 duration，覆盖旧缓存的 _durationMs
+                // 浠?MusicService 鑾峰彇鐪熷疄 duration锛岃鐩栨棫缂撳瓨鐨?_durationMs
                 val dur = svc.getDuration()
                 if (dur > 0) _durationMs.value = dur
             }
@@ -327,20 +344,20 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 下一曲
+     * 涓嬩竴鏇?
      */
     fun skipToNext() {
         if (MusicService.instance?.isOboeDirectMode() == true) {
             MusicService.instance?.playNext()
-            // 【V7.xx】Oboe切歌后手动启动进度更新
-            // 同步更新 Connection 侧的歌曲索引（否则UI显示旧曲目信息，duration不对）
+            // 銆怴7.xx銆慜boe鍒囨瓕鍚庢墜鍔ㄥ惎鍔ㄨ繘搴︽洿鏂?
+            // 鍚屾鏇存柊 Connection 渚х殑姝屾洸绱㈠紩锛堝惁鍒橴I鏄剧ず鏃ф洸鐩俊鎭紝duration涓嶅锛?
             val svc = MusicService.instance!!
             val newIdx = MusicService.currentIndex
             val songs = _songList.value
             if (newIdx in songs.indices) {
                 _currentSongIndex.value = newIdx
                 _currentSong.value = songs[newIdx]
-                // 从 MusicService 获取真实 duration，覆盖旧缓存的 _durationMs
+                // 浠?MusicService 鑾峰彇鐪熷疄 duration锛岃鐩栨棫缂撳瓨鐨?_durationMs
                 val dur = svc.getDuration()
                 if (dur > 0) _durationMs.value = dur
             }
@@ -352,7 +369,7 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 跳转到指定位置（毫秒）
+     * 璺宠浆鍒版寚瀹氫綅缃紙姣锛?
      */
     fun seekTo(positionMs: Long) {
         if (MusicService.instance?.isOboeDirectMode() == true) {
@@ -365,14 +382,14 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 切换Shuffle播放
+     * 鍒囨崲Shuffle鎾斁
      */
     fun setShuffleEnabled(enabled: Boolean) {
         controller?.shuffleModeEnabled = enabled
     }
 
     /**
-     * Settings循环模式
+     * Settings寰幆妯″紡
      */
     fun setRepeatMode(mode: Int) {
         controller?.repeatMode = mode
@@ -387,7 +404,7 @@ class PlayerConnection(private val context: Context) {
             while (isActive) {
                 val screenOn = pm.isInteractive
                 if (screenOn) {
-                    // 【V7.82】Oboe模式下从MusicService直接读取位置，而非MediaController（后者来自ExoPlayer）
+                    // 銆怴7.82銆慜boe妯″紡涓嬩粠MusicService鐩存帴璇诲彇浣嶇疆锛岃€岄潪MediaController锛堝悗鑰呮潵鑷狤xoPlayer锛?
                     val svc = MusicService.instance
                     val isOboe = svc?.isOboeDirectMode() == true
                     if (isOboe && svc != null) {
@@ -403,21 +420,21 @@ class PlayerConnection(private val context: Context) {
                             if (dur > 0) _durationMs.value = dur
                         }
                     }
-                    // Save播放位置用于进程恢复
+                    // Save鎾斁浣嶇疆鐢ㄤ簬杩涚▼鎭㈠
                     val now = System.currentTimeMillis()
                     if (now - lastSaveTimeMs > 300_000L) {
                         try { MusicService.savePlaybackState() } catch (_: Exception) {}
                         lastSaveTimeMs = now
                     }
-                    delay(1000) // 亮屏：每秒更新进度
+                    delay(1000) // 浜睆锛氭瘡绉掓洿鏂拌繘搴?
                 } else {
-                    // 熄屏：只做save检查，跳过进度更新和StateFlow写入，减少Compose重组
+                    // 鐔勫睆锛氬彧鍋歴ave妫€鏌ワ紝璺宠繃杩涘害鏇存柊鍜孲tateFlow鍐欏叆锛屽噺灏慍ompose閲嶇粍
                     val now = System.currentTimeMillis()
                     if (now - lastSaveTimeMs > 300_000L) {
                         try { MusicService.savePlaybackState() } catch (_: Exception) {}
                         lastSaveTimeMs = now
                     }
-                    delay(2000) // 熄屏降低检查频率
+                    delay(2000) // 鐔勫睆闄嶄綆妫€鏌ラ鐜?
                 }
             }
         }
@@ -429,8 +446,8 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 【修复】从 SharedPreferences 恢复播放状态（进程被杀后重启时使用）
-     * Service 重建后 MediaController 无 mediaItem → 从Save的状态重建
+     * 銆愪慨澶嶃€戜粠 SharedPreferences 鎭㈠鎾斁鐘舵€侊紙杩涚▼琚潃鍚庨噸鍚椂浣跨敤锛?
+     * Service 閲嶅缓鍚?MediaController 鏃?mediaItem 鈫?浠嶴ave鐨勭姸鎬侀噸寤?
      */
     private fun restoreFromSavedState() {
         try {
@@ -464,7 +481,7 @@ class PlayerConnection(private val context: Context) {
             _durationMs.value = song.duration
             android.util.Log.d("PlayerConnection",
                 "restoreFromSavedState: song=${song.title}, pos=$savedPos, wasPlaying=$wasPlaying")
-            // 只在确实需要恢复播放时才调用 play()
+            // 鍙湪纭疄闇€瑕佹仮澶嶆挱鏀炬椂鎵嶈皟鐢?play()
             if (wasPlaying) {
                 ctrl.play()
             }
@@ -474,7 +491,7 @@ class PlayerConnection(private val context: Context) {
     }
 
     /**
-     * 清理资源（ViewModel onCleared 时调用）
+     * 娓呯悊璧勬簮锛圴iewModel onCleared 鏃惰皟鐢級
      */
     fun release() {
         disconnect()

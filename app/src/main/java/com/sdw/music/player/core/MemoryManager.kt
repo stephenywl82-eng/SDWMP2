@@ -14,39 +14,45 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 【v3.2 性能优化】内存与缓存管理器
- * 
- * 核心功能：
- * 1. LRU Cover颜色缓存（自动淘汰最少使用）
+ *
+ * 核心功能:
+ * 1. LRU Cover颜色缓存(自动淘汰最少使用)
  * 2. 低内存时自动清理
- * 3. 智能预加载（可见项优先）
+ * 3. 智能预加载(可见项优先)
  * 4. 内存使用监控
  */
 object MemoryManager {
     private const val TAG = "MemoryManager"
-    
+
     // 【LRU 缓存】最多缓存 500 首歌曲的Cover颜色
     private const val PALETTE_CACHE_SIZE = 500
-    
+
     private val paletteCache = object : LruCache<Long, Int>(PALETTE_CACHE_SIZE) {
-        override fun sizeOf(key: Long, value: Int): Int = 1  // 每个 entry 算 1 单位
+        override fun sizeOf(key: Long, value: Int): Int = 1
     }
-    
+
+    // 【多色缓存】每首歌缓存5色 (vibrant, lightVibrant, darkVibrant, muted, lightMuted)
+    private const val MULTI_CACHE_SIZE = 300
+    private val multiPaletteCache = object : LruCache<Long, IntArray>(MULTI_CACHE_SIZE) {
+        override fun sizeOf(key: Long, value: IntArray): Int = 1
+    }
+
     // 【预加载状态】正在预加载的歌曲 ID
     private val preloadingIds = ConcurrentHashMap<Long, Boolean>()
-    
+
     // 【磁盘持久化】Cover颜色缓存 SharedPreferences
     private const val PREFS_PALETTE = "palette_cache"
     private const val KEY_PALETTE_JSON = "palette_json"
     @Volatile
     private var paletteDirty = false
-    
+
     // 【内存压力等级】
     enum class MemoryPressure {
         NORMAL,      // 内存充足
         MODERATE,    // 内存紧张
         CRITICAL     // 内存严重不足
     }
-    
+
     /**
      * 获取当前内存压力等级
      */
@@ -54,16 +60,16 @@ object MemoryManager {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val memoryInfo = ActivityManager.MemoryInfo()
         activityManager.getMemoryInfo(memoryInfo)
-        
+
         val availablePercent = (memoryInfo.availMem.toDouble() / memoryInfo.totalMem) * 100
-        
+
         return when {
             availablePercent < 10 -> MemoryPressure.CRITICAL
             availablePercent < 25 -> MemoryPressure.MODERATE
             else -> MemoryPressure.NORMAL
         }
     }
-    
+
     /**
      * 缓存Cover颜色
      */
@@ -71,17 +77,17 @@ object MemoryManager {
         paletteCache.put(songId, color)
         paletteDirty = true
     }
-    
+
     /**
      * 获取缓存的Cover颜色
-     * @return 颜色值，如果不存在Back 0
+     * @return 颜色值,如果不存在Back 0
      */
     fun getPaletteColor(songId: Long): Int {
         return paletteCache.get(songId) ?: 0
     }
 
     /**
-     * 从Cover提取强调色，过滤黑白，智能提亮深色
+     * 从Cover提取强调色,过滤黑白,智能提亮深色
      */
     suspend fun extractAccentColor(context: Context, uriString: String, songId: Long): Int? {
         // 优先查内存缓存
@@ -97,27 +103,27 @@ object MemoryManager {
                 }
                 val palette = Palette.from(bitmap).generate()
                 bitmap.recycle()
-                
-                // 优先取亮色/鲜艳色，保证在深色背景上可见
+
+                // 优先取亮色/鲜艳色,保证在深色背景上可见
                 val swatch = palette.lightVibrantSwatch
                     ?: palette.vibrantSwatch
                     ?: palette.lightMutedSwatch
                     ?: palette.dominantSwatch
                     ?: palette.mutedSwatch
                     ?: return@withContext null
-                
+
                 val rgb = swatch.rgb
                 val hsv = FloatArray(3)
                 android.graphics.Color.colorToHSV(rgb, hsv)
-                
+
                 val hue = hsv[0]
                 val sat = hsv[1]
                 val bri = hsv[2]
-                
+
                 // 过滤纯黑纯白
                 if (bri < 0.04f || bri > 0.97f) return@withContext null
-                
-                // 智能提亮：深色Cover取出的颜色太暗，文字/按钮看不清
+
+                // 智能提亮:深色Cover取出的颜色太暗,文字/按钮看不清
                 val adjustedSat: Float
                 val adjustedBri: Float
                 when {
@@ -134,7 +140,7 @@ object MemoryManager {
                         adjustedBri = bri
                     }
                 }
-                
+
                 val adjustedRgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, adjustedSat, adjustedBri))
                 val color = (0xFF000000.toInt() or adjustedRgb)
                 putPaletteColor(songId, adjustedRgb)
@@ -146,7 +152,57 @@ object MemoryManager {
             }
         }
     }
-    
+
+    /**
+     * 从封面提取5色——用于Edge灯/Mixer等需要多色变化的地方
+     * returns IntArray(5): [vibrant, lightVibrant, darkVibrant, muted, lightMuted]
+     */
+    suspend fun extractCoverColors(context: Context, uriString: String, songId: Long): IntArray? {
+        val cached = multiPaletteCache.get(songId)
+        if (cached != null && cached.size == 5) return cached
+        return withContext(Dispatchers.IO) {
+            try {
+                val uri = Uri.parse(uriString)
+                val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                if (bitmap.width <= 0) { bitmap.recycle(); return@withContext null }
+                val p = Palette.from(bitmap).generate()
+                bitmap.recycle()
+
+                fun adjust(swatch: Palette.Swatch?): Int {
+                    if (swatch == null) return 0
+                    val hsv = FloatArray(3)
+                    android.graphics.Color.colorToHSV(swatch.rgb, hsv)
+                    val bri = hsv[2]
+                    if (bri < 0.04f || bri > 0.97f) return 0
+                    val sat = when {
+                        bri < 0.25f -> (hsv[1] * 1.5f).coerceAtMost(1f)
+                        bri < 0.40f -> (hsv[1] * 1.25f).coerceAtMost(1f)
+                        else -> hsv[1]
+                    }
+                    val b = when {
+                        bri < 0.25f -> 0.55f
+                        bri < 0.40f -> 0.50f
+                        else -> bri
+                    }
+                    return android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], sat, b))
+                }
+
+                val colors = IntArray(5)
+                colors[0] = adjust(p.vibrantSwatch)
+                colors[1] = adjust(p.lightVibrantSwatch)
+                colors[2] = adjust(p.darkVibrantSwatch)
+                colors[3] = adjust(p.mutedSwatch)
+                colors[4] = adjust(p.lightMutedSwatch)
+
+                multiPaletteCache.put(songId, colors)
+                colors
+            } catch (e: Exception) {
+                Log.w(TAG, "extractCoverColors failed: ${e.message}")
+                null
+            }
+        }
+    }
+
     /**
      * 从磁盘加载Cover颜色缓存
      */
@@ -171,7 +227,7 @@ object MemoryManager {
             Log.w(TAG, "loadPaletteFromDisk failed: ${e.message}")
         }
     }
-    
+
     /**
      * 将Cover颜色缓存写入磁盘
      */
@@ -191,7 +247,7 @@ object MemoryManager {
             Log.w(TAG, "flushPaletteToDisk failed: ${e.message}")
         }
     }
-    
+
     /**
      * 清除所有缓存
      */
@@ -200,7 +256,7 @@ object MemoryManager {
         preloadingIds.clear()
         Log.d(TAG, "All caches cleared")
     }
-    
+
     /**
      * 低内存时清理部分缓存
      */
@@ -215,22 +271,22 @@ object MemoryManager {
         }
         preloadingIds.clear()
     }
-    
+
     /**
      * 标记预加载On始
-     * @return true 如果可以On始预加载，false 如果已经在预加载
+     * @return true 如果可以On始预加载,false 如果已经在预加载
      */
     fun startPreload(songId: Long): Boolean {
         return preloadingIds.putIfAbsent(songId, true) == null
     }
-    
+
     /**
      * 标记预加载结束
      */
     fun endPreload(songId: Long) {
         preloadingIds.remove(songId)
     }
-    
+
     /**
      * 获取缓存统计信息
      */

@@ -22,6 +22,7 @@ import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import android.util.Log
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.delay
@@ -39,8 +40,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
@@ -71,14 +74,25 @@ import com.sdw.music.player.MusicService
 import kotlin.math.exp
 import android.os.PowerManager
 import com.sdw.music.player.ui.theme.*
+import com.sdw.music.player.ui.components.Smooth
 
 import com.sdw.music.player.EqualizerManager
+import com.sdw.music.player.ui.components.VuMeter
+import com.sdw.music.player.ui.components.VuMeterStyle
 import com.sdw.music.player.ui.viewmodel.PlayerState
 import com.sdw.music.player.ui.animation.CoverPosition
 import com.sdw.music.player.ui.animation.SharedCoverState
 import androidx.media3.common.Player
 
 data class BandLevels(val sub: Float = 0f, val bass: Float = 0f, val mid: Float = 0f, val high: Float = 0f, val rms: Float = 0f)
+
+/** Map raw band energy (0~0.15ish) to display range 0~1 using log10, calibrated for LP-diff output */
+private fun Float.toLog(): Float {
+    if (this <= 0.0001f) return 0f
+    // log10 maps: 0.001→0.35, 0.01→0.67, 0.1→1.0
+    val v = (kotlin.math.log10(this) + 3f) / 3f
+    return v.coerceIn(0f, 1f)
+}
 
 
 @Composable
@@ -104,6 +118,7 @@ fun PlayerScreen(
     onNavigateToAlbum: (albumName: String) -> Unit = {},
     onNavigateToArtist: (artistName: String) -> Unit = {},
     onDismiss: (() -> Unit)? = null,
+    audioSessionId: Int = 0,
 ) {
     val accentColor by animateColorAsState(
         targetValue = Color(state.accentColor),
@@ -184,6 +199,11 @@ fun PlayerScreen(
     // EQ status poll
     var eqEnabled by remember { mutableStateOf(false) }
     var eqPresetName by remember { mutableStateOf<String?>(null) }
+    var vuSessionId by remember { mutableIntStateOf(audioSessionId) }
+
+    val vuPrefs = remember { context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE) }
+    var vuEnabled by remember { mutableStateOf(vuPrefs.getBoolean("vu_meter_enabled", true)) }
+    var vuStyleIdx by remember { mutableIntStateOf(vuPrefs.getInt("vu_meter_style", 3).coerceIn(0, 3)) }
     LaunchedEffect(Unit) {
         while (true) {
             try {
@@ -256,14 +276,21 @@ fun PlayerScreen(
             emaBass.value = emaBass.value * 0.85f + bv * 0.15f
             emaMid.value = emaMid.value * 0.85f + mv * 0.15f
             emaHigh.value = emaHigh.value * 0.85f + hv * 0.15f
-            bandLevelsState.value = BandLevels(emaSub.value, emaBass.value, emaMid.value, emaHigh.value, s.coerceAtMost(1f))
+            // bandLevelsState updated exclusively by Oboe poll loop below
         }
-        // Also keep polling RMS as fallback
+        // Poll real band levels from Oboe LP-diff analysis
+        // Raw band values are tiny (0.001~0.05); apply log10 mapping for visual range
         while (true) {
             try {
-                val rms = MusicService.instance?.getOboePlayer()?.getRmsLevel() ?: 0f
-                if (bandLevelsState.value.rms < rms) {
-                    bandLevelsState.value = bandLevelsState.value.copy(rms = rms)
+                val oboe = MusicService.instance?.getOboePlayer()
+                if (oboe != null) {
+                    bandLevelsState.value = BandLevels(
+                        sub = oboe.getBandSub(),
+                        bass = oboe.getBandBass(),
+                        mid = oboe.getBandMid(),
+                        high = oboe.getBandHigh(),
+                        rms = oboe.getRmsLevel()
+                    )
                 }
             } catch (_: Exception) { }
             kotlinx.coroutines.delay(80)
@@ -316,25 +343,9 @@ fun PlayerScreen(
 
     val ease = CubicBezierEasing(0.42f, 0.0f, 0.58f, 1.0f)
 
-    // Edge light preference — gates ALL visual animations (Aurora + edge glow)
+    // Edge light preference — VU-style edge bars only, no background flash
     val edgeLightPref = LocalContext.current.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
     val edgeLightEnabled = edgeLightPref.getBoolean("moto_edge_light", true)
-
-    // Aurora phases — infinite transitions only when animations are enabled
-    val auroraPhases = if (edgeLightEnabled && screenOn.value) {
-        bandReactiveBlobs.map { blob ->
-            rememberInfiniteTransition().animateFloat(
-                0f, 2f * Math.PI.toFloat(),
-                infiniteRepeatable(tween(blob.period, easing = ease), RepeatMode.Restart),
-                label = "ph${blob.hueOff.toInt()}"
-            ).value
-        }
-    } else if (edgeLightEnabled) {
-        // screen off: static phases, zero CPU
-        remember { bandReactiveBlobs.mapIndexed { i, _ -> i * 0.4f } }
-    } else {
-        remember { bandReactiveBlobs.map { 0f } }
-    }
 
     // Per-band beat flash for pulse effect
     data class BandBeat(val flash: Float = 0f, val decay: Float = 0f)
@@ -342,93 +353,18 @@ fun PlayerScreen(
     var bassBeat by remember { mutableStateOf(BandBeat()) }
     var midBeat by remember { mutableStateOf(BandBeat()) }
     var highBeat by remember { mutableStateOf(BandBeat()) }
-    if (edgeLightEnabled) {
-        LaunchedEffect(Unit) {
-            var lastSub = 0f; var lastBass = 0f; var lastMid = 0f; var lastHigh = 0f
-            while (true) {
-                val b = bandLevelsState.value
-                if (isPlaying) {
-                    fun detectBeat(prev: Float, curr: Float, currentBeat: BandBeat): BandBeat {
-                        val beat = curr > prev * 1.3f && curr > 0.06f
-                        val flash = if (beat) (curr * 2f).coerceAtMost(1.2f) else 0f
-                        val decay = (if (beat) 1f else currentBeat.decay * 0.85f).coerceAtLeast(0f)
-                        return BandBeat(flash, decay)
-                    }
-                    subBeat = detectBeat(lastSub, b.sub, subBeat)
-                    bassBeat = detectBeat(lastBass, b.bass, bassBeat)
-                    midBeat = detectBeat(lastMid, b.mid, midBeat)
-                    highBeat = detectBeat(lastHigh, b.high, highBeat)
-                    lastSub = b.sub; lastBass = b.bass; lastMid = b.mid; lastHigh = b.high
-                } else {
-                    subBeat = BandBeat(); bassBeat = BandBeat(); midBeat = BandBeat(); highBeat = BandBeat()
-                }
-                kotlinx.coroutines.delay(60)
-            }
-        }
-    }
-    val beatBoosts = if (edgeLightEnabled) {
-        listOf(
-            if (isPlaying) (1f + subBeat.flash * subBeat.decay * 1.5f).coerceAtMost(2.5f) else 0.6f,
-            if (isPlaying) (1f + bassBeat.flash * bassBeat.decay * 1.3f).coerceAtMost(2.2f) else 0.6f,
-            if (isPlaying) (1f + midBeat.flash * midBeat.decay).coerceAtMost(2.0f) else 0.6f,
-            if (isPlaying) (1f + highBeat.flash * highBeat.decay * 0.7f).coerceAtMost(1.8f) else 0.7f,
-        )
-    } else {
-        listOf(0.6f, 0.6f, 0.6f, 0.7f)
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Band-reactive Aurora background — only when animations enabled
-        if (edgeLightEnabled) {
-            Canvas(modifier = Modifier.fillMaxSize().blur(48.dp)) {
-            val w = size.width; val h = size.height
-            val maxDim = kotlin.math.max(w, h)
-            bandReactiveBlobs.forEachIndexed { i, blob ->
-                val p0 = auroraPhases[i]
-                val boost = beatBoosts[blob.bandGroup]
-                val bandEnergy = when (blob.bandGroup) {
-                    0 -> bandLevelsState.value.sub; 1 -> bandLevelsState.value.bass
-                    2 -> bandLevelsState.value.mid; else -> bandLevelsState.value.high
-                }
-                // Beat pulse: burst alpha on transient
-                val beatFlash = when (blob.bandGroup) {
-                    0 -> subBeat.flash * subBeat.decay
-                    1 -> bassBeat.flash * bassBeat.decay
-                    2 -> midBeat.flash * midBeat.decay
-                    else -> highBeat.flash * highBeat.decay
-                }
-                // Sub band: drive movement speed, bass: alpha, mid: scale, high: extra alpha spike
-                val speedMul = 1f + (if (blob.bandGroup == 0) bandEnergy * 1.5f else 0f)
-                val pulseAlpha = if (blob.bandGroup == 3) beatFlash * 0.3f else 0f
-                val alphaMul = if (blob.bandGroup == 1) 1f + bandEnergy * 0.6f else if (blob.bandGroup == 3) 1f else 1f
-                val scaleMul = if (blob.bandGroup == 2) 1f + bandEnergy * 0.15f else 1f
-
-                val cx = w * (blob.baseX +
-                        (0.22f * speedMul) * Math.sin((p0 * speedMul).toDouble()).toFloat() +
-                        0.11f * Math.sin((p0 * 2.3 + blob.phaseOff).toDouble()).toFloat() +
-                        0.04f * Math.sin((p0 * 3.7 + blob.phaseOff * 2.1).toDouble()).toFloat())
-                val cy = h * (blob.baseY +
-                        (0.20f * speedMul) * Math.cos((p0 * 0.88 * speedMul).toDouble()).toFloat() +
-                        0.10f * Math.cos((p0 * 2.7 + blob.phaseOff + 1.0).toDouble()).toFloat() +
-                        0.05f * Math.cos((p0 * 3.1 + blob.phaseOff * 1.8).toDouble()).toFloat())
-                val r = maxDim * blob.scale * scaleMul
-                val finalAlpha = (blob.baseAlpha * boost * alphaMul + pulseAlpha).coerceIn(0f, 0.92f)
-                val c = Color(android.graphics.Color.HSVToColor(
-                    floatArrayOf(((seedHues[blob.bandGroup % 3] + blob.hueOff) % 360f + 360f) % 360f, blob.sat, blob.bright)
-                ))
-                drawCircle(
-                    Brush.radialGradient(
-                        0.0f to c.copy(alpha = finalAlpha),
-                        0.20f to c.copy(alpha = finalAlpha * 0.45f),
-                        0.55f to c.copy(alpha = finalAlpha * 0.08f),
-                        1.0f to Color.Transparent,
-                        center = Offset(cx, cy), radius = r
-                    ),
-                    radius = r, center = Offset(cx, cy)
-                )
-            }
+        // VU-style Edge Bars — only when edge light enabled
+        if (!isFoldable && edgeLightEnabled) {
+            EdgeVuBars(
+                bandLevels = bandLevelsState.value,
+                isPlaying = isPlaying,
+                coverColors = state.coverColors,
+                accentColor = accentColor,
+                isLandscape = isLandscape
+            )
         }
-        } // if (edgeLightEnabled)
 
         // Vignette
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -445,11 +381,7 @@ fun PlayerScreen(
             )
         }
 
-        // Edge light — Polar dual-flow (gated by same pref)
-        if (!isFoldable && edgeLightEnabled) {
-            val songBpm = BpmKeyCache.get(state.currentSongFilePath)?.first ?: 0
-            PolarEdgeLight(accentColor = accentColor, isPlaying = isPlaying, isLandscape = isLandscape, songBpm = songBpm, positionMs = positionMs, onsetSeq = onsetSeq.value, onsetIntensity = onsetIntensityState.value)
-        }
+        // Edge light removed — replaced by VU Meter
 
         // Layout switch
         if (isLandscape && isFoldable) {
@@ -497,6 +429,9 @@ fun PlayerScreen(
                 durationMs = durationMs,
                 eqPresetName = eqPresetName,
                 eqEnabled = eqEnabled,
+                vuEnabled = vuEnabled,
+                bandLevels = bandLevelsState.value,
+                vuStyleIdx = vuStyleIdx,
                 currentLyricLine = currentLyricLine,
                 showMenu = showMenu,
                 onToggleMenu = { showMenu = true },
@@ -530,6 +465,9 @@ fun PlayerScreen(
                 durationMs = durationMs,
                 eqPresetName = eqPresetName,
                 eqEnabled = eqEnabled,
+                vuEnabled = vuEnabled,
+                bandLevels = bandLevelsState.value,
+                vuStyleIdx = vuStyleIdx,
                 currentLyricLine = currentLyricLine,
                 showMenu = showMenu,
                 portraitModifier = portraitModifier,
@@ -768,6 +706,9 @@ private fun LandscapeLayout(
     durationMs: Long,
     eqPresetName: String?,
     eqEnabled: Boolean,
+    vuEnabled: Boolean,
+    bandLevels: BandLevels,
+    vuStyleIdx: Int,
     currentLyricLine: String?,
     showMenu: Boolean,
     onToggleMenu: () -> Unit,
@@ -827,6 +768,11 @@ private fun LandscapeLayout(
             }
 
             // Bottom: controls
+            // VU Meter
+            if (vuEnabled) {
+                VuMeter(sub = bandLevels.sub, bass = bandLevels.bass, mid = bandLevels.mid, high = bandLevels.high, rms = bandLevels.rms, isActive = isPlaying, style = VuMeterStyle.entries[vuStyleIdx], accentColor = accentColor, modifier = Modifier.padding(horizontal = 8.dp).heightIn(max = 80.dp))
+                Spacer(Modifier.height(12.dp))
+            }
             PlayerEqLabel(eqPresetName, accentColor, textAccentColor)
             PlayerProgress(
                 progressFraction, durationMs, positionMs, accentColor,
@@ -892,6 +838,9 @@ private fun PortraitLayout(
     durationMs: Long,
     eqPresetName: String?,
     eqEnabled: Boolean,
+    vuEnabled: Boolean,
+    bandLevels: BandLevels,
+    vuStyleIdx: Int,
     currentLyricLine: String?,
     showMenu: Boolean,
     portraitModifier: Modifier,
@@ -983,6 +932,12 @@ private fun PortraitLayout(
         )
 
         Spacer(Modifier.weight(1f))
+
+        // VU Meter
+        if (vuEnabled) {
+                VuMeter(sub = bandLevels.sub, bass = bandLevels.bass, mid = bandLevels.mid, high = bandLevels.high, rms = bandLevels.rms, isActive = isPlaying, style = VuMeterStyle.entries[vuStyleIdx], accentColor = accentColor, modifier = Modifier.padding(horizontal = infoPadding))
+            Spacer(Modifier.height(6.dp))
+        }
 
         // EQ label
         PlayerEqLabel(eqPresetName, accentColor, textAccentColor)
@@ -1095,281 +1050,155 @@ private fun MotorolaWatermark(accentColor: Color) {
     }
 }
 
-// ============================================================================
-// Moto Edge Light (curved edge ambient glow)
-// ============================================================================
-
+// ═══════════════════════════════════════════════════════════════════
+// Edge VU Bars — 28 strips, each mapped to cover palette colors
+// coverColors: [vibrant, lightVibrant, darkVibrant, muted, lightMuted]
+// Dynamic hue/sat/brightness per strip; organic glow bloom + gradient
+// ═══════════════════════════════════════════════════════════════════
 @Composable
-
-
-private fun PolarEdgeLight(accentColor: Color, isPlaying: Boolean, isLandscape: Boolean = false, songBpm: Int = 0, positionMs: Long = 0L, onsetSeq: Long = 0L, onsetIntensity: Float = 1f) {
-    val baseHue = remember(accentColor) {
+private fun EdgeVuBars(
+    bandLevels: BandLevels,
+    isPlaying: Boolean,
+    coverColors: IntArray,
+    accentColor: Color,
+    isLandscape: Boolean
+) {
+    val stripsPerSide = 28
+    val smoothL = remember { Array(stripsPerSide) { Smooth(0.5f) } }
+    val smoothR = remember { Array(stripsPerSide) { Smooth(0.5f) } }
+    val peaksL = remember { FloatArray(stripsPerSide) }
+    val peaksR = remember { FloatArray(stripsPerSide) }
+    val frame = remember { longArrayOf(0L) }
+    // Pre-compute strip hues from cover palette or fallback
+    val stripHues = remember(coverColors) {
+        if (coverColors.size >= 5 && coverColors.any { it != 0 }) {
+            val hsv = FloatArray(3)
+            val hues = FloatArray(5)
+            for (j in 0..4) {
+                if (coverColors[j] != 0) {
+                    android.graphics.Color.colorToHSV(coverColors[j], hsv); hues[j] = hsv[0]
+                } else hues[j] = -1f
+            }
+            FloatArray(stripsPerSide) { i ->
+                val f = i / (stripsPerSide - 1f)
+                // Pick one of the 5 palette swatches with some randomness
+                val pick = (i * 7 + 3) % 5
+                if (hues[pick] >= 0f) hues[pick]
+                else {
+                    // Spread fallback hues across the spectrum
+                    val avail = hues.withIndex().filter { it.value >= 0f }.map { it.value }
+                    if (avail.isNotEmpty()) avail[i % avail.size]
+                    else -1f
+                }
+            }
+        } else FloatArray(stripsPerSide) { -1f }
+    }
+    val fallbackHue = remember(accentColor) {
         val hsv = FloatArray(3)
-        android.graphics.Color.colorToHSV(
-            android.graphics.Color.argb(
-                (accentColor.alpha * 255).toInt(), (accentColor.red * 255).toInt(),
-                (accentColor.green * 255).toInt(), (accentColor.blue * 255).toInt()
-            ), hsv
-        )
+        android.graphics.Color.colorToHSV(android.graphics.Color.rgb(
+            (accentColor.red * 255).toInt().coerceIn(0, 255),
+            (accentColor.green * 255).toInt().coerceIn(0, 255),
+            (accentColor.blue * 255).toInt().coerceIn(0, 255)), hsv)
         hsv[0]
     }
 
-    val leftHueOffset = remember { kotlin.random.Random.nextFloat() * 180f - 90f }
-    val rightHueOffset = remember { kotlin.random.Random.nextFloat() * 180f - 90f }
+    Canvas(Modifier.fillMaxSize()) {
+        frame[0]++
+        val w = size.width; val h = size.height
+        if (w <= 50f || h <= 50f) return@Canvas
 
-    var tick by remember { mutableStateOf(0L) }
+        val isVert = !isLandscape
+        val barLen = if (isVert) h else w
+        val barTk = (if (isVert) w else h) * 0.022f
+        val strips = stripsPerSide
+        val gap = 1.5.dp.toPx()
+        val segH = (barLen - gap * (strips + 1)) / strips
+        val cr = barTk * 0.5f
+        val fc = frame[0].toFloat()
 
-    // ── Animation state ──
-    val leftOffset = remember { mutableStateOf(0f) }
-    val rightOffset = remember { mutableStateOf(0.45f) }
-    val prevLandscape = remember { mutableStateOf(isLandscape) }
-    val leftHue = remember { mutableStateOf(baseHue + leftHueOffset) }
-    val rightHue = remember { mutableStateOf(baseHue + rightHueOffset) }
-    val leftBreath = remember { mutableStateOf(1f) }
-    val rightBreath = remember { mutableStateOf(1f) }
-    val leftBeat = remember { mutableStateOf(0f) }
-    val rightBeat = remember { mutableStateOf(0f) }
-    val leftStrobe = remember { mutableStateOf(0f) }
-    val rightStrobe = remember { mutableStateOf(0f) }
+        for (side in 0..1) {
+            val isL = side == 0
+            val smooth = if (isL) smoothL else smoothR
+            val peaks = if (isL) peaksL else peaksR
 
-    val effectiveBpm = if (songBpm in 40..220) songBpm else 128
-    val beatMs = 60000f / effectiveBpm
+            for (i in 0 until strips) {
+                val f = i / (strips - 1f)
+                val envelope = kotlin.math.sin(f * Math.PI).toFloat().coerceIn(0.35f, 1f)
 
-    val baseIntensity = androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0.15f,
-        animationSpec = androidx.compose.animation.core.tween(1500),
-        label = "edgeIntensity"
-    )
-
-    LaunchedEffect(isPlaying, positionMs) {
-        var lastFrame = 0L
-        var lastBeatL = -1f; var lastBeatR = -1f
-        var lastOnsetId = 0L; var onsetSide = false
-        val beatHalfLife = 0.045f
-        val breathPeriod = 6f
-
-        while (true) {
-            withFrameMillis { frameTime ->
-                if (lastFrame == 0L) { lastFrame = frameTime; return@withFrameMillis }
-                val dt = (frameTime - lastFrame).coerceAtMost(50L) / 1000f
-                lastFrame = frameTime
-                val t = frameTime * 0.001f
-                val posMs = positionMs.toFloat()
-
-                // ── Rotation detect: swap offsets when landscape↔portrait ──
-                if (prevLandscape.value != isLandscape) {
-                    // flip both so light appears to continue circling around the screen
-                    val oldL = leftOffset.value
-                    leftOffset.value = rightOffset.value
-                    rightOffset.value = oldL
-                    prevLandscape.value = isLandscape
+                val raw = if (isL) {
+                    if (f < 0.35f) bandLevels.sub * (1f - f / 0.35f) + bandLevels.bass * (f / 0.35f)
+                    else bandLevels.bass * (1f - (f - 0.35f) / 0.65f) + bandLevels.sub * 0.08f
+                } else {
+                    if (f < 0.45f) bandLevels.mid * (1f - f / 0.45f) + bandLevels.high * (f / 0.45f)
+                    else bandLevels.high * (1f - (f - 0.45f) / 0.55f) + bandLevels.mid * 0.10f
                 }
 
-                // Breathing
-                val breathPhaseL = t / breathPeriod * 2f * kotlin.math.PI.toFloat()
-                val breathPhaseR = breathPhaseL + kotlin.math.PI.toFloat()
-                leftBreath.value = ((kotlin.math.sin(breathPhaseL) + 1f) * 0.5f).coerceIn(0.04f, 1f)
-                rightBreath.value = ((kotlin.math.sin(breathPhaseR) + 1f) * 0.5f).coerceIn(0.04f, 1f)
+                val t = raw.coerceIn(0f, 1f)
+                // Softer curve for larger movement + bigger jitter
+                val curved = kotlin.math.sqrt(t)  // lifts mid-range
+                val phase = i * 0.37f + side * 2.4f
+                val jit = kotlin.math.sin(fc * 0.11f + phase) * 0.10f
+                val target = if (isPlaying) (curved * envelope + jit).coerceIn(0f, 1f) else 0.02f
 
-                // Beat decay — fast sharp punch
-                val beatDecay = kotlin.math.exp((-dt * kotlin.math.ln(2f)) / beatHalfLife).toFloat()
-                leftBeat.value = (leftBeat.value * beatDecay).coerceAtMost(6f)
-                rightBeat.value = (rightBeat.value * beatDecay).coerceAtMost(6f)
-                leftStrobe.value = (leftStrobe.value * beatDecay * 0.5f).coerceAtMost(1f)
-                rightStrobe.value = (rightStrobe.value * beatDecay * 0.5f).coerceAtMost(1f)
+                val v = smooth[i].update(target)
+                if (v > peaks[i]) peaks[i] = v
+                else peaks[i] += (v - peaks[i]) * 0.20f
+                val pk = peaks[i].coerceIn(0f, 1f)
 
-                // ── Beat trigger: onset-driven (primary) + BPM fallback ──
-                if (onsetSeq != lastOnsetId) {
-                    lastOnsetId = onsetSeq
-                    onsetSide = !onsetSide
-                    val punch = onsetIntensity.coerceIn(0.4f, 3.5f) * 6f
-                    if (onsetSide) {
-                        leftBeat.value = punch
-                        leftStrobe.value = 1f
+                // Hue: from cover palette spread, or fallback gradient
+                val hue = if (stripHues[i] >= 0f) {
+                    (stripHues[i] + f * 4f) % 360f
+                } else {
+                    // Fallback: L=blue→teal, R=orange→pink
+                    val hStart = if (isL) 215f else 30f
+                    val hRange = if (isL) -55f else -45f
+                    (hStart + f * hRange + 360f) % 360f
+                }
+                val sat = (0.55f + v * 0.45f * envelope).coerceAtMost(1f)
+                val lit = (0.10f + v * 0.55f * envelope + f * 0.08f).coerceAtMost(0.85f)
+
+                if (isVert) {
+                    val x = if (isL) 0f else w - barTk
+                    val pos = gap + i * (segH + gap)
+                    val h2 = (v * segH * envelope).coerceAtLeast(0f)
+                    if (v > 0.01f && h2 > 1f) {
+                        val y2 = pos + segH - h2
+                        val baseColor = Color.hsl(hue, sat * 0.6f, lit * 0.5f, 0.8f)
+                        val tipColor = Color.hsl((hue + 8f) % 360f, sat, (lit + 0.15f).coerceAtMost(0.95f), 1f)
+                        val grad = Brush.verticalGradient(0f to baseColor, 1f to tipColor)
+                        drawRoundRect(grad, Offset(x, y2), Size(barTk, h2), CornerRadius(cr, cr))
+                        if (pk > 0.04f) {
+                            val pkY = pos + segH - (pk * segH * envelope).coerceAtLeast(1.5f)
+                            drawRoundRect(Color.hsl(hue, sat, 0.8f, 0.9f),
+                                Offset(x, pkY), Size(barTk, 2.dp.toPx()), CornerRadius(cr, cr))
+                        }
                     } else {
-                        rightBeat.value = punch
-                        rightStrobe.value = 1f
+                        val cy2 = pos + segH * 0.5f
+                        drawRoundRect(Color.hsl(hue, 0.2f, 0.04f + f * 0.04f, 0.10f + f * 0.05f),
+                            Offset(x, cy2 - barTk * 0.4f), Size(barTk * 0.8f, barTk * 0.8f), CornerRadius(cr))
                     }
                 } else {
-                    // BPM fallback — when no FFT onsets (quiet ambient / fade-out)
-                    val beatPhaseFull = posMs / beatMs
-                    val beatPhase = beatPhaseFull % 1f
-                    val offBeatPhase = ((beatPhaseFull + 0.5f) % 1f)
-                    if (lastBeatL >= 0f && beatPhase < lastBeatL) {
-                        leftBeat.value = 6f
-                        leftStrobe.value = 1f
+                    val yPos = if (isL) 0f else h - barTk
+                    val pos = gap + i * (segH + gap)
+                    val w2 = (v * segH * envelope).coerceAtLeast(0f)
+                    if (v > 0.01f && w2 > 1f) {
+                        val baseColor = Color.hsl(hue, sat * 0.6f, lit * 0.5f, 0.8f)
+                        val tipColor = Color.hsl((hue + 8f) % 360f, sat, (lit + 0.15f).coerceAtMost(0.95f), 1f)
+                        val grad = Brush.horizontalGradient(0f to baseColor, 1f to tipColor)
+                        drawRoundRect(grad, Offset(pos, yPos), Size(w2, barTk), CornerRadius(cr, cr))
+
+                        if (pk > 0.04f) {
+                            val pw = (pk * segH * envelope).coerceAtLeast(1.5f)
+                            drawRoundRect(Color.hsl(hue, sat, 0.8f, 0.9f),
+                                Offset(pos + pw - 2.dp.toPx(), yPos), Size(2.dp.toPx(), barTk), CornerRadius(cr))
+                        }
+                    } else {
+                        val cx2 = pos + segH * 0.5f
+                        drawRoundRect(Color.hsl(hue, 0.2f, 0.04f + f * 0.04f, 0.10f + f * 0.05f),
+                            Offset(cx2 - barTk * 0.4f, yPos), Size(barTk * 0.8f, barTk * 0.8f), CornerRadius(cr))
                     }
-                    if (lastBeatR >= 0f && offBeatPhase < lastBeatR) {
-                        rightBeat.value = 6f
-                        rightStrobe.value = 1f
-                    }
-                    lastBeatL = beatPhase; lastBeatR = offBeatPhase
                 }
-
-                // Scroll — faster during beat surge
-                val baseSpeed = if (isPlaying) 1f / 7f else 1f / 60f
-                val speedBoost = (leftStrobe.value + rightStrobe.value) * 0.3f
-                // ── Direction reversal per side for looping effect ──
-                // Vertical (portrait): left scrolls down, right scrolls up
-                // Horizontal (landscape): top scrolls right, bottom scrolls left
-                val leftDir = if (isLandscape) 1f else 1f     // top(landscape)/left(portrait)
-                val rightDir = if (isLandscape) -1f else -1f   // bottom(landscape)/right(portrait)
-                leftOffset.value = ((leftOffset.value + leftDir * (baseSpeed + speedBoost) * (0.5f + leftBreath.value * 0.5f) * dt) % 1f + 1f) % 1f
-                rightOffset.value = ((rightOffset.value + rightDir * (baseSpeed + speedBoost) * (0.5f + rightBreath.value * 0.5f) * dt) % 1f + 1f) % 1f
-
-                // Hue drift — shift faster on beat
-                val hueSpeedL = 5f + leftBeat.value * 15f
-                val hueSpeedR = -6f - rightBeat.value * 12f
-                leftHue.value = ((baseHue + leftHueOffset + t * hueSpeedL) % 360f + 360f) % 360f
-                rightHue.value = ((baseHue + rightHueOffset + t * hueSpeedR) % 360f + 360f) % 360f
-
-                tick = frameTime
             }
         }
     }
-
-    // Brush: color gradient along the bar axis
-    fun axisBrush(
-        hue: Float, gradLen: Float, center: Float, axisLen: Float,
-        glowAlpha: Float, baseAlpha: Float, isVertical: Boolean
-    ): Brush {
-        val c0 = center - gradLen * 0.55f
-        val c2 = center + gradLen * 0.55f
-        val s0 = (c0 / axisLen).coerceIn(0f, 1f)
-        val s1 = ((center - gradLen * 0.08f) / axisLen).coerceIn(0f, 1f)
-        val s2 = ((center + gradLen * 0.08f) / axisLen).coerceIn(0f, 1f)
-        val s3 = (c2 / axisLen).coerceIn(0f, 1f)
-
-        // color-shift: hue varies ±18° along the bar for richer look
-        val hueHead = (hue + 18f + 360f) % 360f
-        val hueCore = hue
-        val hueTail = (hue - 18f + 360f) % 360f
-        val barS = 0.55f; val barV = 0.10f
-        val glowS = 0.18f; val glowV = 0.98f
-        val whiteGlow = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.05f, 1.0f)))
-
-        val stops = mutableListOf<Pair<Float, Color>>()
-        if (s0 > 0f) stops.add(0f to Color.Transparent)
-        stops.add(s0.coerceAtLeast(0f) to Color(android.graphics.Color.HSVToColor(floatArrayOf(hueTail, barS, barV))).copy(alpha = baseAlpha * 0.5f))
-        stops.add(s1 to whiteGlow.copy(alpha = glowAlpha))
-        stops.add(s2 to whiteGlow.copy(alpha = glowAlpha))
-        stops.add(s3.coerceAtMost(1f) to Color(android.graphics.Color.HSVToColor(floatArrayOf(hueHead, barS, barV))).copy(alpha = baseAlpha * 0.5f))
-        if (s3 < 1f) stops.add(1f to Color.Transparent)
-
-        return if (isVertical) {
-            Brush.verticalGradient(*stops.toTypedArray(), startY = 0f, endY = axisLen)
-        } else {
-            Brush.horizontalGradient(*stops.toTypedArray(), startX = 0f, endX = axisLen)
-        }
-    }
-
-    @Suppress("UNUSED_VARIABLE")
-    val _forceRecompose = tick
-    val intensity = baseIntensity.value
-
-    // ── Draw ──
-    Box(Modifier.fillMaxSize()) {
-        // Ambient layer — faint base glow with large bloom
-        Canvas(Modifier.fillMaxSize().blur(18.dp)) {
-            val w = size.width; val h = size.height
-            if (w <= 0f || h <= 0f) return@Canvas
-            val isVertical = !isLandscape
-            val axisLen = if (isVertical) h else w
-            val barTk = (if (isVertical) w else h) * 0.045f
-            val ambAlpha = intensity * 0.06f
-            if (ambAlpha < 0.003f) return@Canvas
-            drawEdgeAmbient(axisLen, barTk, intensity, isVertical, w, h, lHue = leftHue.value, rHue = rightHue.value, lBreath = leftBreath.value, rBreath = rightBreath.value, lBeat = leftBeat.value, rBeat = rightBeat.value)
-        }
-
-        // Glow layer — main flow bar with bloom
-        Canvas(Modifier.fillMaxSize().blur(10.dp)) {
-            val w = size.width; val h = size.height
-            if (w <= 0f || h <= 0f) return@Canvas
-            val isVertical = !isLandscape
-            val axisLen = if (isVertical) h else w
-            val barTk = (if (isVertical) w else h) * 0.04f
-            drawEdgeFlow(true, leftOffset.value, barTk, axisLen, intensity, leftBreath.value, leftBeat.value, leftHue.value, isVertical, w, h)
-            drawEdgeFlow(false, rightOffset.value, barTk, axisLen, intensity, rightBreath.value, rightBeat.value, rightHue.value, isVertical, w, h)
-        }
-    }
 }
-
-// Ambient: faint constant bar glow, pulsing with breath
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEdgeAmbient(
-    axisLen: Float, barTk: Float, intensity: Float,
-    isVertical: Boolean, w: Float, h: Float,
-    lHue: Float, rHue: Float, lBreath: Float, rBreath: Float,
-    lBeat: Float = 0f, rBeat: Float = 0f
-) {
-    val ambAlphaMul = (0.4f + lBreath * 0.6f) * (1f + lBeat * 0.4f)
-    val rAlphaMul = (0.4f + rBreath * 0.6f) * (1f + rBeat * 0.4f)
-    val ambSat = (0.55f * (1f + lBeat * 0.2f)).coerceAtMost(1f)
-    val rSat = (0.55f * (1f + rBeat * 0.2f)).coerceAtMost(1f)
-    val ambL = Color(android.graphics.Color.HSVToColor(floatArrayOf(lHue, ambSat, 0.07f))).copy(alpha = intensity * 0.06f * ambAlphaMul)
-    val ambR = Color(android.graphics.Color.HSVToColor(floatArrayOf(rHue, rSat, 0.07f))).copy(alpha = intensity * 0.06f * rAlphaMul)
-    if (isVertical) {
-        drawRect(ambL, topLeft = Offset(0f, 0f), size = Size(barTk, axisLen))
-        drawRect(ambR, topLeft = Offset(w - barTk, 0f), size = Size(barTk, axisLen))
-    } else {
-        drawRect(ambL, topLeft = Offset(0f, 0f), size = Size(axisLen, barTk))
-        drawRect(ambR, topLeft = Offset(0f, h - barTk), size = Size(axisLen, barTk))
-    }
-}
-
-// Flow: main highlight bar with hue gradient
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEdgeFlow(
-    isLeft: Boolean, offset: Float, barTk: Float, axisLen: Float,
-    intensity: Float, breath: Float, beat: Float, hue: Float,
-    isVertical: Boolean, w: Float, h: Float
-) {
-    val gradLen = axisLen * (0.22f + breath * 0.28f + beat * 0.12f)
-    val center = offset * (axisLen + gradLen) - gradLen * 0.5f
-
-    val glowAlpha = (intensity * (0.25f + breath * 0.75f) * (1f + beat * 1.5f)).coerceIn(0f, 1f)
-    if (glowAlpha < 0.015f) return
-
-    // hue-gradient brush
-    val c0 = center - gradLen * 0.55f
-    val c2 = center + gradLen * 0.55f
-    val s0 = (c0 / axisLen).coerceIn(0f, 1f)
-    val s1 = ((center - gradLen * 0.08f) / axisLen).coerceIn(0f, 1f)
-    val s2 = ((center + gradLen * 0.08f) / axisLen).coerceIn(0f, 1f)
-    val s3 = (c2 / axisLen).coerceIn(0f, 1f)
-
-    val hueHead = (hue + 20f + 360f) % 360f
-    val hueTail = (hue - 20f + 360f) % 360f
-    // Beat surge: saturation & value spike on beat
-    val beatSurge = (1f + beat * 0.35f).coerceAtMost(3.1f)
-    val coreSat = (0.40f * beatSurge).coerceAtMost(0.95f)
-    val coreVal = 0.90f
-    val glowCore = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, coreSat, coreVal)))
-    val edgeSat = (0.50f * beatSurge).coerceAtMost(0.95f)
-    val glowEdge = Color(android.graphics.Color.HSVToColor(floatArrayOf(hueHead, edgeSat, 0.85f)))
-
-    val stops = mutableListOf<Pair<Float, Color>>()
-    if (s0 > 0.005f) stops.add(0f to Color.Transparent)
-    stops.add(s0.coerceAtLeast(0f) to glowEdge.copy(alpha = glowAlpha * 0.15f))
-    stops.add(s1 to glowCore.copy(alpha = glowAlpha))
-    stops.add(s2 to glowCore.copy(alpha = glowAlpha))
-    stops.add(s3.coerceAtMost(1f) to glowEdge.copy(alpha = glowAlpha * 0.15f))
-    if (s3 < 0.995f) stops.add(1f to Color.Transparent)
-
-    val brush = if (isVertical) {
-        Brush.verticalGradient(*stops.toTypedArray(), startY = 0f, endY = axisLen)
-    } else {
-        Brush.horizontalGradient(*stops.toTypedArray(), startX = 0f, endX = axisLen)
-    }
-
-    if (isVertical) {
-        drawRect(brush, topLeft = Offset(if (isLeft) 0f else w - barTk, 0f), size = Size(barTk, axisLen))
-    } else {
-        drawRect(brush, topLeft = Offset(0f, if (isLeft) 0f else h - barTk), size = Size(axisLen, barTk))
-    }
-}
-
-
-
-
-
-
-

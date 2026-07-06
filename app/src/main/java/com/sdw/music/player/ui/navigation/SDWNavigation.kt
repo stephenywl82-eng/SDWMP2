@@ -38,6 +38,7 @@ import com.sdw.music.player.ui.animation.SharedCoverOverlay
 import com.sdw.music.player.ui.animation.SharedCoverState
 import com.sdw.music.player.ui.screens.*
 import com.sdw.music.player.SongRepository
+import com.sdw.music.player.MusicService
 import com.sdw.music.player.ui.screens.LyricFullscreenScreen
 import com.sdw.music.player.ui.screens.PlaylistDetailScreen
 import com.sdw.music.player.ui.screens.LyricSearchScreen
@@ -305,6 +306,7 @@ fun SDWNavHost(
                             navController.navigate(Screen.ArtistSong.createRoute(artistName))
                         }
                     },
+                    audioSessionId = MusicService.instance?.getAudioSessionId() ?: 0,
                     onDismiss = {
                         sharedCoverState.exit()
                         sharedCoverState.onAnimationEnd = {

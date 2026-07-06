@@ -66,6 +66,7 @@ data class PlayerState(
     val dspMode: Int = -1,
     val showEqSheet: Boolean = false,
     val accentColor: Long = 0xFF8E6FD0,
+    val coverColors: IntArray = intArrayOf(),  // 5色 for Edge灯
     val songCount: Int = 0,
     val songList: List<Song> = emptyList(),
     val scanStatus: String = "idle",
@@ -272,8 +273,13 @@ class PlayerViewModel @Inject constructor(
                                 val color = MemoryManager.extractAccentColor(application, it.albumArtUri, it.id)
                                 if (color != null) {
                                     _state.update { s -> s.copy(accentColor = color.toLong() and 0xFFFFFFFFL) }
-                                    // 【Widget】颜色提取完成后刷新小部件
                                     MusicWidgetProvider.updateAllWidgets(application)
+                                }
+                            }
+                            viewModelScope.launch {
+                                val colors = MemoryManager.extractCoverColors(application, it.albumArtUri, it.id)
+                                if (colors != null) {
+                                    _state.update { s -> s.copy(coverColors = colors) }
                                 }
                             }
                         } else {

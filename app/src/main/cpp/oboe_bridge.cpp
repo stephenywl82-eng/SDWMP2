@@ -1,4 +1,4 @@
-﻿#include <oboe/Oboe.h>
+#include <oboe/Oboe.h>
 #include <android/log.h>
 #include <jni.h>
 #include <cmath>
@@ -175,6 +175,35 @@ public:
         float a0 = (A + 1.0f) + (A - 1.0f) * cosw0 + twoSqrtAalpha;
         float a1 = -2.0f * ((A - 1.0f) + (A + 1.0f) * cosw0);
         float a2 = (A + 1.0f) + (A - 1.0f) * cosw0 - twoSqrtAalpha;
+        setCoefficients(b0, b1, b2, a0, a1, a2);
+    }
+    void setBandPass(float sampleRate, float centerHz, float Q) {
+        // RBJ Cookbook: Band-pass (constant skirt gain, peak gain = 0dB)
+        float w0 = 2.0f * M_PI * centerHz / sampleRate;
+        float cosw0 = cosf(w0);
+        float sinw0 = sinf(w0);
+        float alpha = sinw0 / (2.0f * Q);
+        float b0 = alpha;
+        float b1 = 0.0f;
+        float b2 = -alpha;
+        float a0 = 1.0f + alpha;
+        float a1 = -2.0f * cosw0;
+        float a2 = 1.0f - alpha;
+        setCoefficients(b0, b1, b2, a0, a1, a2);
+    }
+    void setLowPass(float sampleRate, float cutoffHz, float Q) {
+        // RBJ Cookbook: 2nd-order Low-pass
+        // Used for cascaded LP-diff spectrum splitting (CDJ/DJM style)
+        float w0 = 2.0f * M_PI * cutoffHz / sampleRate;
+        float cosw0 = cosf(w0);
+        float sinw0 = sinf(w0);
+        float alpha = sinw0 / (2.0f * Q);
+        float b0 = (1.0f - cosw0) * 0.5f;
+        float b1 = 1.0f - cosw0;
+        float b2 = (1.0f - cosw0) * 0.5f;
+        float a0 = 1.0f + alpha;
+        float a1 = -2.0f * cosw0;
+        float a2 = 1.0f - alpha;
         setCoefficients(b0, b1, b2, a0, a1, a2);
     }
     void setFlat() {
@@ -571,6 +600,14 @@ static std::atomic<bool> g_dspEqEnabled{false};
 static std::atomic<bool> g_debugSilenceTest{false};  // 【V7.08】强制静音测试标志
 static std::atomic<int64_t> g_playbackPositionUs{0};  // 【V7.67】实际播放位置（微秒），用于nativeGetPositionMs
 static std::atomic<float> g_rmsLevel{0.0f};  // 【V7.xx】实时RMS振幅 0~1，Oboe回调写入，UI轮询
+static std::atomic<float> g_bandSub{0.0f};    // 0-60Hz sub energy (cascaded LP diff)
+static std::atomic<float> g_bandBass{0.0f};   // 60-250Hz bass energy
+static std::atomic<float> g_bandMid{0.0f};     // 250-2000Hz mid energy
+static std::atomic<float> g_bandHigh{0.0f};    // 2000-20000Hz high energy
+// Cascaded low-pass filters for CDJ/DJM-style spectrum splitting
+// sub = LP(60), bass = LP(250)-LP(60), mid = LP(2000)-LP(250), high = full-LP(2000)
+static BiquadFilter g_lp60L, g_lp60R, g_lp250L, g_lp250R, g_lp2000L, g_lp2000R;
+static std::atomic<bool> g_vuFiltersInited{false};
 static std::atomic<int64_t> g_dspDisabledSampleCount{0};  // 【V7.08】DSP 关闭时的采样计数
 static std::atomic<float> g_dspEqPreGain{1.0f};   // 0dB (Steven: EQ是boost不需要pre-atten)
 static std::atomic<float> g_masterGain{0.89f};     // -1dB intersample peak protection
@@ -801,6 +838,54 @@ public:
             int readSamples = std::min(toRead, 4096);  // cap at ~50ms to avoid spikes from huge buffers
             for (int i = 0; i < readSamples; i++) sumSq += output[i] * output[i];
             g_rmsLevel.store(std::sqrt(sumSq / readSamples), std::memory_order_relaxed);
+
+            // 【V7.85】Real 4-band spectrum via cascaded LP-diff (CDJ/DJM style)
+            // sub=LP(60Hz) bass=LP(250Hz)-sub mid=LP(2000Hz)-LP(250Hz) high=full-mid chain
+            // All bands sum to full signal → zero energy loss, zero bandpass attenuation
+            int sr = g_sampleRate.load();
+            if (!g_vuFiltersInited.load()) {
+                g_lp60L.setLowPass(sr, 60.0f, 0.707f);  g_lp60R.setLowPass(sr, 60.0f, 0.707f);
+                g_lp250L.setLowPass(sr, 250.0f, 0.707f); g_lp250R.setLowPass(sr, 250.0f, 0.707f);
+                g_lp2000L.setLowPass(sr, 2000.0f, 0.707f);  g_lp2000R.setLowPass(sr, 2000.0f, 0.707f);
+                // all filters initialized above
+                g_vuFiltersInited.store(true);
+            }
+            float subE = 0, bassE = 0, midE = 0, highE = 0;
+            int ch = stream->getChannelCount();
+            for (int i = 0; i < readSamples; i += ch) {
+                float sl = output[i], sr2 = (ch >= 2 && i + 1 < readSamples) ? output[i + 1] : sl;
+                float mono = (sl + sr2) * 0.5f;
+                float l60 = (g_lp60L.process(sl) + g_lp60R.process(sr2)) * 0.5f;
+                float l250 = (g_lp250L.process(sl) + g_lp250R.process(sr2)) * 0.5f;
+                float l2000 = (g_lp2000L.process(sl) + g_lp2000R.process(sr2)) * 0.5f;
+                float ssub = l60;
+                float sbass = l250 - l60;
+                float smid = l2000 - l250;
+                float shigh = mono - l2000;
+                subE += ssub * ssub; bassE += sbass * sbass;
+                midE += smid * smid; highE += shigh * shigh;
+            }
+            int frames = readSamples / ch;
+            if (frames > 0) {
+                float subR = std::sqrt(subE / frames);
+                float bassR = std::sqrt(bassE / frames);
+                float midR = std::sqrt(midE / frames);
+                float highR = std::sqrt(highE / frames);
+                // LP-diff splits signal into 4 bands, each inherently smaller.
+                // Scale aggressively for visual range; EMA smooth per band.
+                static float emaSub = 0, emaBass = 0, emaMid = 0, emaHigh = 0;
+                const float a = 0.2f;
+                const float gain = 6.0f;
+                emaSub = emaSub * (1 - a) + subR * a;
+                emaBass = emaBass * (1 - a) + bassR * a;
+                emaMid = emaMid * (1 - a) + midR * a;
+                emaHigh = emaHigh * (1 - a) + highR * a;
+                auto cl = [](float x) { return x > 1.0f ? 1.0f : x; };
+                g_bandSub.store(cl(emaSub * gain), std::memory_order_relaxed);
+                g_bandBass.store(cl(emaBass * gain), std::memory_order_relaxed);
+                g_bandMid.store(cl(emaMid * gain), std::memory_order_relaxed);
+                g_bandHigh.store(cl(emaHigh * gain), std::memory_order_relaxed);
+            }
         }
 
         // 【V7.09】正弦波自检：注入 440Hz 测试音
@@ -2113,6 +2198,23 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeResetClipStats(JNIEnv *env, job
 JNIEXPORT jfloat JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeGetRmsLevel(JNIEnv *env, jobject thiz) {
     return g_rmsLevel.load(std::memory_order_relaxed);
+}
+
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBandSub(JNIEnv *env, jobject thiz) {
+    return g_bandSub.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBandBass(JNIEnv *env, jobject thiz) {
+    return g_bandBass.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBandMid(JNIEnv *env, jobject thiz) {
+    return g_bandMid.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBandHigh(JNIEnv *env, jobject thiz) {
+    return g_bandHigh.load(std::memory_order_relaxed);
 }
 
 // --- DSP Mode ---

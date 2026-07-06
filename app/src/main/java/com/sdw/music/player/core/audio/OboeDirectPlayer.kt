@@ -85,6 +85,10 @@ class OboeDirectPlayer(private val context: Context) {
     private external fun nativeGetTotalSamples(): Float
     private external fun nativeResetClipStats()
     private external fun nativeGetRmsLevel(): Float  // 【V7.xx】实时RMS振幅 0~1，节拍可视化
+    private external fun nativeGetBandSub(): Float     // 20-60Hz sub
+    private external fun nativeGetBandBass(): Float    // 60-250Hz bass
+    private external fun nativeGetBandMid(): Float     // 250-2000Hz mid
+    private external fun nativeGetBandHigh(): Float    // 2000-20000Hz high
     private external fun nativeSetSilenceTest(enabled: Boolean)  // 【V7.08】静音测试
     private external fun nativeSetSineTest(enabled: Boolean)         // 【V7.09】正弦波自检
     private external fun nativeIsSineTestRunning(): Boolean          // 【V7.24】
@@ -418,6 +422,12 @@ class OboeDirectPlayer(private val context: Context) {
     fun getRmsLevel(): Float {
         return try { nativeGetRmsLevel() } catch (_: Exception) { 0f }
     }
+
+    /** 实时频谱分频能量（0~1），Oboe 回调双二阶滤波计算 */
+    fun getBandSub(): Float = try { nativeGetBandSub() } catch (_: Exception) { 0f }
+    fun getBandBass(): Float = try { nativeGetBandBass() } catch (_: Exception) { 0f }
+    fun getBandMid(): Float = try { nativeGetBandMid() } catch (_: Exception) { 0f }
+    fun getBandHigh(): Float = try { nativeGetBandHigh() } catch (_: Exception) { 0f }
 
     /** 重置峰值统计（切歌时调用） */
     fun resetClipStats() {

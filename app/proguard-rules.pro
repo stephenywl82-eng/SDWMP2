@@ -62,6 +62,7 @@
 
 # === Manifest components ===
 -keep class com.sdw.music.player.MainActivity { *; }
+-keep class com.sdw.music.player.MusicService { *; }
 -keep class com.sdw.music.player.core.audio.MusicService { *; }
 -keep class com.sdw.music.player.core.widget.** { *; }
 -keep class com.sdw.music.player.widget.** { *; }

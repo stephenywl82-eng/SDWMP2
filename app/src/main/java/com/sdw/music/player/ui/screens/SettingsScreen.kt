@@ -262,6 +262,62 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
 
                 Spacer(Modifier.height(8.dp))
             }
+            item {
+                val vuPref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
+                var vuEnabled by remember(refreshTrigger) {
+                    mutableStateOf(vuPref.getBoolean("vu_meter_enabled", true))
+                }
+                SettingsSwitchItem(
+                    icon = Icons.Default.GraphicEq,
+                    title = "VU Meter",
+                    subtitle = if (vuEnabled) "On · Real-time VU meter on player"
+                    else "Off",
+                    checked = vuEnabled,
+                    onCheckedChange = { enabled ->
+                        vuEnabled = enabled
+                        vuPref.edit().putBoolean("vu_meter_enabled", enabled).apply()
+                        refreshTrigger++
+                    }
+                )
+
+                // VU Style picker (when VU Meter is enabled)
+                if (vuEnabled) {
+                    Spacer(Modifier.height(4.dp))
+                    val vuStylePref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
+                    val currentStyleIdx = vuStylePref.getInt("vu_meter_style", 3)
+                    val styleNames = com.sdw.music.player.ui.components.VuMeterStyle.entries.map { it.label }
+                    var selectedStyle by remember(refreshTrigger) { mutableIntStateOf(currentStyleIdx) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        styleNames.forEachIndexed { idx, name ->
+                            val isSelected = idx == selectedStyle
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedStyle = idx
+                                    vuStylePref.edit().putInt("vu_meter_style", idx).apply()
+                                    refreshTrigger++
+                                },
+                                label = { Text(name, fontSize = 11.sp, maxLines = 1) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = AccentPurple.copy(alpha = 0.25f),
+                                    selectedLabelColor = AccentPurple
+                                ),
+                                modifier = Modifier.height(32.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+            }
             item { SettingsDivider() }
             item {
                 val edgeLightPref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
@@ -271,7 +327,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 SettingsSwitchItem(
                     icon = Icons.Default.LightMode,
                     title = "Curved Edge Glow",
-                    subtitle = if (edgeLightEnabled) "On · Edge glow on player screen"
+                    subtitle = if (edgeLightEnabled) "On · VU-style edge bars on player"
                     else "Off",
                     checked = edgeLightEnabled,
                     onCheckedChange = { enabled ->
@@ -446,7 +502,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "Moto Music",
-                    subtitle = "v3.0 | Developed by Stephen Yu"
+                    subtitle = "v3.2 | Developed by Stephen Yu"
                 )
             }
             item {
