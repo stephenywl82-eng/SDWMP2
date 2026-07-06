@@ -23,8 +23,8 @@ android {
         applicationId = "com.sdw.music.player"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "3.2.0"
+        versionCode = 6
+        versionName = "3.2.1"
 
         ndk {
             abiFilters += listOf("arm64-v8a")
@@ -65,7 +65,7 @@ android {
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
+                getDefaultProguardFile("proguard-android.txt"),
                 "proguard-rules.pro"
             )
         }

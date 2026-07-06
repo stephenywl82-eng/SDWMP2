@@ -65,6 +65,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.sdw.music.player.R
+import com.sdw.music.player.util.DeviceMapper
 import androidx.compose.ui.viewinterop.AndroidView
 import com.sdw.music.player.LyricView
 import com.sdw.music.player.LyricLine
@@ -982,46 +983,14 @@ private fun PortraitLayout(
 }
 
 // ============================================================================
-// Motorola Device Detection & Branding
+// Motorola Device Detection & Branding — delegates to DeviceMapper singleton
 // ============================================================================
-
-private val MOTOROLA_DEVICE_MAP = mapOf(
-    "XT2503" to "ThinkPhone 25",
-    "XT2651" to "Razr Fold",
-    "XT2651-1" to "Razr Fold",
-    "XT2651-4" to "Razr Fold",
-    "XT2453" to "Edge 50 Pro",
-    "XT2455" to "Edge 50 Ultra",
-    "XT2451" to "Edge 50 Fusion",
-    "XT2401" to "Edge 50 Ultra",
-    "XT2409" to "Edge 50 Neo",
-    "XT2407" to "Edge 50",
-    "XT2507" to "Edge 60 Pro",
-    "XT2501" to "Edge 60 Ultra",
-    "XT2541" to "Edge 60",
-    "XT2543" to "Edge 60 Fusion",
-    "XT2555" to "Edge 60 Stylus",
-    "XT2343" to "Edge 40 Pro",
-    "XT2301" to "Razr Plus",
-    "XT2303" to "Razr 40",
-    "XT2323" to "Edge 40 Neo",
-    "XT2423" to "Moto G75",
-    "XT2337" to "Moto G54",
-    "XT2369" to "Moto G55",
-    "XT2341" to "Moto G64",
-    "XT2335" to "Moto G34",
-    "XT2427" to "Moto G35",
-)
 
 internal fun getMotorolaDeviceName(): String? {
     val manufacturer = Build.MANUFACTURER.lowercase()
     if (!manufacturer.contains("motorola")) return null
     val model = Build.MODEL
-    MOTOROLA_DEVICE_MAP[model]?.let { return@let it }
-    for ((key, value) in MOTOROLA_DEVICE_MAP) {
-        if (model.startsWith(key, ignoreCase = true)) return value
-    }
-    return model
+    return DeviceMapper.getDisplayName(model) ?: model
 }
 
 @Composable

@@ -94,9 +94,11 @@ class MusicService : MediaSessionService() {
 
     // [V8.x] AudioDeviceCallback: detect USB DAC hotplug -> restart Oboe Exclusive
     private var oboeUsbGuardMs: Long = 0L  // [V8.1] prevent race: Oboe startup itself triggers device-add callback
+    private var oboeSuppressUsbRestart: Boolean = false  // [V8.2] block USB restarts when Oboe is already playing
     private val usbDacCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
             if (System.currentTimeMillis() < oboeUsbGuardMs) return  // startup race guard
+            if (oboeSuppressUsbRestart) return  // Oboe already running, don&apos;t restart
             val hasUsbDac = addedDevices.any { d ->
                 d.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
                 d.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
@@ -1102,8 +1104,7 @@ class MusicService : MediaSessionService() {
         oboeFlowTrace = if (oboeMode) "0?? Oboe?? (failures=$oboeFailureCount)" else "0?? ExoPlayer?? (audio_output=${getSharedPreferences("settings", MODE_PRIVATE).getString("audio_output", "?")}, libLoaded=${OboeDirectPlayer.nativeLibLoaded}, failures=$oboeFailureCount)"
         if (oboeMode) {
             playSongOboeDirect(index, songs)
-            // ??V7.41+V7.46??Oboe????Refresh????
-            updateNotification()
+            // notification refresh is deferred to handler.post after replaceMediaItem in Oboe success handler
             // ??V7.44+V7.46??Oboe?????????UI?????????????????锟斤拷??Playing"??
             notifySongChanged(songs[index])
             return  // ??V7.46 ?????????return???????????????????ExoPlayer?????
@@ -1321,15 +1322,18 @@ class MusicService : MediaSessionService() {
 
             // Oboe succeeded, post UI updates back to main thread
             oboeFailureCount = 0
-            oboeUsbGuardMs = System.currentTimeMillis() + 5000L  // [V8.1] block USB-DAC race for 5s
+            oboeUsbGuardMs = System.currentTimeMillis() + 8000L  // [V8.1] block USB-DAC race for 8s
+            oboeSuppressUsbRestart = true  // [V8.2] prevent Oboe restart loop after first song
             oboeFlowTrace = "2705 Oboe OK (mode=${newPlayer.getDspMode()?.displayName}, exclusive=${newPlayer.isExclusiveMode()})"
 
             handler.post {
+                // Oboe mode: mute ExoPlayer but DON'T stop it — MediaSession needs it alive
+                // for metadata (notification title/artist). Volume=0 + playWhenReady=false saves CPU.
                 if (isOboeDirectMode()) {
-                    exoPlayer?.stop()  // Release MediaCodec + buffer resources to save CPU
                     exoPlayer?.volume = 0f
+                    exoPlayer?.playWhenReady = false
                     mediaSession?.player?.volume = 0f
-                    Log.d(TAG, "Oboe Exclusive mode: ExoPlayer stopped (saves CPU)")
+                    Log.d(TAG, "Oboe Exclusive: ExoPlayer muted (kept alive for MediaSession metadata)")
                 }
 
                 currentSong = song
@@ -1369,6 +1373,9 @@ class MusicService : MediaSessionService() {
                             )
                             .build()
                         player.replaceMediaItem(index, newMediaItem)
+                        // Force MediaSession to re-read metadata for Oboe mode (replaceMediaItem alone doesn't trigger refresh)
+                        player.seekToDefaultPosition(index)
+                        player.playWhenReady = false
                     } else {
                         val mediaItems = songs.map { s ->
                             val artworkUri = if (s.albumArtUri.isNotEmpty()) android.net.Uri.parse(s.albumArtUri) else null
@@ -1959,7 +1966,6 @@ class MusicService : MediaSessionService() {
         notificationBuilder.setStyle(
                 MediaStyle()
                     .setMediaSession(session.sessionCompatToken)
-                    // compactView ???:prev(0) + playPause(1) + next(2)
                     .setShowActionsInCompactView(0, 1, 2)
             )
 
