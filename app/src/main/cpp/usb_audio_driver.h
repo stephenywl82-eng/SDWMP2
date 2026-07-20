@@ -1,0 +1,155 @@
+#pragma once
+
+#include <atomic>
+#include <cstdint>
+#include <string>
+#include <thread>
+#include <linux/usbdevice_fs.h>
+#include <linux/usb/ch9.h>
+
+/**
+ * Native USB Audio Class driver for direct DAC streaming.
+ *
+ * Uses Linux USB device file ioctls (USBDEVFS_SUBMITURB) over the fd
+ * obtained from Android's UsbDeviceConnection.getFileDescriptor().
+ *
+ * Flow:
+ *   Java UsbDacManager �?JNI (usb_audio_jni.cpp) �?UsbAudioDriver
+ *
+ * Ring buffer: lock-free SPSC, 65536 frames (~1.5s buffer at 44.1kHz stereo float).
+ * Streaming: dedicated thread with isochronous URB submission (64 packets per URB).
+ * Sample rate: synchronous mode �?clock derived from USB SOF, no control transfer needed.
+ *
+ * Logging: All operations are logged to both Android logcat and an in-memory ring buffer
+ * accessible via getNativeDebugLog() / JNI nativeGetDebugLog() for in-app display.
+ * Log format: HH:MM:SS.mmm TAG message (Salt Player style).
+ */
+
+/**
+ * Streaming transmission statistics.
+ */
+struct UsbDacStats {
+    uint64_t urbSubmitted   = 0;
+    uint64_t urbCompleted   = 0;
+    uint64_t urbErrors      = 0;
+    uint64_t totalSamplesOut = 0;
+    int32_t  ringReadPos    = 0;
+    int32_t  ringWritePos   = 0;
+    int32_t  ringAvailFrames = 0;
+    int32_t  bufferWatermarkMs = 0;
+    int32_t  targetWatermarkMs  = 200;
+    const char* healthState = "idle";
+};
+
+class UsbAudioDriver {
+public:
+    static constexpr int kRingFrames    = 131072;      // ~3s buffer at 44.1kHz
+    static constexpr int kMaxUrbCount   = 16;          // in-flight URBs
+    static constexpr int kPacketsPerUrb = 64;          // Salt-style: 64 ISO packets per URB
+    static constexpr int kMaxPacketSize = 576;         // max bytes per ISO packet (384 mps + headroom)
+    static constexpr int kMaxUrbBuffer  = kPacketsPerUrb * kMaxPacketSize;
+    static constexpr int kFeedbackIntervalUs = 200000;
+
+    UsbAudioDriver();
+    ~UsbAudioDriver();
+
+    // ── Lifecycle ──────────────────────────────────────────
+    bool open(int fd, int epAddress, int maxPacketSize, int interval,
+              bool isUac2, int vid, int pid, int ifaceNum);
+    bool start(int sampleRate, int channels, int bitsPerSample);
+    void stop();
+    void stopThreadOnly();
+    int pushPcm(const float* data, int frameCount);
+
+    // ── USB control ────────────────────────────────────────
+    bool claimInterface(int desiredAlt);
+    void releaseInterface();
+    bool setInterfaceAlt(int alt);
+    int setSampleRate(int rate);
+    const char* getSupportedRates();
+
+    // ── State ──────────────────────────────────────────────
+    bool isClaimed() const      { return claimed_.load(std::memory_order_acquire); }
+    bool isStreaming() const    { return streaming_.load(std::memory_order_acquire); }
+    int  getSampleRate() const  { return sampleRate_; }
+    int  getUnderrunCount() const { return underrunCount_.load(std::memory_order_acquire); }
+    void setVolume(float v)      { volume_ = v; }
+    float getVolume() const      { return volume_; }
+    const char* getDacName() const   { return dacName_.c_str(); }
+    const char* getDetailedInfo() const { return detailedInfo_.c_str(); }
+    void getStats(UsbDacStats& out) const;
+
+    // ── Debug log ring buffer (Salt-style in-app log) ─────
+    const char* getNativeDebugLog() const { return nativeLogBuf_; }
+
+    // ── Conversion helpers ─────────────────────────────────
+    int framesToBytes(int frames) const { return frames * bytesPerFrame_; }
+    int packetSizeFrames() const;
+    int packetSizeBytes() const;
+
+private:
+    void streamLoop();
+    void feedbackLoop();
+    static void* streamThreadEntry(void* arg);
+    static void* feedbackThreadEntry(void* arg);
+
+    int  findClockSourceId();
+    int  findFeedbackEndpoint();
+    void parseSupportedRates();
+    uint8_t readConfigDescriptor(uint8_t interfaceNum, uint8_t* buf, size_t maxLen);
+    int controlTransfer(uint8_t bmRequestType, uint8_t bRequest,
+                        uint16_t wValue, uint16_t wIndex,
+                        void* data, uint16_t wLength, unsigned timeoutMs = 100);
+
+    struct UrbSlot {
+        usbdevfs_urb* urb = nullptr;
+        uint8_t buffer[kMaxUrbBuffer];
+    };
+    UrbSlot urbSlots_[kMaxUrbCount];
+    bool submitUrb(int slot, int numBytes);
+    bool submitUrbRaw(int slot);
+    void reapCompletedUrbs();
+
+    // ── Native log ring (written by C++, read by Kotlin via JNI) ──
+    static constexpr int kNativeLogSize = 32768;
+    mutable char nativeLogBuf_[kNativeLogSize] = {};
+    mutable int nativeLogWrite_ = 0;
+    void nativeLog(const char* tag, const char* fmt, ...)
+        __attribute__((format(printf, 3, 4)));
+
+    // ── State ──────────────────────────────────────────────
+    int fd_ = -1;
+    int epAddress_ = 0;
+    int maxPacketSize_ = 0;
+    int interval_ = 1;
+    bool isUac2_ = false;
+    int vid_ = 0;
+    int pid_ = 0;
+    int ifaceNum_ = 0;
+
+    int sampleRate_  = 48000;
+    int channels_    = 2;
+    int bitsPerSample_ = 24;
+    int bytesPerFrame_ = 6;
+
+    std::atomic<bool> streaming_{false};
+    std::atomic<bool> claimed_{false};
+    std::atomic<int>  underrunCount_{0};
+    mutable std::atomic<uint64_t> urbSubmitted_{0};
+    mutable std::atomic<uint64_t> urbCompleted_{0};
+    mutable std::atomic<uint64_t> urbErrors_{0};
+    mutable std::atomic<uint64_t> totalSamplesOut_{0};
+    mutable std::atomic<int32_t>  bufferWatermarkMs_{0};
+
+    float* ringBuffer_ = nullptr;
+    float volume_ = 1.0f;
+    std::atomic<int> writePos_{0};
+    std::atomic<int> readPos_{0};
+
+    std::thread streamThread_;
+    std::thread feedbackThread_;
+
+    std::string dacName_;
+    std::string detailedInfo_;
+    std::string supportedRates_;
+};
