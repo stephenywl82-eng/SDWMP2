@@ -1,64 +1,37 @@
 package com.sdw.music.player.core.audio
 
 import android.media.MediaCodec
-import android.media.MediaCodecInfo
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.os.Process
 import android.util.Log
 import java.nio.ByteBuffer
 
-/**
- * Decodes audio files via MediaExtractor + MediaCodec and feeds raw PCM to
- * [UsbDacManager] on a dedicated high-priority thread.
- *
- * Usage:
- * ```
- * val controller = UsbDacPlaybackController(
- *     onCompletion = { ... },
- *     onError = { msg -> Log.e(TAG, msg) }
- * )
- * if (controller.open("/sdcard/Music/song.flac", 48000, 2)) {
- *     controller.play()
- * }
- * // later:
- * controller.stop()
- * ```
- */
 class UsbDacPlaybackController(
     private val onCompletion: () -> Unit,
     private val onError: (String) -> Unit
 ) {
     companion object {
         private const val TAG = "UsbDacPlayback"
-
-        /** Default output sample rate for USB DAC */
         const val DEFAULT_SAMPLE_RATE = 48000
-
-        /** Default output channels for USB DAC */
         const val DEFAULT_CHANNELS = 2
-
-        /** Default bits per sample for USB DAC */
-        const val DEFAULT_BITS = 24
-
+        const val DEFAULT_BITS = 16  // TTGK DAC output 16-bit (Salt verified)
         private const val TIMEOUT_US = 10000L
+        private const val PREBUFFER_TARGET_MS = 500L
     }
 
-    @Volatile var isPlaying = false
-        private set
-
-    @Volatile var positionMs = 0L
-        private set
-
+    @Volatile var isPlaying = false; private set
+    @Volatile var positionMs = 0L; private set
     val durationMs get() = extractorDurationMs
+    @Volatile var sourceSampleRate = 0; private set
+    @Volatile var sourceBits = 16; private set
+    @Volatile var sourceChannelCount = 0; private set
 
     private var decodeThread: Thread? = null
     private var extractor: MediaExtractor? = null
     private var codec: MediaCodec? = null
     private var extractorDurationMs = 0L
     private var audioTrackIndex = -1
-    private var sourceSampleRate = 0
-    private var sourceChannelCount = 0
     private var dacSampleRate = DEFAULT_SAMPLE_RATE
     private var dacChannels = DEFAULT_CHANNELS
 
@@ -66,169 +39,113 @@ class UsbDacPlaybackController(
     @Volatile private var paused = false
     @Volatile private var shouldStop = false
 
-    /**
-     * Open and prepare an audio file for playback through the USB DAC.
-     *
-     * @param filePath path to the audio file
-     * @param dacSampleRate output sample rate (e.g. 48000, 44100)
-     * @param dacChannels output channel count (e.g. 2 for stereo)
-     * @return true if the file was opened successfully
-     */
-    fun open(filePath: String, dacSampleRate: Int = DEFAULT_SAMPLE_RATE, dacChannels: Int = DEFAULT_CHANNELS): Boolean {
+    fun open(
+        filePath: String,
+        dacSampleRate: Int = DEFAULT_SAMPLE_RATE,
+        dacChannels: Int = DEFAULT_CHANNELS
+    ): Boolean {
         this.dacSampleRate = dacSampleRate
         this.dacChannels = dacChannels
-
         releaseResources()
 
         return try {
+            DebugLog.add(TAG, "open: $filePath")
             val ex = MediaExtractor()
             ex.setDataSource(filePath)
             extractor = ex
 
             audioTrackIndex = -1
             for (i in 0 until ex.trackCount) {
-                val format = ex.getTrackFormat(i)
-                val mime = format.getString(MediaFormat.KEY_MIME) ?: continue
-                if (mime.startsWith("audio/")) {
-                    audioTrackIndex = i
-                    ex.selectTrack(i)
-                    break
-                }
+                val fmt = ex.getTrackFormat(i)
+                val mime = fmt.getString(MediaFormat.KEY_MIME) ?: continue
+                if (mime.startsWith("audio/")) { audioTrackIndex = i; ex.selectTrack(i); break }
             }
+            if (audioTrackIndex < 0) { onError("No audio track"); releaseResources(); return false }
 
-            if (audioTrackIndex < 0) {
-                onError("No audio track found in file")
-                releaseResources()
-                return false
-            }
+            val fmt = ex.getTrackFormat(audioTrackIndex)
+            sourceSampleRate = fmt.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+            sourceChannelCount = fmt.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+            val mime = fmt.getString(MediaFormat.KEY_MIME) ?: "audio/mpeg"
+            extractorDurationMs = if (fmt.containsKey(MediaFormat.KEY_DURATION)) fmt.getLong(MediaFormat.KEY_DURATION) else 0L
 
-            val format = ex.getTrackFormat(audioTrackIndex)
-            sourceSampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-            sourceChannelCount = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-            val mimeType = format.getString(MediaFormat.KEY_MIME) ?: "audio/mpeg"
+            DebugLog.add(TAG, "open: mime=$mime srcSr=$sourceSampleRate srcCh=$sourceChannelCount dacSr=$dacSampleRate dacCh=$dacChannels dur=${extractorDurationMs}ms")
 
-            extractorDurationMs = if (format.containsKey(MediaFormat.KEY_DURATION)) {
-                format.getLong(MediaFormat.KEY_DURATION)
-            } else 0L
-
-            Log.i(TAG, "Opening: $filePath, mime=$mimeType, " +
-                    "srcRate=$sourceSampleRate, srcCh=$sourceChannelCount, " +
-                    "dacRate=$dacSampleRate, dacCh=$dacChannels, durationMs=$extractorDurationMs")
-
-            val codecInstance = MediaCodec.createDecoderByType(mimeType)
-            val codecFormat = MediaFormat.createAudioFormat(mimeType, sourceSampleRate, sourceChannelCount)
-            // Request PCM output in float format if supported
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                codecFormat.setInteger(MediaFormat.KEY_PCM_ENCODING, MediaCodecInfo.CodecProfileLevel.AACObjectXHE)
-            }
-            codecInstance.configure(codecFormat, null, null, 0)
-            codecInstance.start()
-            codec = codecInstance
-
-            Log.i(TAG, "Codec started: $mimeType")
+            val codec = MediaCodec.createDecoderByType(mime)
+            codec.configure(MediaFormat.createAudioFormat(mime, sourceSampleRate, sourceChannelCount), null, null, 0)
+            codec.start()
+            this.codec = codec
+            DebugLog.add(TAG, "open: codec started OK")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to open file: ${e.message}", e)
+            DebugLog.add(TAG, "open FAIL: ${e.message}")
             onError("Failed to open: ${e.message}")
             releaseResources()
             false
         }
     }
 
-    /**
-     * Start playback on a dedicated decode thread.
-     */
     fun play() {
         if (isPlaying) return
-        if (codec == null || extractor == null) {
-            onError("Not ready — call open() first")
-            return
-        }
+        if (codec == null || extractor == null) { onError("Not ready"); return }
+        shouldStop = false; paused = false; isPlaying = true
 
-        shouldStop = false
-        paused = false
+        val targetFrames = ((dacSampleRate * PREBUFFER_TARGET_MS) / 1000L).toInt() * dacChannels
+        DebugLog.add(TAG, "play: starting decode thread, prebuffer=${PREBUFFER_TARGET_MS}ms (${targetFrames} frames)")
 
         decodeThread = Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
-            Log.d(TAG, "Decode thread started with URGENT_AUDIO priority")
-            decodeLoop()
-        }, "UsbDacDecode").apply {
-            isDaemon = true
-            start()
-        }
+            // Pre-buffer before starting DAC stream (Salt pattern: fill ring, then open tap)
+            val preBufFrames = preBuffer(targetFrames)
+            DebugLog.add(TAG, "play: prebuffer done, $preBufFrames frames")
 
-        isPlaying = true
+            // Start DAC stream NOW — ring buffer is full, no underruns
+            val started = UsbDacManager.startStreaming(dacSampleRate, dacChannels, DEFAULT_BITS)
+            if (!started) { onError("startStreaming FAIL"); return@Thread }
+            DebugLog.add(TAG, "play: DAC stream started after prebuffer, entering decode loop")
+            decodeLoop()
+        }, "UsbDacDecode").apply { isDaemon = true; start() }
     }
 
-    /**
-     * Pause playback. Stops the DAC stream and releases resources temporarily.
-     */
     fun pause() {
         if (!isPlaying) return
-        paused = true
-        isPlaying = false
-        // The decode thread will be blocked at pushPcm, stopAndRelease will unblock
+        paused = true; isPlaying = false
         UsbDacManager.stopAndRelease()
-        synchronized(pauseLock) {
-            (pauseLock as java.lang.Object).notifyAll()
-        }
-        Log.d(TAG, "Paused at ${positionMs}ms")
+        synchronized(pauseLock) { (pauseLock as java.lang.Object).notifyAll() }
+        DebugLog.add(TAG, "pause at ${positionMs}ms")
     }
 
-    /**
-     * Resume playback after pause.
-     */
     fun resume() {
         if (isPlaying) return
-        if (codec == null) return
-
-        paused = false
-        shouldStop = false
-
-        val started = UsbDacManager.startStreaming(dacSampleRate, dacChannels, DEFAULT_BITS)
-        if (!started) {
-            onError("Failed to restart USB DAC stream")
-            return
-        }
-
+        paused = false; shouldStop = false
+        UsbDacManager.startStreaming(dacSampleRate, dacChannels, DEFAULT_BITS)
         isPlaying = true
-        Log.d(TAG, "Resumed from ${positionMs}ms")
+        DebugLog.add(TAG, "resume from ${positionMs}ms")
     }
 
-    /**
-     * Stop playback and release all resources.
-     */
     fun stop() {
-        shouldStop = true
-        paused = false
-        isPlaying = false
-        synchronized(pauseLock) {
-            (pauseLock as java.lang.Object).notifyAll()
-        }
-        decodeThread?.interrupt()
-        decodeThread?.join(2000)
-        decodeThread = null
+        shouldStop = true; paused = false; isPlaying = false
+        synchronized(pauseLock) { (pauseLock as java.lang.Object).notifyAll() }
+        decodeThread?.interrupt(); decodeThread?.join(2000); decodeThread = null
         UsbDacManager.stopAndRelease()
         releaseResources()
-        Log.d(TAG, "Stopped")
+        DebugLog.add(TAG, "stop")
     }
 
-    /**
-     * Seek to a position in milliseconds.
-     */
-    fun seekTo(timeMs: Long) {
-        val ex = extractor ?: return
-        val cd = codec ?: return
+    fun stopDecode() {
+        shouldStop = true; paused = false; isPlaying = false
+        synchronized(pauseLock) { (pauseLock as java.lang.Object).notifyAll() }
+        decodeThread?.interrupt(); decodeThread?.join(2000); decodeThread = null
+        UsbDacManager.pauseStream()  // stop streamLoop, prevent underruns during silence
+        releaseResources()
+        DebugLog.add(TAG, "stopDecode (DAC stream paused)")
+    }
 
-        try {
-            cd.flush()
-            // Seek to previous sync sample to ensure clean decode start
-            ex.seekTo(timeMs * 1000L, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-            positionMs = ex.sampleTime / 1000L
-            Log.d(TAG, "Seek to ${timeMs}ms (actual ${positionMs}ms)")
-        } catch (e: Exception) {
-            Log.e(TAG, "Seek failed: ${e.message}", e)
-        }
+    fun seekTo(timeMs: Long) {
+        val ex = extractor ?: return; val cd = codec ?: return
+        cd.flush()
+        ex.seekTo(timeMs * 1000L, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+        positionMs = ex.sampleTime / 1000L
+        DebugLog.add(TAG, "seekTo ${timeMs}ms → actual ${positionMs}ms")
     }
 
     // ============================================================
@@ -236,153 +153,113 @@ class UsbDacPlaybackController(
     // ============================================================
 
     private fun releaseResources() {
-        codec?.stop()
-        codec?.release()
-        codec = null
+        codec?.stop(); codec?.release(); codec = null
+        extractor?.release(); extractor = null
+        audioTrackIndex = -1; extractorDurationMs = 0L
+    }
 
-        extractor?.release()
-        extractor = null
-
-        audioTrackIndex = -1
-        extractorDurationMs = 0L
+    private fun preBuffer(targetFrames: Int): Int {
+        val ex = extractor ?: return 0; val cd = codec ?: return 0
+        val info = MediaCodec.BufferInfo()
+        var pushed = 0; var eos = false
+        try {
+            while (!shouldStop && pushed < targetFrames && !eos) {
+                val inIdx = cd.dequeueInputBuffer(TIMEOUT_US)
+                if (inIdx >= 0) {
+                    val buf = cd.getInputBuffer(inIdx) ?: continue
+                    val sz = ex.readSampleData(buf, 0)
+                    if (sz < 0) { cd.queueInputBuffer(inIdx, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM); eos = true }
+                    else { cd.queueInputBuffer(inIdx, 0, sz, ex.sampleTime, 0); ex.advance() }
+                }
+                val outIdx = cd.dequeueOutputBuffer(info, TIMEOUT_US)
+                if (outIdx >= 0) {
+                    val outBuf = cd.getOutputBuffer(outIdx) ?: continue
+                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) { cd.releaseOutputBuffer(outIdx, false); break }
+                    if (info.size > 0) {
+                        val f = decodeToFloat(outBuf, info.size)
+                        if (f.isNotEmpty()) {
+                            UsbDacManager.pushPcm(f, f.size / dacChannels)
+                            pushed += f.size / dacChannels
+                        }
+                    }
+                    cd.releaseOutputBuffer(outIdx, false)
+                } else if (outIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED || outIdx == MediaCodec.INFO_TRY_AGAIN_LATER) continue
+                else break
+            }
+        } catch (e: Exception) { DebugLog.add(TAG, "preBuffer err: ${e.message}") }
+        return pushed
     }
 
     private fun decodeLoop() {
-        val ex = extractor ?: return
-        val cd = codec ?: return
-        val bufferInfo = MediaCodec.BufferInfo()
-
-        val sampleCount = dacChannels // samples per frame
-        var eos = false
+        val ex = extractor ?: return; val cd = codec ?: return
+        val info = MediaCodec.BufferInfo()
+        var eos = false; val sampleCount = dacChannels
+        var pushErrors = 0
 
         try {
             while (!shouldStop) {
-                // Check pause state
-                if (paused) {
-                    synchronized(pauseLock) {
-                        while (paused && !shouldStop) {
-                            try { (pauseLock as java.lang.Object).wait() } catch (_: InterruptedException) {}
-                        }
-                    }
-                    if (shouldStop) break
-                }
+                if (paused) synchronized(pauseLock) { while (paused && !shouldStop) (pauseLock as java.lang.Object).wait() }
+                if (shouldStop) break
 
-                // Feed data to the decoder
                 if (!eos) {
-                    val inputBufferIndex = cd.dequeueInputBuffer(TIMEOUT_US)
-                    if (inputBufferIndex >= 0) {
-                        val inputBuffer = cd.getInputBuffer(inputBufferIndex) ?: continue
-                        val sampleSize = ex.readSampleData(inputBuffer, 0)
-                        if (sampleSize < 0) {
-                            // End of stream
-                            cd.queueInputBuffer(inputBufferIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
-                            eos = true
-                            Log.d(TAG, "EOS signaled")
-                        } else {
-                            val presentationTimeUs = ex.sampleTime
-                            cd.queueInputBuffer(inputBufferIndex, 0, sampleSize, presentationTimeUs, 0)
-                            ex.advance()
-                        }
+                    val inIdx = cd.dequeueInputBuffer(TIMEOUT_US)
+                    if (inIdx >= 0) {
+                        val buf = cd.getInputBuffer(inIdx) ?: continue
+                        val sz = ex.readSampleData(buf, 0)
+                        if (sz < 0) { cd.queueInputBuffer(inIdx, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM); eos = true }
+                        else { cd.queueInputBuffer(inIdx, 0, sz, ex.sampleTime, 0); ex.advance() }
                     }
                 }
 
-                // Get decoded output
-                val outputBufferIndex = cd.dequeueOutputBuffer(bufferInfo, TIMEOUT_US)
-                if (outputBufferIndex >= 0) {
-                    val outputBuffer = cd.getOutputBuffer(outputBufferIndex) ?: continue
-
-                    if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) {
-                        cd.releaseOutputBuffer(outputBufferIndex, false)
-                        Log.d(TAG, "Decode EOS reached")
-                        break
-                    }
-
-                    if (bufferInfo.size > 0) {
-                        // Convert short[] to float[] (normalized to -1.0..1.0)
-                        val floatChunk = decodeToFloat(outputBuffer, bufferInfo.size)
-                        if (floatChunk.isNotEmpty()) {
-                            val frameCount = floatChunk.size / sampleCount
-                            val pushed = UsbDacManager.pushPcm(floatChunk, frameCount)
-                            if (pushed < 0) {
-                                Log.w(TAG, "pushPcm returned $pushed — DAC may have disconnected")
-                                break
-                            }
+                val outIdx = cd.dequeueOutputBuffer(info, TIMEOUT_US)
+                if (outIdx >= 0) {
+                    val outBuf = cd.getOutputBuffer(outIdx) ?: continue
+                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) { cd.releaseOutputBuffer(outIdx, false); break }
+                    if (info.size > 0) {
+                        val f = decodeToFloat(outBuf, info.size)
+                        if (f.isNotEmpty()) {
+                            val fc = f.size / sampleCount
+                            if (UsbDacManager.pushPcm(f, fc) < 0) {
+                                pushErrors++
+                                if (pushErrors > 100) { DebugLog.add(TAG, "pushPcm: too many errors, stopping"); break }
+                            } else pushErrors = 0
                         }
                     }
-
-                    cd.releaseOutputBuffer(outputBufferIndex, false)
-
-                    // Update position from presentation timestamp
-                    if (bufferInfo.presentationTimeUs > 0) {
-                        positionMs = bufferInfo.presentationTimeUs / 1000L
-                    }
-                } else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                    val newFormat = cd.outputFormat
-                    val sr = newFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-                    val ch = newFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
-                    Log.d(TAG, "Output format: $sr Hz, $ch channels")
+                    cd.releaseOutputBuffer(outIdx, false)
+                    if (info.presentationTimeUs > 0) positionMs = info.presentationTimeUs / 1000L
+                } else if (outIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                    val nf = cd.outputFormat
+                    DebugLog.add(TAG, "fmt changed: sr=${nf.getInteger(MediaFormat.KEY_SAMPLE_RATE)} ch=${nf.getInteger(MediaFormat.KEY_CHANNEL_COUNT)}")
                 }
             }
         } catch (e: Exception) {
-            if (!shouldStop) {
-                Log.e(TAG, "Decode loop error: ${e.message}", e)
-                onError("Decode error: ${e.message}")
-            }
+            if (!shouldStop) { DebugLog.add(TAG, "decodeLoop err: ${e.message}"); onError("Decode: ${e.message}") }
         } finally {
             if (!shouldStop) {
-                // Natural completion
-                try {
-                    cd.stop()
-                    cd.release()
-                } catch (_: Exception) {}
-                try {
-                    ex.release()
-                } catch (_: Exception) {}
-                codec = null
-                extractor = null
-                isPlaying = false
+                try { cd.stop(); cd.release() } catch (_: Exception) {}
+                try { ex.release() } catch (_: Exception) {}
+                codec = null; extractor = null; isPlaying = false
                 UsbDacManager.stopAndRelease()
-                Log.d(TAG, "Decode loop finished, calling onCompletion")
+                DebugLog.add(TAG, "decodeLoop done, calling onCompletion")
                 onCompletion()
             }
         }
     }
 
-    /**
-     * Decode a short[] buffer from MediaCodec output into a normalized float[].
-     * Audio is interleaved.
-     */
     private fun decodeToFloat(buffer: ByteBuffer, size: Int): FloatArray {
-        val shortCount = size / 2  // 2 bytes per short (16-bit PCM)
+        val shortCount = size / 2
         if (shortCount <= 0) return FloatArray(0)
-
         val tmp = ShortArray(shortCount)
-        val floatResult = FloatArray(shortCount)
-
-        // Extract shorts from ByteBuffer
         if (buffer.isDirect) {
-            // Direct buffer: use bulk get
             buffer.position(0)
-            for (i in 0 until shortCount) {
-                tmp[i] = buffer.short
-            }
+            for (i in 0 until shortCount) tmp[i] = buffer.short
         } else {
-            // Non-direct: copy bytes then interpret as shorts
             val bytes = ByteArray(size)
-            buffer.position(0)
-            buffer.get(bytes)
+            buffer.position(0); buffer.get(bytes)
             for (i in 0 until shortCount) {
-                val lo = bytes[i * 2].toInt() and 0xFF
-                val hi = bytes[i * 2 + 1].toInt()
-                tmp[i] = ((hi shl 8) or lo).toShort()
+                tmp[i] = (((bytes[i * 2 + 1].toInt() shl 8) or (bytes[i * 2].toInt() and 0xFF))).toShort()
             }
         }
-
-        // Normalize to [-1.0, 1.0]
-        for (i in 0 until shortCount) {
-            floatResult[i] = tmp[i].toFloat() / Short.MAX_VALUE.toFloat()
-        }
-
-        return floatResult
+        return FloatArray(shortCount) { tmp[it].toFloat() / Short.MAX_VALUE.toFloat() }
     }
 }

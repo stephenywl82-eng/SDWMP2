@@ -6,6 +6,8 @@ find_package(oboe REQUIRED CONFIG)
 
 add_library(oboe_bridge SHARED
     oboe_bridge.cpp
+    usb_audio_driver.cpp
+    usb_audio_jni.cpp
 )
 
 target_include_directories(oboe_bridge PRIVATE

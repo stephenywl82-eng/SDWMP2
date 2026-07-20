@@ -14,10 +14,8 @@ object DeviceMapper {
         "XT2601" to "Edge 70 Ultra",
         "XT2601-1" to "Edge 70",
         "XT2637" to "Edge 70 Pro",
-        "XT2607-1" to "Edge 70 Pro+",
-        "XT2607-2" to "Edge 70 Pro+",
-        "XT2607-3" to "Edge 70 Pro+",
         "XT2607" to "Edge 70 Pro",
+        "motorola edge 70 pro+" to "Edge 70 Pro+",
         "XT2603" to "Signature",
 
         // === 2025 ===

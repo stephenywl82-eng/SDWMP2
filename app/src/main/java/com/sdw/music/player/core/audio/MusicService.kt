@@ -45,6 +45,7 @@ import com.sdw.music.player.core.audio.helpers.VolumeGuard
 import com.sdw.music.player.core.audio.helpers.VisualizerManager
 import com.sdw.music.player.core.audio.UsbDacManager
 import com.sdw.music.player.core.audio.UsbDacPlaybackController
+import com.sdw.music.player.core.audio.DebugLog
 import android.app.usage.UsageStatsManager
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
@@ -127,13 +128,14 @@ class MusicService : MediaSessionService() {
         }
     }
 
-    private fun isUsbExclusiveMode(): Boolean {
+    internal fun isUsbExclusiveMode(): Boolean {
         val prefs = getSharedPreferences("settings", MODE_PRIVATE)
         return prefs.getBoolean("usb_exclusive", false)
     }
 
     private fun releaseUsbDacController() {
-        usbDacController?.stop()
+        DebugLog.add(TAG, "releaseUsbDac: stopDecode (keep DAC claim)")
+        usbDacController?.stopDecode()
         usbDacController = null
     }
 
@@ -1059,42 +1061,70 @@ class MusicService : MediaSessionService() {
             return
         }
 
-        // USB DAC Exclusive mode 鈥?highest priority, before Oboe
-        if (isUsbExclusiveMode() && UsbDacManager.isStreaming()) {
-            releaseUsbDacController()
+        // USB DAC Exclusive mode — Salt-style: claim once, keep forever
+        if (isUsbExclusiveMode()) {
+            val dacStreaming = UsbDacManager.isStreaming()
+            DebugLog.add(TAG, "playSong[$index]: usbExclusive=true, isStreaming=$dacStreaming")
+
+            // First play: claim DAC if not yet streaming
+            if (!dacStreaming) {
+                UsbDacManager.findDacs()
+                val device = UsbDacManager.getDacDevice()
+                DebugLog.add(TAG, "playSong[$index]: first claim, device=$device")
+                if (device == null) {
+                    DebugLog.add(TAG, "playSong[$index]: no DAC found, fallback Exo")
+                    playSongFallbackExo(index, songs)
+                    return
+                }
+                val song = songs[index]
+                val srcRate = UsbDacManager.getSourceSampleRate(song)
+                DebugLog.add(TAG, "playSong[$index]: claiming DAC sr=$srcRate")
+                if (!UsbDacManager.claimAndStart(device, srcRate, 2, 16)) {
+                    DebugLog.add(TAG, "playSong[$index]: claim FAIL, fallback Exo")
+                    playSongFallbackExo(index, songs)
+                    return
+                }
+                // startStreaming deferred to controller after prebuffer (Salt pattern)
+                DebugLog.add(TAG, "playSong[$index]: DAC claimed, waiting for controller prebuffer")
+            } else {
+                // Subsequent plays: just stop decode, keep DAC claim alive
+                DebugLog.add(TAG, "playSong[$index]: DAC already streaming, stopDecode")
+                releaseUsbDacController()
+            }
+
             val currentSong = songs[index]
             val filePath = currentSong.filePath.ifEmpty { currentSong.path }
             val actualPath = if (filePath.startsWith("content://")) {
                 resolveContentUriToPath(filePath)
-            } else {
-                filePath
-            }
+            } else filePath
             if (actualPath != null) {
                 val controller = UsbDacPlaybackController(
                     onCompletion = {
-                        Log.i(TAG, "USB DAC song completed, playing next")
+                        DebugLog.add(TAG, "USB DAC: song complete, playing next")
                         handler.post { playNext() }
                     },
                     onError = { msg ->
-                        Log.e(TAG, "USB DAC error: $msg")
+                        DebugLog.add(TAG, "USB DAC error: $msg")
                         handler.post { playSongFallbackExo(index, songs) }
                     }
                 )
-                val dacSampleRate = 48000 // TODO: make configurable
-                val dacChannels = 2
-                if (controller.open(actualPath, dacSampleRate, dacChannels)) {
+                val srcRate = UsbDacManager.getSourceSampleRate(currentSong)
+                DebugLog.add(TAG, "USB DAC: opening ${currentSong.title} srcRate=$srcRate")
+                if (controller.open(actualPath, srcRate, dacChannels = 2)) {
                     usbDacController = controller
                     controller.play()
-                    currentSong.let { song ->
-                        MusicService.currentSong = song
-                        currentIndex = index
+                    // Apply system media volume to native DAC (USB bypasses Android mixer)
+                    val am = getSystemService(AUDIO_SERVICE) as? AudioManager
+                    if (am != null) {
+                        val pct = am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() /
+                                  am.getStreamMaxVolume(AudioManager.STREAM_MUSIC).toFloat()
+                        UsbDacManager.setVolume(pct)
                     }
+                    currentSong.let { song -> MusicService.currentSong = song; currentIndex = index }
                     updateNotification()
                     notifySongChanged(songs[index])
                     return
-                } else {
-                    Log.w(TAG, "USB DAC controller failed to open, falling back")
-                }
+                } else { DebugLog.add(TAG, "USB DAC: controller.open FAIL, fallback Exo") }
             }
         }
 

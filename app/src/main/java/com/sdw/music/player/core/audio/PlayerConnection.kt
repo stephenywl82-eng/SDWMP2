@@ -256,6 +256,16 @@ class PlayerConnection(private val context: Context) {
             return
         }
         // 銆怴7.82銆慜boe妯″紡涓嬬洿鎺ヨ皟鐢∕usicService锛岀粫杩嘙ediaController锛圗xoPlayer绌洪棽涓嶅搷搴旓級
+        if (MusicService.instance?.isUsbExclusiveMode() == true) {
+            android.util.Log.i("PlayerConnection", "playSong: USB DAC mode, delegating to MusicService")
+            MusicService.instance?.playSong(index)
+            _currentSongIndex.value = index
+            _currentSong.value = songs[index]
+            _isPlaying.value = true
+            startPositionUpdates()
+            return
+        }
+
         if (MusicService.instance?.isOboeDirectMode() == true) {
             android.util.Log.d("PlayerConnection", "playSong: Oboe mode, delegating to MusicService")
             MusicService.instance?.playSong(index)
@@ -292,6 +302,22 @@ class PlayerConnection(private val context: Context) {
      * 鎾斁/鏆傚仠鍒囨崲
      */
     fun togglePlayPause() {
+        // USB DAC Exclusive — trigger playSong for claim
+        if (MusicService.instance?.isUsbExclusiveMode() == true) {
+            val svc = MusicService.instance!!
+            if (svc.isPlaying()) {
+                svc.pause()
+                _isPlaying.value = false
+                stopPositionUpdates()
+            } else {
+                android.util.Log.i("PlayerConnection", "togglePlayPause: USB DAC, triggering playSong")
+                svc.playSong(_currentSongIndex.value)
+                _isPlaying.value = true
+                startPositionUpdates()
+            }
+            return
+        }
+
         // 銆怴7.82銆慜boe妯″紡涓嬬洿鎺ユ搷浣淢usicService锛岀粫杩嘙ediaController
         if (MusicService.instance?.isOboeDirectMode() == true) {
             val svc = MusicService.instance!!
