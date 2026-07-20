@@ -315,75 +315,13 @@ bool UsbAudioDriver::setInterfaceAlt(int alt) {
 // ── setSampleRate ────────────────────────────────────────────────────────
 
 int UsbAudioDriver::setSampleRate(int rate) {
-    if (fd_ < 0) return 0;
+    if (fd_ < 0) return -1;
 
-    if (isUac2_) {
-        // UAC 2.0: 4-byte LE SET_CUR on Clock Source (entity ID from findClockSourceId)
-        int clockId = findClockSourceId();
-        if (clockId < 0) {
-            // Android USB Host fd may not support USBDEVFS_CONTROL for descriptor reads.
-            // TTGK Audio DAC uses clock source entity 9 (confirmed via Salt Player).
-            clockId = 9;
-            LOGW("No UAC 2.0 clock source found via descriptor; fallback to clockId=9");
-        }
-
-        uint8_t data[4];
-        data[0] = (rate >> 0)  & 0xFF;
-        data[1] = (rate >> 8)  & 0xFF;
-        data[2] = (rate >> 16) & 0xFF;
-        data[3] = (rate >> 24) & 0xFF;
-
-        // UAC 2.0: SET_CUR on Clock Source Sampling Frequency Control
-        // wValue = (CS << 8) | CN = (SAMPLING_FREQ << 8) | 0 = 0x0100
-        int ret = controlTransfer(0x21, 0x01,
-                                  SAMPLING_FREQ_CONTROL,  // wValue: CS=1(sampling freq), CN=0
-                                  clockId,                           // wIndex = clockSourceId
-                                  data, 4, 200);
-        if (ret >= 0) {
-            LOGI("UAC2 setSampleRate: %d Hz -> OK", rate);
-            sampleRate_ = rate;
-            return rate;
-        } else {
-            LOGW("UAC2 setSampleRate(%d) failed: errno=%d", rate, errno);
-            return 0;
-        }
-    } else {
-        // UAC 1.0: SET_CUR on sampling frequency control endpoint
-        // 3-byte LE value
-        uint8_t data[3];
-        data[0] = (rate >> 0)  & 0xFF;
-        data[1] = (rate >> 8)  & 0xFF;
-        data[2] = (rate >> 16) & 0xFF;
-
-        // UAC 1.0: bmRequestType=0x21(class,interface,host2dev), bRequest=SET_CUR(0x01)
-        // wValue = (CS << 8) | endpoint_addr
-        int ret = controlTransfer(0x21, 0x01,
-                                  SAMPLING_FREQ_CONTROL, // wValue
-                                  epAddress_,            // wIndex
-                                  data, 3, 200);
-        if (ret >= 0) {
-            LOGI("UAC1 setSampleRate: %d Hz -> OK", rate);
-            sampleRate_ = rate;
-            return rate;
-        } else {
-            LOGW("UAC1 setSampleRate(%d) failed: errno=%d", rate, errno);
-            // If the DAC doesn't support the rate, try common fallbacks
-            int fallbacks[] = {48000, 44100, 96000, 88200, 192000};
-            for (int fb : fallbacks) {
-                if (fb == rate) continue;
-                data[0] = (fb >> 0)  & 0xFF;
-                data[1] = (fb >> 8)  & 0xFF;
-                data[2] = (fb >> 16) & 0xFF;
-                ret = controlTransfer(0x21, 0x01, SAMPLING_FREQ_CONTROL, epAddress_, data, 3, 200);
-                if (ret >= 0) {
-                    LOGI("UAC1 setSampleRate fallback: %d Hz", fb);
-                    sampleRate_ = fb;
-                    return fb;
-                }
-            }
-            return 0;
-        }
-    }
+    // ⚠️ Control transfer REAPURB on TTGK DAC: USBDEVFS_CONTROL corrupts ISO OUT endpoint,
+    // causing permanent REAPURB blocking. Completely disabled.
+    // Sample rate is controlled by USB SOF data rate, not control transfer.
+    LOGE("setSampleRate(%d): DISABLED — avoids TTGK DAC endpoint corruption", rate);
+    return sampleRate_;  // just return current without touching hardware
 }
 
 // ── streamLoop ───────────────────────────────────────────────────────────
