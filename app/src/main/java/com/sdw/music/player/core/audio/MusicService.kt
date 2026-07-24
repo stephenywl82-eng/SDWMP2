@@ -1049,6 +1049,13 @@ class MusicService : MediaSessionService() {
         playlistSource = "All Songs"
     }
 
+    /** 同步播放清单到 servicePlaylist（仅改内存字段，不做磁盘 I/O），确保紧接着的 playSong 用同一份列表
+     *  否则 USB/Oboe 模式下 playSong(index) 会按旧 servicePlaylist 错位放错歌 */
+    fun setServicePlaylist(songs: List<Song>, source: String = "All Songs") {
+        servicePlaylist = songs
+        playlistSource = source
+    }
+
     fun playSong(index: Int) {
         // [v7.113] 锟斤拷始锟斤拷锟斤拷时锟斤拷锟斤拷锟斤拷频锟斤拷锟斤拷
         requestAudioFocusIfNeeded(this)

@@ -23,17 +23,11 @@ android {
         applicationId = "com.sdw.music.player"
         minSdk = 24
         targetSdk = 35
-        versionCode = 6
-        versionName = "3.2.1"
+        versionCode = 8
+        versionName = "3.2.4"
 
         ndk {
             abiFilters += listOf("arm64-v8a")
-        }
-
-        externalNativeBuild {
-            cmake {
-                arguments("-DANDROID_STL=c++_shared")
-            }
         }
 
         // Signing config from keystore.properties
@@ -61,7 +55,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             isShrinkResources = false
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
@@ -98,12 +92,15 @@ android {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
 
+    /* CMake skipped — using prebuilt .so in jniLibs */
+    /*
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
         }
     }
+    */
 }
 
 dependencies {

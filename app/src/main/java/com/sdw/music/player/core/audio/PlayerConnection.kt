@@ -229,6 +229,8 @@ class PlayerConnection(private val context: Context) {
     fun setSongs(songs: List<Song>, updateGlobal: Boolean = true) {
         _songList.value = songs
         // 鍚屾鍒?MusicService
+        // 同步到 MusicService 的播放清单（同步写 servicePlaylist，确保紧接着的 playSong 用同一份列表；否则 USB/Oboe 模式会按旧列表错位放错歌）
+        MusicService.instance?.setServicePlaylist(songs)
         scope.launch {
             if (updateGlobal) SongRepository.setSongs(songs)
         }

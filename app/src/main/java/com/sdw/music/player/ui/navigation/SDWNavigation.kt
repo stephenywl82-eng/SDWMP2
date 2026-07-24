@@ -360,8 +360,7 @@ fun SDWNavHost(
                     playlistId = playlistId,
                     onNavigateBack = { navController.popBackStack() },
                     onPlaySongs = { songs ->
-                        val startIndex = state.songList.indexOfFirst { it.id == songs.firstOrNull()?.id }.coerceAtLeast(0)
-                        vm.handleIntent(PlayerIntent.PlaySong(startIndex))
+                        if (songs.isNotEmpty()) vm.handleIntent(PlayerIntent.PlaySongList(songs, startIndex = 0))
                         navController.navigate(Screen.Player.route)
                     }
                 )
@@ -414,8 +413,8 @@ fun SDWNavHost(
                     currentSongId = state.currentSongId,
                     isPlaying = isPlaying,
                     onSongClick = { song ->
-                        val index = state.songList.indexOfFirst { it.id == song.id }
-                        if (index >= 0) vm.handleIntent(PlayerIntent.PlaySong(index))
+                        val index = filtered.indexOfFirst { it.id == song.id }
+                        if (index >= 0) vm.handleIntent(PlayerIntent.PlaySongList(filtered, startIndex = index))
                         navController.navigate(Screen.Player.route)
                     },
                     onPlayAll = {
@@ -451,8 +450,8 @@ fun SDWNavHost(
                     currentSongId = state.currentSongId,
                     isPlaying = isPlaying,
                     onSongClick = { song ->
-                        val index = state.songList.indexOfFirst { it.id == song.id }
-                        if (index >= 0) vm.handleIntent(PlayerIntent.PlaySong(index))
+                        val index = filtered.indexOfFirst { it.id == song.id }
+                        if (index >= 0) vm.handleIntent(PlayerIntent.PlaySongList(filtered, startIndex = index))
                         navController.navigate(Screen.Player.route)
                     },
                     onPlayAll = {

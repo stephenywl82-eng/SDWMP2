@@ -69,6 +69,7 @@ data class PlayerState(
     val coverColors: IntArray = intArrayOf(),  // 5色 for Edge灯
     val songCount: Int = 0,
     val songList: List<Song> = emptyList(),
+    val queue: List<Song> = emptyList(),
     val scanStatus: String = "idle",
     val isCurrentSongFavorite: Boolean = false,
     val currentSongFilePath: String = "",
@@ -314,7 +315,7 @@ class PlayerViewModel @Inject constructor(
                 connection.songList.collect { songs ->
                     // 忽略空列表，防止覆盖 FAST PATH 已加载的歌曲
                     if (songs.isNotEmpty()) {
-                        _state.update { it.copy(songCount = songs.size, songList = songs) }
+                        _state.update { it.copy(songCount = songs.size, queue = songs) }
                     }
                 }
             } catch (e: Exception) {
@@ -333,11 +334,11 @@ class PlayerViewModel @Inject constructor(
     fun handleIntent(intent: PlayerIntent) {
         when (intent) {
             is PlayerIntent.PlaySong -> {
-                val songs = SongRepository.getSongs()
+                val songs = _state.value.songList
                 if (songs.isNotEmpty()) {
                     connection.setSongs(songs, updateGlobal = false)
                     connection.playSong(intent.index)
-                    _state.update { it.copy(songList = songs, songCount = songs.size) }
+                    _state.update { it.copy(queue = songs, songCount = songs.size) }
                 }
             }
             is PlayerIntent.PlayPause -> {
@@ -378,7 +379,7 @@ class PlayerViewModel @Inject constructor(
                 connection.setSongs(intent.songs, updateGlobal = false)
                 if (intent.songs.isNotEmpty()) {
                     connection.playSong(intent.startIndex)
-                    _state.update { it.copy(songList = intent.songs, songCount = intent.songs.size) }
+                    _state.update { it.copy(queue = intent.songs, songCount = intent.songs.size) }
                 }
             }
             is PlayerIntent.ToggleEqSheet -> {
@@ -443,7 +444,7 @@ class PlayerViewModel @Inject constructor(
                 val song = buildSongFromUri(intent.uri, intent.title)
                 connection.setSongs(listOf(song), updateGlobal = false)
                 connection.playSong(0)
-                _state.update { it.copy(songList = listOf(song), songCount = 1) }
+                _state.update { it.copy(queue = listOf(song), songCount = 1) }
             }
         }
     }
