@@ -66,8 +66,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.sdw.music.player.R
 import com.sdw.music.player.util.DeviceMapper
-import androidx.compose.ui.viewinterop.AndroidView
-import com.sdw.music.player.LyricView
+import com.sdw.music.player.ui.components.LyricViewCompose
 import com.sdw.music.player.LyricLine
 import com.sdw.music.player.LrcParser
 import com.sdw.music.player.BpmKeyCache
@@ -678,15 +677,11 @@ private fun FoldableLayout(
                     }
                 }
             } else {
-                AndroidView(
-                    factory = { ctx ->
-                        LyricView(ctx).apply {
-                            setThemeColor(accentColor.value.toInt())
-                            setLyrics(lyricsLines)
-                            onLineClick = { line -> onSeekTo(line.timeMs) }
-                        }
-                    },
-                    update = { view -> view.updatePosition(positionMs) },
+                LyricViewCompose(
+                    lyrics = lyricsLines,
+                    positionMs = positionMs,
+                    themeColor = accentColor.value.toInt(),
+                    onLineClick = { line -> onSeekTo(line.timeMs) },
                     modifier = Modifier.weight(1f).fillMaxWidth()
                 )
             }

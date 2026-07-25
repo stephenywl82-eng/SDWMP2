@@ -33,10 +33,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.sdw.music.player.LrcParser
 import com.sdw.music.player.LyricLine
-import com.sdw.music.player.LyricView
+import com.sdw.music.player.ui.components.LyricViewCompose
 import com.sdw.music.player.Song
 import com.sdw.music.player.SongRepository
 import com.sdw.music.player.lyric.LyricRepository
@@ -165,29 +164,11 @@ fun LyricFullscreenScreen(
                 Text("No Lyrics", color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
             }
             else -> {
-                // LyricView 直接全屏，顶部留白通过 padding 处理
-                var lastLyricsKey by remember { mutableStateOf(0) }
-                var lastAccentColor by remember { mutableStateOf(0L) }
-                AndroidView(
-                    factory = { ctx ->
-                        LyricView(ctx).also { view ->
-                            view.setThemeColor(accentColor.toInt())
-                            view.setLyrics(lyricLines)
-                            view.onLineClick = { line -> onSeekTo(line.timeMs) }
-                            lastLyricsKey = lyricLines.hashCode()
-                            lastAccentColor = accentColor
-                        }
-                    },
-                    update = { view ->
-                        val lyricsKey = lyricLines.hashCode()
-                        if (lastLyricsKey != lyricsKey || lastAccentColor != accentColor) {
-                            view.setThemeColor(accentColor.toInt())
-                            view.setLyrics(lyricLines)
-                            lastLyricsKey = lyricsKey
-                            lastAccentColor = accentColor
-                        }
-                        view.updatePosition(positionMs)
-                    },
+                LyricViewCompose(
+                    lyrics = lyricLines,
+                    positionMs = positionMs,
+                    themeColor = accentColor.toInt(),
+                    onLineClick = { line -> onSeekTo(line.timeMs) },
                     modifier = Modifier
                         .fillMaxSize()
                         .statusBarsPadding()  // 顶部避开状态栏

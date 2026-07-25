@@ -50,6 +50,14 @@ android {
                     keyPassword = "android"
                 }
             }
+            // Same fallback keystore for debug → debug APKs install -r over the
+            // release build (shared signing) without an uninstall.
+            getByName("debug") {
+                storeFile = file("debug.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
         }
     }
 
