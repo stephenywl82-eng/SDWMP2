@@ -1,80 +1,80 @@
-# 🎵 SDWMP3 — USB DAC 发烧级音乐播放器 v4.0
+# 🎵 SDWMP3 — Audiophile-Grade USB DAC Music Player v4.0
 
 A modern Android music player built with Jetpack Compose and Material 3, featuring **USB DAC exclusive mode** for bit-perfect lossless audio output.
 
-## ✨ 核心特性
+## ✨ Key Features
 
-- 🔊 **USB DAC 独占模式** — USB Audio Class 直通，绕过 Android 音频链路的 SRC 重采样，实现真正的 Bit-Perfect 输出
-- 🎵 **libFLAC 硬解码** — 内置 libFLAC 原生解码器，支持任意位深/采样率的无损 FLAC 文件，无需依赖系统解码器
-- 🔗 **Gapless 无缝衔接** — 跨曲目连续播放，音乐会不间断
-- 💿 **CUE 整轨支持** — 自动加载同名 .cue 文件，实现整轨 FLAC/WAV 的无缝 Gapless 播放
-- 📋 **自定义歌单** — 创建个人歌单，支持添加/删除歌曲，搜索筛选
-- 📊 **CDJ 风格 VU 表** — 实时 5 频段可视化频谱，精准掌控每个频段
-- 🎛️ **Hot Cue 记忆点** — 标记并快速回放关键时刻
-- 📝 **自动歌词** — LRCLIB 歌词自动搜索 + 本地 LRC 文件兜底
-- 🎨 **Material You 动态配色** — 封面主色自动生成全应用配色方案
-- 🌊 **极光背景动效** — 流动极光视觉效果，贴合封面色彩
-- 📱 **曲面屏边缘光** — 适配曲面屏的边缘呼吸灯效果
+- 🔊 **USB DAC Exclusive Mode** — Direct USB Audio Class access, bypassing Android's audio pipeline SRC resampling for true bit-perfect output
+- 🎵 **libFLAC Native Decoding** — Built-in libFLAC native decoder supporting lossless FLAC files at any bit depth / sample rate, no system codec dependency
+- 🔗 **Gapless Playback** — Seamless track transitions, uninterrupted listening
+- 💿 **CUE Sheet Support** — Auto-loads matching .cue files for gapless playback of single-file FLAC/WAV albums
+- 📋 **Custom Playlists** — Create personal playlists with add/remove songs and search filtering
+- 📊 **CDJ-Style VU Meters** — Real-time 5-band spectrum visualization
+- 🎛️ **Hot Cues** — Mark and instantly recall key moments
+- 📝 **Auto Lyrics** — LRCLIB automatic lyric search with local LRC file fallback
+- 🎨 **Material You Dynamic Colors** — Full app color scheme generated from album art
+- 🌊 **Aurora Background** — Flowing aurora visual effects matching album colors
+- 📱 **Curved Edge Glow** — Breathing edge light effect for curved displays
 
-## 🛠️ 技术栈
+## 🛠️ Tech Stack
 
-| 层级 | 技术 |
+| Layer | Technology |
 |------|------|
 | **UI** | Jetpack Compose + Material 3 |
-| **架构** | MVI + Hilt DI + StateFlow |
-| **音频** | Media3 ExoPlayer + libFLAC (C++ native) + USB Audio Class |
-| **图片** | Coil + Palette API |
-| **存储** | Room + DataStore Preferences |
-| **构建** | Gradle KTS + R8 + ProGuard |
+| **Architecture** | MVI + Hilt DI + StateFlow |
+| **Audio** | Media3 ExoPlayer + libFLAC (C++ native) + USB Audio Class |
+| **Images** | Coil + Palette API |
+| **Storage** | Room + DataStore Preferences |
+| **Build** | Gradle KTS + R8 + ProGuard |
 
-## 📦 下载
+## 📦 Download
 
-从 [Releases](https://github.com/stephenywl82-eng/SDWMP2/releases) 下载最新 APK。
+Get the latest APK from [Releases](https://github.com/stephenywl82-eng/SDWMP2/releases).
 
-> ⚠️ **要求**：Android 7.0 (API 24) 及以上。推荐搭配 USB DAC 使用以获得最佳音质体验。
+> ⚠️ **Requirements**: Android 7.0 (API 24) or above. A USB DAC is recommended for the best audio quality.
 
-## 🚀 从源码构建
+## 🚀 Build from Source
 
 ```bash
-# 克隆
+# Clone
 git clone https://github.com/stephenywl82-eng/SDWMP2.git
 cd SDWMP2
 
-# 构建 Debug APK
+# Build Debug APK
 ./gradlew assembleDebug
 
-# 构建 Release APK (需要 keystore)
+# Build Release APK (keystore required)
 ./gradlew assembleRelease
 ```
 
-### 环境要求
-- Android Studio Hedgehog (2023.1.1) 或更高版本
+### Requirements
+- Android Studio Hedgehog (2023.1.1) or later
 - JDK 17
 - Android SDK 35
-- NDK r25b (用于编译 libFLAC 和 USB Audio 原生代码)
+- NDK r25b (for building libFLAC and USB Audio native code)
 
-## 📁 项目结构
+## 📁 Project Structure
 
 ```
 app/src/main/java/com/sdw/music/player/
 ├── core/
 │   ├── audio/          # MusicService, USB DAC, Oboe, EQ, Visualizer
-│   ├── lyrics/         # 歌词解析, LRCLIB 集成
-│   └── model/          # Song, PlayerState 数据模型
-├── di/                 # Hilt 依赖注入模块
+│   ├── lyrics/         # Lyric parsing, LRCLIB integration
+│   └── model/          # Song, PlayerState data models
+├── di/                 # Hilt dependency injection modules
 ├── ui/
-│   ├── components/     # 可复用 Compose 组件
-│   ├── navigation/      # 顶层导航
-│   ├── screens/        # 所有页面 (播放器, EQ, 歌词等)
-│   ├── theme/          # Material 3 主题 & 动态配色
+│   ├── components/     # Reusable Compose components
+│   ├── navigation/      # Top-level navigation
+│   ├── screens/        # All screens (player, EQ, lyrics, etc.)
+│   ├── theme/          # Material 3 theme & dynamic colors
 │   └── viewmodel/      # PlayerViewModel, SongListViewModel
-├── utils/              # CUE 解析器, 工具类
+├── utils/              # CUE parser, utilities
 └── MainActivity.kt
 
-app/src/main/cpp/       # USB Audio + libFLAC 原生引擎 (C++)
+app/src/main/cpp/       # USB Audio + libFLAC native engine (C++)
 ```
 
-## 🎯 音频架构
+## 🎯 Audio Architecture
 
 ```
 ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
@@ -83,20 +83,20 @@ app/src/main/cpp/       # USB Audio + libFLAC 原生引擎 (C++)
 └──────────────┘    │  (C++)       │    │  (C++)       │
                     └──────────────┘    └──────────────┘
 
-备选路径 (非 USB DAC 模式):
+Fallback path (non-USB DAC mode):
 ┌──────────────┐    ┌──────────────┐
-│  ExoPlayer   │───▶│  AAudio/     │───▶ 扬声器/耳机
+│  ExoPlayer   │───▶│  AAudio/     │───▶ Speaker/Headphones
 │  (Media3)    │    │  Oboe        │
 └──────────────┘    └──────────────┘
 ```
 
-- **USB DAC 模式**：文件 → libFLAC 解码 → float PCM → USB Audio Host API → URB → DAC
-- **标准模式**：ExoPlayer 软解 → AAudio/Oboe → 系统输出
-- 自动检测 USB DAC，插入时无缝切换到独占模式
+- **USB DAC mode**: File → libFLAC decode → float PCM → USB Audio Host API → URB → DAC
+- **Standard mode**: ExoPlayer software decode → AAudio/Oboe → system output
+- Auto-detects USB DAC and seamlessly switches to exclusive mode on connection
 
-## 📄 许可证
+## 📄 License
 
-MIT License - 详见 [LICENSE](LICENSE)。
+MIT License - see [LICENSE](LICENSE).
 
 ---
 
