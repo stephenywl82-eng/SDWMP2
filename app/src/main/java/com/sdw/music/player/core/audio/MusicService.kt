@@ -1928,9 +1928,7 @@ class MusicService : MediaSessionService() {
         DebugLog.add(TAG, "playNext: servicePlaylist=${servicePlaylist.size} songs=${songs.size} curIdx=$currentIndex shuffle=$isShuffleMode")
         if (songs.isEmpty()) return
 
-        // ??v6.22??Oboe ???????????? playSong ????
-        // [V8.x] Stop USB DAC decode thread (keeps claim, no release)
-        usbDacController?.stopDecode()
+        // [V3.3.22] REMOVED direct stopDecode() here — releaseUsbDacController() in playSong() handles it
         // V3.3.4: isShuffleMode is the single source of truth (ExoPlayer flag can be stale)
         // V3.3.8: 添加日志确认随机状态
         android.util.Log.d(TAG, "playNext: isShuffleMode=$isShuffleMode, exoPlayer.shuffleModeEnabled=${exoPlayer?.shuffleModeEnabled}")
@@ -1944,8 +1942,7 @@ class MusicService : MediaSessionService() {
     }
 
     fun playPrevious() {
-        // [V8.x] Stop USB DAC decode thread
-        usbDacController?.stopDecode()
+        // [V3.3.22] REMOVED direct stopDecode() — releaseUsbDacController() in playSong() handles it
         val songs = servicePlaylist.ifEmpty { SongRepository.getSongs() }
         if (songs.isEmpty()) return
 

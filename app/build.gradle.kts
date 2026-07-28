@@ -50,7 +50,7 @@ android {
                     keyPassword = "android"
                 }
             }
-            // Same fallback keystore for debug â†?debug APKs install -r over the
+            // Same fallback keystore for debug ï¿½?debug APKs install -r over the
             // release build (shared signing) without an uninstall.
             getByName("debug") {
                 storeFile = file("debug.keystore")
@@ -120,7 +120,7 @@ android {
 }
 
 dependencies {
-    // Compose BOM â€?unified versions
+    // Compose BOM ï¿½?unified versions
     val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
     implementation(composeBom)
 
@@ -163,9 +163,6 @@ dependencies {
     // Core
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-
-    // Profile Installer (required for macrobenchmarks)
-    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
 
     // Glide (for some bitmap ops)
     implementation("com.github.bumptech.glide:glide:4.16.0")
