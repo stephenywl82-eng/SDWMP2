@@ -1,4 +1,4 @@
-# 🎵 SDWMP3 — USB DAC 发烧级音乐播放器
+# 🎵 SDWMP3 — USB DAC 发烧级音乐播放器 v4.0
 
 A modern Android music player built with Jetpack Compose and Material 3, featuring **USB DAC exclusive mode** for bit-perfect lossless audio output.
 
@@ -8,6 +8,7 @@ A modern Android music player built with Jetpack Compose and Material 3, featuri
 - 🎵 **libFLAC 硬解码** — 内置 libFLAC 原生解码器，支持任意位深/采样率的无损 FLAC 文件，无需依赖系统解码器
 - 🔗 **Gapless 无缝衔接** — 跨曲目连续播放，音乐会不间断
 - 💿 **CUE 整轨支持** — 自动加载同名 .cue 文件，实现整轨 FLAC/WAV 的无缝 Gapless 播放
+- 📋 **自定义歌单** — 创建个人歌单，支持添加/删除歌曲，搜索筛选
 - 📊 **CDJ 风格 VU 表** — 实时 5 频段可视化频谱，精准掌控每个频段
 - 🎛️ **Hot Cue 记忆点** — 标记并快速回放关键时刻
 - 📝 **自动歌词** — LRCLIB 歌词自动搜索 + 本地 LRC 文件兜底
