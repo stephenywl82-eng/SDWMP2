@@ -81,11 +81,20 @@ fun PlaylistDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = onAddSongs) {
-                        Icon(Icons.Default.Add, "Add songs", tint = TextPrimary)
+                        Icon(Icons.Default.Add, "Add songs", tint = Color(0xFF8E6FD0))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddSongs,
+                containerColor = Color(0xFF8E6FD0),
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Default.Add, "Add songs")
+            }
         },
         containerColor = DarkBg
     ) { padding ->
