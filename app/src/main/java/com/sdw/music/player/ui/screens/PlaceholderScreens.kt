@@ -289,9 +289,7 @@ fun PlaylistListScreen(
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                             .combinedClickable(
                                 onClick = {
-                                    if (previewSongs.isNotEmpty()) {
-                                        onPlaySongs(previewSongs)
-                                    }
+                                    onOpenPlaylist(playlist.id)
                                 },
                                 onLongClick = {
                                     showDeleteConfirm = playlist.id
