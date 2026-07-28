@@ -59,19 +59,25 @@ public:
     bool start(int sampleRate, int channels, int bitsPerSample);
     void stop();
     void stopThreadOnly();
+    void resetRingBuffer();  // 【V3.2.7】暂停后恢复时清空 ring buffer，避免旧数据踩踏导致噪音
     int pushPcm(const float* data, int frameCount);
+    int getRingFillFrames();  // 【V3.2.7】EOS 排空用
+    int clockRate_ = 0;       // 【V3.2.7】DAC 时钟当前 SET_CUR 速率
+    int currentAlt_ = 0;      // 【V3.2.7】当前 alt 设置（1=16bit 2=24bit 3=32bit）
 
     // ── USB control ────────────────────────────────────────
     bool claimInterface(int desiredAlt);
     void releaseInterface();
     bool setInterfaceAlt(int alt);
-    int setSampleRate(int rate);
+    int setSampleRate(int rate);  // public: safe only when stream inactive
+    int trySetSampleRate(int rate); // internal: unconditionally sends SET_CUR
     const char* getSupportedRates();
 
     // ── State ──────────────────────────────────────────────
     bool isClaimed() const      { return claimed_.load(std::memory_order_acquire); }
     bool isStreaming() const    { return streaming_.load(std::memory_order_acquire); }
     int  getSampleRate() const  { return sampleRate_; }
+    int  getBitsPerSample() const { return bitsPerSample_; }
     int  getUnderrunCount() const { return underrunCount_.load(std::memory_order_acquire); }
     void setVolume(float v)      { volume_ = v; }
     float getVolume() const      { return volume_; }

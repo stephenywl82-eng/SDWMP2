@@ -18,6 +18,11 @@ static UsbAudioDriver* getDriver() {
     return gUsbDriver;
 }
 
+// flac_decoder.cpp 用：共享同一个 driver 单例（ring buffer 直入）
+UsbAudioDriver* sdw_getUsbDriver() {
+    return getDriver();
+}
+
 extern "C" {
 
 // ── nativeUsbAvailable ───────────────────────────────────────────────────
@@ -83,6 +88,14 @@ Java_com_sdw_music_player_core_audio_UsbDacManager_nativePushPcm(
     return pushed;
 }
 
+// ── nativeGetRingFill ─────────────────────────────────────────────
+
+JNIEXPORT jint JNICALL
+Java_com_sdw_music_player_core_audio_UsbDacManager_nativeGetRingFill(JNIEnv*, jobject) {
+    auto* driver = getDriver();
+    return driver ? driver->getRingFillFrames() : 0;
+}
+
 // ── nativeStop ───────────────────────────────────────────────────────────
 
 JNIEXPORT void JNICALL
@@ -90,6 +103,15 @@ Java_com_sdw_music_player_core_audio_UsbDacManager_nativeStop(JNIEnv*, jobject) 
     auto* driver = getDriver();
     if (driver) driver->stop();
     LOGI("nativeStop");
+}
+
+// ── nativeResetRingBuffer ───────────────────────────────────────────────
+
+JNIEXPORT void JNICALL
+Java_com_sdw_music_player_core_audio_UsbDacManager_nativeResetRingBuffer(JNIEnv*, jobject) {
+    auto* driver = getDriver();
+    if (driver) driver->resetRingBuffer();
+    LOGI("nativeResetRingBuffer");
 }
 
 // ── nativeStopThreadOnly ─────────────────────────────────────────────────
@@ -138,6 +160,14 @@ Java_com_sdw_music_player_core_audio_UsbDacManager_nativeGetCurrentSampleRate(JN
     if (!driver) return 0;
     return driver->getSampleRate();
 }
+
+JNIEXPORT jint JNICALL
+Java_com_sdw_music_player_core_audio_UsbDacManager_nativeGetCurrentBits(JNIEnv*, jobject) {
+    auto* driver = getDriver();
+    if (!driver) return 0;
+    return driver->getBitsPerSample();
+}
+
 
 // ── nativeGetDacName ─────────────────────────────────────────────────────
 

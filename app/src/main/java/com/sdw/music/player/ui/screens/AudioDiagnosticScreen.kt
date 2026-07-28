@@ -63,17 +63,18 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
     }
 
     // Source rate: Oboe opens at source → getSampleRate(), or extract from file
-    val sourceRate = remember {
-        val oboeSrc = oboePlayer?.getSampleRate() ?: 0
-        if (oboeSrc > 0) oboeSrc
-        else {
-            val path = MusicService.currentSong?.path
-            if (!path.isNullOrEmpty()) extractSampleRateFromFile(path) else 0
-        }
-    }
+    // V3.3.4: live-updated in the polling loop below (song can change while screen is open)
+    var sourceRate by remember { mutableStateOf(0) }
+    var sourcePathTracked by remember { mutableStateOf<String?>(null) }
 
     val streamRate = remember { oboePlayer?.getStreamSampleRate() ?: 0 }
     val isOboeMode = remember { service?.isOboeDirectMode() == true }
+
+    // V3.3.4: USB DAC exclusive mode live state
+    var isUsbDacMode by remember { mutableStateOf(false) }
+    var dacStreamRate by remember { mutableStateOf(0) }
+    var dacStreamBits by remember { mutableStateOf(0) }
+    var dacName by remember { mutableStateOf("") }
 
     // ── Live SharingMode + Output Device polling ──
     // Initial null → LaunchedEffect fills immediately on first poll
@@ -99,9 +100,37 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
             // Fresh reference every poll — avoids stale oboePlayer after re-entry
             val liveOboe = MusicService.instance?.getOboePlayer()
             isExclusiveLive = liveOboe?.isExclusiveMode()
+
+            // V3.3.4: source rate follows current song (always update in DAC mode)
+            val curPath = MusicService.currentSong?.path
+            // DAC mode: read from controller (true source rate from STREAMINFO/RIFF)
+            if (isUsbDacMode) {
+                val controller = MusicService.instance?.getUsbDacController()
+                val dacSrc = controller?.sourceSampleRate ?: 0
+                android.util.Log.d("AudioDiagnostic", "isUsbDacMode=$isUsbDacMode controller=$controller dacSrc=$dacSrc sourceRate=$sourceRate")
+                if (dacSrc > 0 && dacSrc != sourceRate) {
+                    sourceRate = dacSrc
+                    sourcePathTracked = curPath
+                    android.util.Log.d("AudioDiagnostic", "Updated sourceRate from DAC: $dacSrc Hz")
+                }
+            } else if (curPath != sourcePathTracked) {
+                sourcePathTracked = curPath
+                val oboeSrc = liveOboe?.getSampleRate() ?: 0
+                sourceRate = if (oboeSrc > 0) oboeSrc
+                else if (!curPath.isNullOrEmpty()) withContext(Dispatchers.IO) { extractSampleRateFromFile(curPath) }
+                else 0
+            }
             val dev = audioManager?.getDevices(AudioManager.GET_DEVICES_OUTPUTS)?.firstOrNull()
             liveOutputDeviceInfo = dev
             liveOutputDeviceLabel = getDeviceLabel(dev)
+
+            // V3.3.4: USB DAC exclusive live params
+            isUsbDacMode = try { com.sdw.music.player.core.audio.UsbDacManager.isClaimed() } catch (_: Throwable) { false }
+            if (isUsbDacMode) {
+                dacStreamRate = try { com.sdw.music.player.core.audio.UsbDacManager.queryActiveSampleRate() } catch (_: Throwable) { 0 }
+                dacStreamBits = try { com.sdw.music.player.core.audio.UsbDacManager.queryActiveBits() } catch (_: Throwable) { 0 }
+                dacName = try { com.sdw.music.player.core.audio.UsbDacManager.getDacDisplayName() } catch (_: Throwable) { "USB DAC" }
+            }
 
             // Track audio focus changes without requesting focus
             val nowActive = audioManager?.isMusicActive ?: false
@@ -116,9 +145,15 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
             // dumpsys is expensive — only poll every 10s
             tick++
             if (tick % 10 == 0) {
-                val flags = fetchTrackFlags(liveOboe)
-                trackFlagsHex = flags.first
-                trackFlagsLabel = flags.second
+                if (isUsbDacMode) {
+                    // V3.3.4: USB direct write never touches AudioFlinger
+                    trackFlagsHex = "N/A"
+                    trackFlagsLabel = "USB 直写不经过 AudioFlinger"
+                } else {
+                    val flags = fetchTrackFlags(liveOboe)
+                    trackFlagsHex = flags.first
+                    trackFlagsLabel = flags.second
+                }
             }
 
             delay(1000L)
@@ -127,12 +162,14 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
 
     // Resampling status (uses live Exclusive state; null → assume non-exclusive)
     val effectiveDeviceRate = when {
+        isUsbDacMode && dacStreamRate > 0 -> dacStreamRate
         isExclusiveLive == true && streamRate > 0 -> streamRate
         deviceNativeRate > 0 -> deviceNativeRate
         streamRate > 0 -> streamRate
         else -> 0
     }
-    val bitPerfect = isExclusiveLive == true && sourceRate > 0 && effectiveDeviceRate > 0 && sourceRate == effectiveDeviceRate
+    val bitPerfect = (isUsbDacMode && sourceRate > 0 && dacStreamRate > 0 && sourceRate == dacStreamRate) ||
+        (isExclusiveLive == true && sourceRate > 0 && effectiveDeviceRate > 0 && sourceRate == effectiveDeviceRate)
 
     Scaffold(
         topBar = {
@@ -156,6 +193,8 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
             // ── Status banner ──
             item {
                 val (statusText, statusColor, statusIcon) = when {
+                    isUsbDacMode && bitPerfect -> Triple("Bit-Perfect · USB DAC Exclusive", AccentGreen, Icons.Default.CheckCircle)
+                    isUsbDacMode -> Triple("USB DAC Exclusive · Direct Write", AccentGreen, Icons.Default.Usb)
                     !isOboeMode -> Triple("ExoPlayer Mode", Color(0xFFFF9800), Icons.Default.MusicNote)
                     bitPerfect -> Triple("Bit-Perfect · Exclusive Direct", AccentGreen, Icons.Default.CheckCircle)
                     isExclusiveLive == true -> Triple("Exclusive · App-Layer Resampling", Color(0xFFFF9800), Icons.Default.Warning)
@@ -184,6 +223,20 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     sublabel = "源文件采样率",
                     accent = AccentPurple
                 )
+            }
+
+            // ── DAC Stream (USB direct actual) ──
+            if (isUsbDacMode && dacStreamRate > 0) {
+                item {
+                    val matchesSource = sourceRate > 0 && sourceRate == dacStreamRate
+                    DiagnosticRow(
+                        icon = Icons.Default.Usb,
+                        label = "DAC Stream",
+                        value = "${dacStreamRate / 1000.0} kHz / ${dacStreamBits}bit",
+                        sublabel = "USB 直写实际流参数 · $dacName",
+                        accent = if (matchesSource) AccentGreen else Color(0xFFFF9800)
+                    )
+                }
             }
 
             // ── Stream Rate (Oboe actual) ──
@@ -284,6 +337,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
             item {
                 val dotColor by animateColorAsState(
                     targetValue = when {
+                        isUsbDacMode -> AccentGreen
                         !isOboeMode -> TextSecondary
                         isExclusiveLive == null -> TextSecondary
                         isExclusiveLive == true -> AccentGreen
@@ -292,6 +346,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     animationSpec = tween(400)
                 )
                 val dotLabel = when {
+                    isUsbDacMode -> "CLAIMED"
                     !isOboeMode -> "Inactive"
                     isExclusiveLive == null -> "—"
                     isExclusiveLive == true -> "EXCLUSIVE"
@@ -337,12 +392,14 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
             // ── Output Mode ──
             item {
                 val modeLabel = when {
+                    isUsbDacMode -> "USB DAC Direct"
                     isExclusiveLive == true -> "Oboe Exclusive"
                     isExclusiveLive == null -> "Detecting…"
                     isOboeMode -> "AAudio Shared"
                     else -> "ExoPlayer"
                 }
                 val modeColor = when {
+                    isUsbDacMode -> AccentGreen
                     isExclusiveLive == true -> AccentGreen
                     isExclusiveLive == null -> TextSecondary
                     isOboeMode -> AccentBlue
@@ -353,6 +410,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     label = "Output Mode",
                     value = modeLabel,
                     sublabel = when {
+                        isUsbDacMode -> "USB Host API 直写 · 绕过整个 Android 音频栈"
                         isExclusiveLive == true -> "绕过 Android Mixer · 独占直出"
                         isExclusiveLive == null -> "轮询中…"
                         else -> "标准 Android 音频管线"
@@ -446,7 +504,8 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                     Icon(Icons.Default.CheckCircle, null, tint = AccentGreen, modifier = Modifier.size(20.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(
-                                        "Exclusive 直出 · 源采样率 = 硬件原生采样率",
+                                        if (isUsbDacMode) "USB 直写 · 源采样率 = DAC 流采样率"
+                                        else "Exclusive 直出 · 源采样率 = 硬件原生采样率",
                                         color = AccentGreen,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium
@@ -454,7 +513,10 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                 }
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    "Source ($sourceRate Hz) = Device Native ($deviceNativeRate Hz) → Oboe Exclusive 绕过 Android Mixer，真正的 bit-perfect 输出",
+                                    if (isUsbDacMode)
+                                        "Source ($sourceRate Hz) = DAC Stream ($dacStreamRate Hz / ${dacStreamBits}bit) → USB Host 直写，绕过 AudioFlinger，真正的 bit-perfect 输出"
+                                    else
+                                        "Source ($sourceRate Hz) = Device Native ($deviceNativeRate Hz) → Oboe Exclusive 绕过 Android Mixer，真正的 bit-perfect 输出",
                                     color = TextSecondary,
                                     fontSize = 12.sp,
                                     lineHeight = 18.sp
@@ -768,12 +830,14 @@ private fun extractSampleRateFromFile(path: String): Int {
             val mime = format.getString(android.media.MediaFormat.KEY_MIME) ?: continue
             if (mime.startsWith("audio/")) {
                 rate = format.getInteger(android.media.MediaFormat.KEY_SAMPLE_RATE)
+                android.util.Log.d("AudioDiagnostic", "extractSampleRate: path=${path.takeLast(30)} mime=$mime rate=$rate")
                 break
             }
         }
         extractor.release()
         rate
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        android.util.Log.e("AudioDiagnostic", "extractSampleRate failed: ${e.message}")
         0
     }
 }

@@ -608,6 +608,9 @@ private fun FoldableLayout(
             // Bottom: controls
             PlayerEqLabel(eqPresetName, accentColor, textAccentColor)
             Spacer(Modifier.height(4.dp))
+            DacInfoBar(accentColor, textAccentColor, isPlaying,
+                modifier = Modifier.align(Alignment.CenterHorizontally))
+            Spacer(Modifier.height(4.dp))
 
             PlayerProgress(
                 progressFraction, durationMs, positionMs, accentColor,
@@ -770,6 +773,9 @@ private fun LandscapeLayout(
                 Spacer(Modifier.height(12.dp))
             }
             PlayerEqLabel(eqPresetName, accentColor, textAccentColor)
+            DacInfoBar(accentColor, textAccentColor, isPlaying,
+                modifier = Modifier.align(Alignment.CenterHorizontally))
+            Spacer(Modifier.height(4.dp))
             PlayerProgress(
                 progressFraction, durationMs, positionMs, accentColor,
                 onSeekTo = { onSeekTo((durationMs * it).toLong()) }
@@ -939,6 +945,10 @@ private fun PortraitLayout(
         PlayerEqLabel(eqPresetName, accentColor, textAccentColor)
         Spacer(Modifier.height(8.dp))
 
+        // V3.3.4: DAC info capsule (visible only in USB DAC exclusive mode)
+        DacInfoBar(accentColor, textAccentColor, isPlaying,
+            modifier = Modifier.align(Alignment.CenterHorizontally))
+        Spacer(Modifier.height(8.dp))
         // Progress
         PlayerProgress(
             progressFraction, durationMs, positionMs, accentColor,

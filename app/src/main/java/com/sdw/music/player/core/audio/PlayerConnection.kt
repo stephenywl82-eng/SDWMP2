@@ -89,6 +89,9 @@ class PlayerConnection(private val context: Context) {
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            // [V3.3.6] DAC 模式下 ExoPlayer 只有单曲，index 无意义，跳过更新
+            // 用实际 DAC claim 状态判断，而非设置开关
+            if (com.sdw.music.player.core.audio.UsbDacManager.isClaimed()) return
             controller?.currentMediaItemIndex?.let { idx ->
                 _currentSongIndex.value = idx
                 if (idx in _songList.value.indices) {
@@ -99,6 +102,7 @@ class PlayerConnection(private val context: Context) {
 
         override fun onShuffleModeEnabledChanged(shuffleEnabled: Boolean) {
             _shuffleEnabled.value = shuffleEnabled
+            android.util.Log.d("PlayerConnection", "onShuffleModeEnabledChanged: $shuffleEnabled (from MediaController)")
         }
 
         override fun onRepeatModeChanged(repeatMode: Int) {
@@ -132,24 +136,29 @@ class PlayerConnection(private val context: Context) {
             controller?.let {
                 _isPlaying.value = it.isPlaying
                 _durationMs.value = it.duration.coerceAtLeast(0)
-                _currentSongIndex.value = it.currentMediaItemIndex
-                // 銆恦7.XX銆戦噸杩炴椂鎭㈠褰撳墠姝屾洸锛堜粠Playlists鎴栧厓鏁版嵁锛?
-                val restoredIdx = it.currentMediaItemIndex
-                val songs = _songList.value
-                if (restoredIdx in songs.indices) {
-                    _currentSong.value = songs[restoredIdx]
-                } else {
-                    val mediaItem = it.currentMediaItem
-                    if (mediaItem != null) {
-                        _currentSong.value = Song(
-                            id = mediaItem.mediaId?.toLongOrNull() ?: -1L,
-                            title = mediaItem.mediaMetadata.title?.toString() ?: "",
-                            artist = mediaItem.mediaMetadata.artist?.toString() ?: "",
-                            album = mediaItem.mediaMetadata.albumTitle?.toString() ?: "",
-                            duration = it.duration,
-                            path = mediaItem.localConfiguration?.uri?.toString() ?: "",
-                            albumArtUri = mediaItem.mediaMetadata.artworkUri?.toString() ?: ""
-                        )
+                // [V3.3.6] DAC mode: skip index update (ExoPlayer has single item in DAC mode)
+                if (com.sdw.music.player.core.audio.UsbDacManager.isClaimed() != true) {
+                    _currentSongIndex.value = it.currentMediaItemIndex
+                }
+                // [V3.3.6] DAC mode: skip restoredIdx (index meaningless)
+                if (com.sdw.music.player.core.audio.UsbDacManager.isClaimed() != true) {
+                    val restoredIdx = it.currentMediaItemIndex
+                    val songs = _songList.value
+                    if (restoredIdx in songs.indices) {
+                        _currentSong.value = songs[restoredIdx]
+                    } else {
+                        val mediaItem = it.currentMediaItem
+                        if (mediaItem != null) {
+                            _currentSong.value = Song(
+                                id = mediaItem.mediaId?.toLongOrNull() ?: -1L,
+                                title = mediaItem.mediaMetadata.title?.toString() ?: "",
+                                artist = mediaItem.mediaMetadata.artist?.toString() ?: "",
+                                album = mediaItem.mediaMetadata.albumTitle?.toString() ?: "",
+                                duration = it.duration,
+                                path = mediaItem.localConfiguration?.uri?.toString() ?: "",
+                                albumArtUri = mediaItem.mediaMetadata.artworkUri?.toString() ?: ""
+                            )
+                        }
                     }
                 }
                 _shuffleEnabled.value = it.shuffleModeEnabled

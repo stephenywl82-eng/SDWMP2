@@ -83,6 +83,11 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
         },
         containerColor = DarkBg
     ) { padding ->
+        // V3.3.10: 提升 DebugLog 读取到 LazyColumn 外部，避免滚动时重组
+        val ktLog = remember { com.sdw.music.player.core.audio.DebugLog.get() }
+        val nativeLog = remember { UsbDacManager.getNativeDebugLog() ?: "" }
+        val fullLog = if (nativeLog.isNotEmpty()) "=== NATIVE (C++) ===\n$nativeLog\n=== KOTLIN ===\n$ktLog" else ktLog
+        
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
             item { Spacer(Modifier.height(8.dp)) }
 
@@ -321,6 +326,28 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
 
                 Spacer(Modifier.height(8.dp))
             }
+            
+            // [V3.3.6] DebugLog 开关（默认关闭以优化性能）
+            item {
+                val debugPref = context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
+                var debugEnabled by remember(refreshTrigger) {
+                    mutableStateOf(debugPref.getBoolean("debug_log_enabled", false))
+                }
+                SettingsSwitchItem(
+                    icon = Icons.Default.BugReport,
+                    title = "Debug Log Panel",
+                    subtitle = if (debugEnabled) "On · May cause UI lag" else "Off · Better performance",
+                    checked = debugEnabled,
+                    onCheckedChange = { enabled ->
+                        debugEnabled = enabled
+                        debugPref.edit().putBoolean("debug_log_enabled", enabled).apply()
+                        // 同步到 DebugLog 单例
+                        com.sdw.music.player.core.audio.DebugLog.enabled = enabled
+                        refreshTrigger++
+                    }
+                )
+            }
+            
             item { SettingsDivider() }
             item {
                 val edgeLightPref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
@@ -498,29 +525,28 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
             }
 
             // === USB DAC Debug Log — Salt-style: Kotlin + Native (C++) + Audio Info ===
-            item {
-                SettingsSectionTitle("USB DAC Logs")
-            }
-            item {
-                val ktLog = com.sdw.music.player.core.audio.DebugLog.get()
-                val nativeLog = UsbDacManager.getNativeDebugLog() ?: ""
-                val fullLog = if (nativeLog.isNotEmpty()) "=== NATIVE (C++) ===\n$nativeLog\n=== KOTLIN ===\n$ktLog" else ktLog
-                val scrollState = rememberScrollState()
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0D0D0D)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Column(modifier = Modifier.heightIn(max = 240.dp)) {
-                        Text(
-                            text = fullLog.ifEmpty { "No logs yet. Enable USB DAC Exclusive and play a song." },
-                            color = Color(0xFF00FF88),
-                            fontSize = 9.sp,
-                            lineHeight = 12.sp,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            modifier = Modifier.padding(8.dp).verticalScroll(scrollState)
-                        )
-                    }
+            // V3.3.10: 仅在 DebugLog 开启时显示，避免滚动卡顿
+            if (com.sdw.music.player.core.audio.DebugLog.enabled) {
+                item {
+                    SettingsSectionTitle("USB DAC Logs")
+                }
+                item {
+                    val scrollState = rememberScrollState()
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D0D0D)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Column(modifier = Modifier.heightIn(max = 240.dp)) {
+                            Text(
+                                text = fullLog.ifEmpty { "No logs yet. Enable USB DAC Exclusive and play a song." },
+                                color = Color(0xFF00FF88),
+                                fontSize = 9.sp,
+                                lineHeight = 12.sp,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                modifier = Modifier.padding(8.dp).verticalScroll(scrollState)
+                            )
+                        }
                     Row(modifier = Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.End) {
                         val clipboardManager = LocalClipboardManager.current
                         TextButton(onClick = {
@@ -537,17 +563,19 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                         }
                     }
                 }
+                }
             }
 
             // === Audio Info Panel — Salt-style real-time monitor ===
+            // V3.3.10: 使用 remember 缓存所有值，避免滚动时重复调用 native
             item {
                 SettingsSectionTitle("Audio Info")
             }
             item {
                 val stats = remember(refreshTrigger) { UsbDacManager.getDetailedDacInfo() ?: "DAC not connected" }
-                val underruns = UsbDacManager.getUnderrunCount()
-                val streaming = UsbDacManager.isStreaming()
-                val nativeLogLen = (UsbDacManager.getNativeDebugLog() ?: "").length
+                val underruns = remember(refreshTrigger) { UsbDacManager.getUnderrunCount() }
+                val streaming = remember(refreshTrigger) { UsbDacManager.isStreaming() }
+                val nativeLogLen = remember(refreshTrigger) { (UsbDacManager.getNativeDebugLog() ?: "").length }
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkCard),

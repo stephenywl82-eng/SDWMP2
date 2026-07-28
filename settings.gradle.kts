@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "SDWMP2"
 include(":app")
-include(":benchmark")
+// include(":benchmark")  // 【V3.3.21】临时禁用以加速编译

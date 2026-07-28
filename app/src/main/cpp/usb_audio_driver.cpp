@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/resource.h>
+#include <sched.h>
+#include <pthread.h>
 #include <linux/usbdevice_fs.h>
 #include <linux/usb/ch9.h>
 #include <errno.h>
@@ -135,11 +138,40 @@ bool UsbAudioDriver::open(int fd, int epAddress, int maxPacketSize, int interval
     detailedInfo_ = buf;
     LOGI("%s", buf);
 
-    // Claim the audio streaming interface
+    // ═══ DISCONNECT kernel audio driver FIRST ═══
+    // Android kernel already has the USB Audio Class driver (snd_usb_audio)
+    // attached to this device. That driver claims the interfaces and owns the
+    // clock, causing EBUSY on any SET_CUR control transfer.
+    // USBDEVFS_DISCONNECT tells the kernel driver to release its claim so we
+    // can talk directly to the hardware. This is what AAudio/HAL exclusive mode
+    // implicitly does via AudioFlinger.
+    // Interface number 0 = the AudioControl interface; we must disconnect
+    // the kernel driver before claiming our own.
+    // USBDEVFS_DISCONNECT (0x5502): force kernel audio driver off the device.
+    // May not be available on all Android kernels. We continue regardless.
+    struct usbdevfs_ioctl disconnect = {};
+    disconnect.ifno = 0;
+    disconnect.ioctl_code = 0x5502;  // USBDEVFS_DISCONNECT = _IO('U', 2)
+    disconnect.data = nullptr;
+    int discRet = ioctl(fd_, USBDEVFS_IOCTL, &disconnect);
+    LOGI("DISCONNECT kernel driver iface=0: ret=%d errno=%d (%s)",
+         discRet, errno, strerror(errno));
+
+    // ═══ SET SAMPLE RATE BEFORE alt=1 ═══
+    // Now that the kernel driver is gone, the clock should be free.
+    // TTGK defaults to 48kHz → 44.1k data plays 1.088x fast.
+    // Must be sent before claimInterface(1) activates the ISO OUT endpoint.
+    sampleRate_ = 44100;
+    int srRet = trySetSampleRate(44100);
+    LOGI("open: trySetSampleRate(44100) → %d", srRet);
+    clockRate_ = (srRet >= 0) ? 44100 : 0;   // 【V3.2.7】记录 DAC 时钟实际速率
+
+    // Claim the audio streaming interface (alt=1 activates ISO OUT)
     if (!claimInterface(1)) {
         LOGE("Failed to claim interface");
         return false;
     }
+    currentAlt_ = 1;
 
     // Parse supported sample rates from AudioControl descriptors
     parseSupportedRates();
@@ -170,13 +202,13 @@ bool UsbAudioDriver::start(int sampleRate, int channels, int bitsPerSample) {
     }
 
     // If already streaming, stop old thread cleanly and restart
+    // 【V3.2.7 修复】必须走 stopThreadOnly()：它会 DISCARD 在飞 URB。
+    // 之前只置 flag+join，12 个在飞 URB 没回收，后续 setInterfaceAlt(0) EBUSY 失败，
+    // DAC 留在 alt=1(16bit/44.1k)，app 推 24bit@48k → 左声道噪音+右声道快进。
     if (streaming_.load(std::memory_order_acquire)) {
-        LOGW("start: restarting stream (old sr=%d ch=%d bits=%d) �?(sr=%d ch=%d bits=%d)",
+        LOGW("start: restarting stream (old sr=%d ch=%d bits=%d) -> (sr=%d ch=%d bits=%d)",
              sampleRate_, channels_, bitsPerSample_, sampleRate, channels, bitsPerSample);
-        streaming_.store(false, std::memory_order_release);
-        if (streamThread_.joinable()) {
-            streamThread_.join();
-        }
+        stopThreadOnly();
     }
 
     sampleRate_ = sampleRate;
@@ -187,21 +219,57 @@ bool UsbAudioDriver::start(int sampleRate, int channels, int bitsPerSample) {
     LOGI("start: sr=%d ch=%d bits=%d bytesPerFrame=%d",
          sampleRate_, channels_, bitsPerSample_, bytesPerFrame_);
 
-    // Synchronous ISO mode: sample rate is determined by data rate, not control transfer.
-    // The DAC derives its clock from USB SOF (1kHz). No setSampleRate needed.
-    // (Salt Player also skips this for sync-mode DACs.)
-    LOGI("Sync mode: sample rate implicit via data rate (no control transfer)");
+    // 【V3.2.7】时钟速率 + alt（位深）切换。TTGK：alt1=16bit alt2=24bit alt3=32bit，
+    // 采样率靠时钟 SET_CUR，位深靠 alt。安全窗口：无 URB 在飞时 alt=0 关端点 → SET_CUR → 目标 alt 重开。
+    int targetAlt = (bitsPerSample_ == 24) ? 2 : (bitsPerSample_ == 32 ? 3 : 1);
+    if (sampleRate_ != clockRate_ || targetAlt != currentAlt_) {
+        setInterfaceAlt(0);
+        int scRet = clockRate_;
+        if (sampleRate_ != clockRate_) {
+            scRet = trySetSampleRate(sampleRate_);
+            if (scRet >= 0) clockRate_ = sampleRate_;
+            else LOGW("start: SET_CUR(%d) failed, clock stays at %d", sampleRate_, clockRate_);
+        }
+        bool altOk = setInterfaceAlt(targetAlt);
+        if (!altOk) {
+            // EBUSY 重试一次：给内核回收 URB 的时间窗口
+            usleep(20000);
+            altOk = setInterfaceAlt(targetAlt);
+        }
+        if (altOk) currentAlt_ = targetAlt;
+        else LOGE("start: setInterfaceAlt(%d) FAILED twice - DAC stuck at alt=%d, ABORT", targetAlt, currentAlt_);
+        LOGI("start: switch clock->%d (ret=%d) alt->%d ok=%d (bits=%d)", clockRate_, scRet, targetAlt, altOk ? 1 : 0, bitsPerSample_);
+        if (!altOk) return false;
+    }
 
-    // Reset ring buffer positions for clean restart
-    writePos_.store(0, std::memory_order_release);
-    readPos_.store(0, std::memory_order_release);
+    // 【诊断】读回 DAC 真实状态：SETINTERFACE 返回成功 ≠ 设备真切过去
+    {
+        uint8_t curAlt = 255;
+        struct usbdevfs_ctrltransfer ct = {};
+        ct.bRequestType = 0x81; ct.bRequest = 0x0A; // GET_INTERFACE
+        ct.wValue = 0; ct.wIndex = (uint16_t)ifaceNum_;
+        ct.wLength = 1; ct.timeout = 1000; ct.data = &curAlt;
+        int r1 = ioctl(fd_, USBDEVFS_CONTROL, &ct);
+        uint32_t curRate = 0;
+        struct usbdevfs_ctrltransfer ct2 = {};
+        ct2.bRequestType = 0xA1; ct2.bRequest = 0x01; // CUR
+        ct2.wValue = 0x0100;  // CS_SAM_FREQ_CONTROL
+        ct2.wIndex = 0x0900;  // clockId=9, AC iface=0
+        ct2.wLength = 4; ct2.timeout = 1000; ct2.data = &curRate;
+        int r2 = ioctl(fd_, USBDEVFS_CONTROL, &ct2);
+        LOGI("start: VERIFY GET_INTERFACE=%d (ret=%d) GET_CUR rate=%u (ret=%d) [want alt=%d rate=%d]",
+             curAlt, r1, curRate, r2, currentAlt_, sampleRate_);
+    }
+
+    // [V3.3.4] Do NOT reset ring positions here: Kotlin prebuffers ~500ms into the
+    // ring BEFORE calling start(); zeroing writePos_/readPos_ discarded that prebuffer
+    // (silent gap + first ~500ms of every song lost). Callers (play/resume/seek paths)
+    // call resetRingBuffer() explicitly before pushing fresh data.
     underrunCount_.store(0, std::memory_order_release);
 
     // Start stream thread
     streaming_.store(true, std::memory_order_release);
     streamThread_ = std::thread(streamThreadEntry, this);
-
-    LOGI("start: stream thread launched");
     return true;
 }
 
@@ -229,7 +297,14 @@ void UsbAudioDriver::stopThreadOnly() {
     }
 
     if (streamThread_.joinable()) {
-        streamThread_.join();
+        // Detach a waiter so the caller (often the main/UI thread) never blocks
+        // if REAPURB is stuck on a misconfigured endpoint. The waiter joins the
+        // real stream thread once it exits; this prevents an ANR/freeze while
+        // accepting a bounded thread leak in the pathological stuck-REAPURB case.
+        std::thread waiter([t = std::move(streamThread_)]() mutable {
+            t.join();
+        });
+        waiter.detach();
     }
     if (feedbackThread_.joinable()) {
         feedbackThread_.join();
@@ -237,35 +312,64 @@ void UsbAudioDriver::stopThreadOnly() {
     LOGI("stopThreadOnly: threads stopped, USB claim kept");
 }
 
+void UsbAudioDriver::resetRingBuffer() {
+    // 【V3.2.7】暂停后恢复时必须清 ring buffer。stopThreadOnly 只停了线程，
+    // ring 数据还在，writePos_/readPos_ 不对齐。直接开流会导致新旧数据互相踩踏，
+    // 左声道噪音 / 错乱。
+    // 【V3.3.21 修复】不仅要重置指针，还要清零实际数据。否则旧歌残留 PCM 被送去 DAC。
+    if (ringBuffer_) {
+        memset(ringBuffer_, 0, kRingFrames * 2 * sizeof(float));
+    }
+    writePos_.store(0, std::memory_order_release);
+    readPos_.store(0, std::memory_order_release);
+    LOGI("resetRingBuffer: cleared (memset %d frames)", kRingFrames);
+}
+
 // ── pushPcm ──────────────────────────────────────────────────────────────
 
 int UsbAudioDriver::pushPcm(const float* data, int frameCount) {
     if (!ringBuffer_ || frameCount <= 0) return -1;
 
+    // 【V3.2.7】背压：流运行时阻塞等待空间，解码线程被限制到实时速度；
+    // 未开流（预缓冲阶段）写多少算多少，不阻塞。
+    int totalWritten = 0;
+    const float* src = data;
+    int remaining = frameCount;
+
+    while (remaining > 0) {
+        int wp = writePos_.load(std::memory_order_acquire);
+        int rp = readPos_.load(std::memory_order_acquire);
+        // 留 1 帧间隙区分满/空
+        int avail = kRingFrames - 1 - ((wp - rp + kRingFrames) % kRingFrames);
+
+        if (avail <= 0) {
+            if (!streaming_.load(std::memory_order_acquire)) break;  // 预缓冲满了直接返回
+            usleep(2000);  // 等消费线程腾空间（~88帧/2ms @44.1k）
+            continue;
+        }
+
+        int chunk = remaining < avail ? remaining : avail;
+        int samples = chunk * 2; // stereo
+        const int mask = kRingFrames * 2 - 1; // power-of-2 assumption
+
+        for (int i = 0; i < samples; ++i) {
+            int idx = ((wp * 2) + i) & mask;
+            ringBuffer_[idx] = src[i];
+        }
+
+        writePos_.store((wp + chunk) % kRingFrames, std::memory_order_release);
+        src += samples;
+        remaining -= chunk;
+        totalWritten += chunk;
+    }
+
+    return totalWritten;
+}
+
+int UsbAudioDriver::getRingFillFrames() {
     int wp = writePos_.load(std::memory_order_acquire);
     int rp = readPos_.load(std::memory_order_acquire);
-
-    // Available space (in frames)
-    int avail = kRingFrames - ((wp - rp + kRingFrames) % kRingFrames);
-
-    if (avail < frameCount) {
-        underrunCount_.fetch_add(1, std::memory_order_release);
-        // Write what we can
-        frameCount = avail > 0 ? avail : 0;
-    }
-
-    if (frameCount <= 0) return 0;
-
-    int samples = frameCount * 2; // stereo
-    const int mask = kRingFrames * 2 - 1; // power-of-2 assumption
-
-    for (int i = 0; i < samples; ++i) {
-        int idx = ((wp * 2) + i) & mask;
-        ringBuffer_[idx] = data[i];
-    }
-
-    writePos_.store((wp + frameCount) % kRingFrames, std::memory_order_release);
-    return frameCount;
+    return (wp - rp + kRingFrames) % kRingFrames;
 }
 
 // claimInterface �?set the exact alternate setting chosen by Kotlin
@@ -278,7 +382,10 @@ bool UsbAudioDriver::claimInterface(int desiredAlt) {
     claimed_.store(true, std::memory_order_release);
 
     // Set the exact alt chosen by getEndpointInfo (Salt Player approach: no looping)
-    if (isUac2_ && desiredAlt > 0) {
+    // NOTE: applies to BOTH UAC1 (full-speed, e.g. TTGK) and UAC2. The alt
+    // setting is what activates the ISO OUT endpoint; skipping it for UAC1
+    // leaves the endpoint inactive -> submitUrbRaw returns ENOENT.
+    if (desiredAlt > 0) {
         if (setInterfaceAlt(desiredAlt)) {
             LOGI("Set interface alt setting %d", desiredAlt);
         } else {
@@ -314,14 +421,86 @@ bool UsbAudioDriver::setInterfaceAlt(int alt) {
 
 // ── setSampleRate ────────────────────────────────────────────────────────
 
+// ── Internal helpers ────────────────────────────────────────────────────────
+
+// Unconditionally send the sample rate control transfer.
+// Caller guarantees: no ISO URB in flight (call from open() before alt=1).
+// Uses the first UAC2 Clock Source entity found in the descriptor.
+int UsbAudioDriver::trySetSampleRate(int rate) {
+    uint8_t data[4];
+    struct usbdevfs_ctrltransfer ctrl = {};
+    int ret = -1;
+
+    if (isUac2_) {
+        // Find the first UAC2 Clock Source (not Clock Selector).
+        // Parse descriptor: CS_CLOCK_SOURCE=0x0A at pos+2, id at pos+3.
+        uint8_t desc[4096];
+        int len = readConfigDescriptor(0, desc, sizeof(desc));
+        int clockId = 3;  // default from OT descriptor (wClockSourceCluster=0x000A → id=3)
+        int pos = 0;
+        while (pos < len && pos + 3 < (int)sizeof(desc)) {
+            uint8_t dLen  = desc[pos];
+            uint8_t dType = desc[pos + 1];
+            uint8_t dSub  = desc[pos + 2];
+            if (dType == UAC2_CS_INTERFACE && dSub == UAC2_CS_CLOCK_SOURCE && dLen >= 8) {
+                clockId = desc[pos + 3];
+                LOGI("Clock Source (not selector): id=%d", clockId);
+                break;
+            }
+            pos += (dLen > 0) ? dLen : 1;
+            if (dLen == 0) break;
+        }
+
+        // UAC2: SET_CUR on the clock entity via AC interface (ifaceNum_).
+        data[0] = (uint8_t)(rate & 0xFF);
+        data[1] = (uint8_t)((rate >> 8) & 0xFF);
+        data[2] = (uint8_t)((rate >> 16) & 0xFF);
+        data[3] = (uint8_t)((rate >> 24) & 0xFF);
+        ctrl.bRequestType = 0x21;                          // host→device | class | interface
+        ctrl.bRequest     = 0x01;                          // SET_CUR
+        ctrl.wValue       = 0x0100;                        // CS_SAM_FREQ_CONTROL << 8
+        // wIndex: (clockId << 8) | AC interface number (0 for TTGK)
+        ctrl.wIndex       = (uint16_t)((clockId << 8) | 0x00);
+        ctrl.wLength      = 4;
+        ctrl.timeout      = 200;
+        ctrl.data         = data;
+        ret = ioctl(fd_, USBDEVFS_CONTROL, &ctrl);
+        LOGI("trySetSampleRate(UAC2): clockId=%d rate=%d wIndex=0x%04X ret=%d",
+             clockId, rate, ctrl.wIndex, ret);
+    } else {
+        // UAC1: SET_CUR SAMPLING_FREQ_CONTROL on the ISO OUT endpoint.
+        data[0] = (uint8_t)(rate & 0xFF);
+        data[1] = (uint8_t)((rate >> 8) & 0xFF);
+        data[2] = (uint8_t)((rate >> 16) & 0xFF);
+        ctrl.bRequestType = 0x22;                          // host→device | class | endpoint
+        ctrl.bRequest     = 0x01;                          // SET_CUR
+        ctrl.wValue       = 0x0100;                        // SAMPLING_FREQ_CONTROL
+        ctrl.wIndex       = (uint16_t)epAddress_;          // ISO OUT endpoint address
+        ctrl.wLength      = 3;
+        ctrl.timeout      = 200;
+        ctrl.data         = data;
+        ret = ioctl(fd_, USBDEVFS_CONTROL, &ctrl);
+        LOGI("trySetSampleRate(UAC1): ep=0x%02X rate=%d ret=%d", epAddress_, rate, ret);
+    }
+
+    if (ret < 0) {
+        LOGW("trySetSampleRate(%d) failed: %s (errno=%d)", rate, strerror(errno), errno);
+        return -1;
+    }
+    sampleRate_ = rate;
+    return rate;
+}
+
+// Public setSampleRate: only safe when stream is NOT active.
+// Since we now call trySetSampleRate from open() (before alt=1),
+// this is mostly a no-op during normal start().
 int UsbAudioDriver::setSampleRate(int rate) {
     if (fd_ < 0) return -1;
-
-    // ⚠️ Control transfer REAPURB on TTGK DAC: USBDEVFS_CONTROL corrupts ISO OUT endpoint,
-    // causing permanent REAPURB blocking. Completely disabled.
-    // Sample rate is controlled by USB SOF data rate, not control transfer.
-    LOGE("setSampleRate(%d): DISABLED — avoids TTGK DAC endpoint corruption", rate);
-    return sampleRate_;  // just return current without touching hardware
+    if (streaming_.load(std::memory_order_acquire)) {
+        LOGW("setSampleRate(%d): skipped — stream active", rate);
+        return sampleRate_;
+    }
+    return trySetSampleRate(rate);
 }
 
 // ── streamLoop ───────────────────────────────────────────────────────────
@@ -330,6 +509,8 @@ int UsbAudioDriver::setSampleRate(int rate) {
 
 
 void UsbAudioDriver::streamLoop() {
+    // 【V3.2.7】音频实时优先级（-19 = ANDROID URGENT_AUDIO），降低被调度器预占导致的 DAC 断粮
+    setpriority(PRIO_PROCESS, 0, -19);
     const int pktMaxFrames = packetSizeFrames();
     const int pktMaxBytes  = pktMaxFrames * bytesPerFrame_;
     const int urbBytes     = pktMaxBytes * kPacketsPerUrb;
@@ -338,8 +519,10 @@ void UsbAudioDriver::streamLoop() {
     LOGI("streamLoop: maxFrames=%d urbBytes=%d pkts/urb=%d hs=%d rate/mf=%.4f",
          pktMaxFrames, urbBytes, kPacketsPerUrb, isUac2_ ? 1 : 0, samplesPerMicroframe);
 
-    // Pre-queue 4 URBs with silence (max-size packets for simplicity)
-    for (int s = 0; s < 4; s++) {
+    // 【V3.2.7】Pre-queue 12 URBs（原4）：硬件在飞队列 32ms→96ms，
+    // 抗调度抖动——长播偶发卡顿根因：stream 线程被预占 >32ms 即断粮
+    constexpr int kPreQueue = 12;
+    for (int s = 0; s < kPreQueue; s++) {
         memset(urbSlots_[s].buffer, 0, urbBytes);
         urbSlots_[s].urb->number_of_packets = kPacketsPerUrb;
         urbSlots_[s].urb->buffer_length = urbBytes;
@@ -352,7 +535,7 @@ void UsbAudioDriver::streamLoop() {
             return;
         }
     }
-    int slot = 4;
+    int slot = kPreQueue;
 
     size_t reapUrbSize = sizeof(usbdevfs_urb) + kPacketsPerUrb * sizeof(usbdevfs_iso_packet_desc);
     auto* reapBuf = static_cast<uint8_t*>(calloc(1, reapUrbSize));
@@ -408,6 +591,21 @@ void UsbAudioDriver::streamLoop() {
                         if (s >  1.0f) s =  1.0f;
                         if (s < -1.0f) s = -1.0f;
                         out[j] = static_cast<int16_t>(s * 32767.0f);
+                    }
+                    break;
+                }
+                case 24: {
+                    // 【V3.2.7】3 字节 LE 打包（alt2 subslot=3）
+                    uint8_t* out = buf + sampleOffset;
+                    for (int j = 0; j < nSamples; ++j) {
+                        int idx = ((rp * 2) + sampleOffset / 3 + j) & ringMask;
+                        float s = ringBuffer_[idx] * vol;
+                        if (s >  1.0f) s =  1.0f;
+                        if (s < -1.0f) s = -1.0f;
+                        int32_t v = static_cast<int32_t>(s * 8388607.0f);
+                        out[j * 3]     = static_cast<uint8_t>(v & 0xFF);
+                        out[j * 3 + 1] = static_cast<uint8_t>((v >> 8) & 0xFF);
+                        out[j * 3 + 2] = static_cast<uint8_t>((v >> 16) & 0xFF);
                     }
                     break;
                 }
@@ -720,6 +918,9 @@ const char* UsbAudioDriver::getSupportedRates() {
 
 void* UsbAudioDriver::streamThreadEntry(void* arg) {
     auto* self = static_cast<UsbAudioDriver*>(arg);
+    // 【V3.2.7】SCHED_FIFO 实时调度（ANDROID URGENT_AUDIO 同级），setpriority 不保证实时性
+    sched_param sp = { .sched_priority = 2 };
+    pthread_setschedparam(pthread_self(), SCHED_FIFO, &sp);
     self->streamLoop();
     return nullptr;
 }

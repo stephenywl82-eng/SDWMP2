@@ -17,7 +17,8 @@ class VolumeGuard(
     private val context: Context,
     private val onPause: () -> Unit,
     private val onResume: () -> Unit,
-    private val isPlaying: () -> Boolean
+    private val isPlaying: () -> Boolean,
+    private val onVolumeChanged: ((Float) -> Unit)? = null  // [V8.x] USB DAC volume callback
 ) {
     private val TAG = "VolumeGuard"
     private val handler = Handler(Looper.getMainLooper())
@@ -75,6 +76,8 @@ class VolumeGuard(
         val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val isCurrentlyMuted = currentVolume == 0
         val playing = isPlaying()
+        
+        Log.d(TAG, "checkVolume: vol=$currentVolume muted=$isCurrentlyMuted playing=$playing isMuted=$isMuted")
 
         if (isCurrentlyMuted && !isMuted) {
             isMuted = true
@@ -97,12 +100,18 @@ class VolumeGuard(
                     Log.d(TAG, "Volume restored → auto resume (global)")
                 }, 200)
             }
+            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).takeIf { it > 0 } ?: 1
+            onVolumeChanged?.invoke(currentVolume.toFloat() / maxVol)
         } else if (isCurrentlyMuted) {
-            // 已经在静音状态，不做额外操作
+            // [V8.x] Already muted — still notify for completeness
+            onVolumeChanged?.invoke(0f)
         } else {
             isMuted = false
             wasPlayingBeforeMute = false
             handler.removeCallbacks(mutedRecheck)
+            // 【V3.3.17】正常音量调节（非静音）也通知 USB DAC
+            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).takeIf { it > 0 } ?: 1
+            onVolumeChanged?.invoke(currentVolume.toFloat() / maxVol)
         }
     }
 }

@@ -79,6 +79,9 @@ class OboeDirectPlayer(private val context: Context) {
     private external fun nativeSetSampleRateNative(nativeSampleRate: Int)
     private external fun nativeGetSampleRateNative(): Int
 
+    // 【V3.2.7】输出设备路由（USB DAC Port ID，0=系统默认）
+    private external fun nativeSetOutputDeviceId(deviceId: Int)
+
     // 【V7.0】峰值检测 Debug
     private external fun nativeGetClipRatio(): Float
     private external fun nativeGetClipCount(): Int
@@ -390,6 +393,16 @@ class OboeDirectPlayer(private val context: Context) {
             Log.i(TAG, "Native sample rate set: $nativeSampleRate Hz")
         } catch (e: Exception) {
             Log.e(TAG, "setSampleRateNative error: ${e.message}")
+        }
+    }
+
+    /** 【V3.2.7】设置输出设备（USB DAC Port ID，0=系统默认） */
+    fun setOutputDevice(deviceId: Int) {
+        try {
+            nativeSetOutputDeviceId(deviceId)
+            Log.i(TAG, "Output device set: $deviceId")
+        } catch (e: Exception) {
+            Log.e(TAG, "setOutputDevice error: ${e.message}")
         }
     }
 

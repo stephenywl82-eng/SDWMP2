@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.ripple.rememberRipple
@@ -395,4 +396,104 @@ internal fun formatDurationPlayer(ms: Long): String {
     val seconds = totalSeconds % 60
     return if (minutes >= 60) "%d:%02d:%02d".format(minutes / 60, minutes % 60, seconds)
     else "%d:%02d".format(minutes, seconds)
+}
+
+
+// ============================================================================
+// V3.3.4: DAC info capsule bar - DAC model | 48kHz / 24bit | Hi-Res gold badge
+// Shown only in USB DAC exclusive mode (auto-hides when claim absent)
+// ============================================================================
+@Composable
+fun DacInfoBar(
+    accentColor: Color,
+    textAccentColor: Color,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
+    var dacName by remember { mutableStateOf("") }
+    var sr by remember { mutableIntStateOf(0) }
+    var bits by remember { mutableIntStateOf(0) }
+    var diagCount by remember { mutableIntStateOf(0) }
+    
+    // [V3.3.6] 只在 DAC 激活时轮询，避免主线程卡顿
+    LaunchedEffect(Unit) {
+        while (true) {
+            val claimed = try { com.sdw.music.player.core.audio.UsbDacManager.isClaimed() } catch (_: Throwable) { false }
+            if (claimed) {
+                dacName = com.sdw.music.player.core.audio.UsbDacManager.getDacDisplayName()
+                sr = com.sdw.music.player.core.audio.UsbDacManager.queryActiveSampleRate()
+                bits = com.sdw.music.player.core.audio.UsbDacManager.queryActiveBits()
+            } else { 
+                dacName = ""; sr = 0; bits = 0
+            }
+            if (diagCount % 5 == 0) {
+                android.util.Log.d("DacInfoBar", "claimed=$claimed dacName='$dacName' sr=$sr bits=$bits")
+            }
+            diagCount++
+            // DAC 未激活时降低轮询频率（5秒）
+            kotlinx.coroutines.delay(if (claimed) 1000L else 5000L)
+        }
+    }
+    if (dacName.isEmpty() || sr <= 0) return
+
+    val hiRes = sr >= 88_200 || bits >= 24
+    val srText = if (sr % 1000 == 0) "${sr / 1000}kHz" else String.format("%.1fkHz", sr / 1000f)
+
+    val infinite = rememberInfiniteTransition(label = "dacDot")
+    val pulse by infinite.animateFloat(
+        initialValue = 0.35f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "dacDotA"
+    )
+    val dotAlpha = if (isPlaying) pulse else 1f
+
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(accentColor.copy(alpha = 0.08f))
+            .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(50))
+            .padding(horizontal = 14.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(6.dp).background(textAccentColor.copy(alpha = dotAlpha), CircleShape))
+        Spacer(Modifier.width(7.dp))
+        Text(
+            dacName,
+            fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp),
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+            color = textAccentColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 130.dp)
+        )
+        DacInfoDivider(textAccentColor)
+        Text(
+            "$srText / ${bits}bit",
+            fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp),
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+            color = textAccentColor,
+            style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum")
+        )
+        if (hiRes) {
+            DacInfoDivider(textAccentColor)
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Brush.verticalGradient(listOf(Color(0xFFF5D061), Color(0xFFC9A227))))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    "Hi-Res",
+                    fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp),
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    color = Color(0xFF1A1200),
+                    letterSpacing = androidx.compose.ui.unit.TextUnit(0.3f, androidx.compose.ui.unit.TextUnitType.Sp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DacInfoDivider(color: Color) {
+    Spacer(Modifier.width(9.dp))
+    Box(Modifier.width(1.dp).height(10.dp).background(color.copy(alpha = 0.2f)))
+    Spacer(Modifier.width(9.dp))
 }

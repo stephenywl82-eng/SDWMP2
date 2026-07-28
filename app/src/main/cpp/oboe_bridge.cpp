@@ -573,6 +573,7 @@ static std::atomic<int64_t> g_clipSampleCount{0};  // 触发软削波的采样�
 static std::atomic<int64_t> g_totalSampleCount{0}; // 总采样点数
 static std::atomic<int> g_sampleRateNative{48000}; // Android 系统原生采样率
 static std::atomic<bool> g_preferSharedMode{false}; // Dolby开启时强制Shared
+static std::atomic<int> g_outputDeviceId{0};       // 【V3.2.7】目标输出设备 Port ID（0=系统默认，Kotlin侧动态传入USB DAC id）
 
 // DSP EQ — Biquad cascade (independent per stereo channel)
 // L/R channels MUST have independent Biquad instances to avoid phase crossover
@@ -1514,6 +1515,13 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpen(JNIEnv *env, jobject thiz,
     builder.setChannelCount(channelCount);
     builder.setCallback(&g_audioCallback);
     builder.setBufferCapacityInFrames(9600);
+    {   // 【V3.2.7】动态路由到 USB DAC（Kotlin 侧传入当前 Port ID，0=系统默认）
+        int devId = g_outputDeviceId.load();
+        if (devId > 0) {
+            builder.setDeviceId(devId);
+            LOGI("nativeOpen: routing to deviceId=%d", devId);
+        }
+    }
 
     oboe::Result oboeResult;
     bool opened = false;
@@ -1805,6 +1813,13 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpenFd(JNIEnv *env, jobject thi
     builder.setChannelCount(channelCount);
     builder.setCallback(&g_audioCallback);
     builder.setBufferCapacityInFrames(9600);
+    {   // 【V3.2.7】动态路由到 USB DAC（Kotlin 侧传入当前 Port ID，0=系统默认）
+        int devId = g_outputDeviceId.load();
+        if (devId > 0) {
+            builder.setDeviceId(devId);
+            LOGI("nativeOpenFd: routing to deviceId=%d", devId);
+        }
+    }
 
     oboe::Result oboeResult;
     bool opened = false;
@@ -2166,6 +2181,14 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeSetSampleRateNative(JNIEnv *env
 JNIEXPORT jint JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeGetSampleRateNative(JNIEnv *env, jobject thiz) {
     return g_sampleRateNative.load();
+}
+
+// --- 【V3.2.7】输出设备路由（USB DAC Port ID，0=系统默认）---
+JNIEXPORT void JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeSetOutputDeviceId(JNIEnv *env, jobject thiz,
+                                                                jint deviceId) {
+    g_outputDeviceId.store(deviceId);
+    LOGI("Output device id set to: %d", deviceId);
 }
 
 // --- Clip stats ---

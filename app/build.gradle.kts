@@ -23,8 +23,8 @@ android {
         applicationId = "com.sdw.music.player"
         minSdk = 24
         targetSdk = 35
-        versionCode = 8
-        versionName = "3.2.4"
+        versionCode = 13
+        versionName = "3.3.22"
 
         ndk {
             abiFilters += listOf("arm64-v8a")
@@ -93,14 +93,22 @@ android {
 
     buildFeatures {
         compose = true
-        prefab = true
+        // prefab disabled: oboe is linked via the prebuilt liboboe.so in jniLibs
+        // (the published oboe 1.8.0 prefab only carries NDK r21 artifacts and
+        // rejects newer NDKs). Keep the oboe dependency for completeness but do
+        // not process its prefab.
+        prefab = false
     }
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
 
-    /* CMake skipped — using prebuilt .so in jniLibs */
+    /* CMake disabled in Gradle to avoid OOM on this 8GB box. liboboe_bridge.so
+       is compiled STANDALONE via NDK r25b (E:\SDWMP3\cpp_build) from the current
+       cpp sources (16 URBs, kPacketsPerUrb=64, claimInterface(1) forces alt=1 on
+       the OUT interface) and shipped via jniLibs. Rebuild: cmake -G Ninja with
+       the NDK android.toolchain.cmake, then llvm-strip, then copy into jniLibs. */
     /*
     externalNativeBuild {
         cmake {
