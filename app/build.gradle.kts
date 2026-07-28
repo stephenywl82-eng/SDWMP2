@@ -24,7 +24,7 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 13
-        versionName = "3.3.22"
+        versionName = "4.0"
 
         ndk {
             abiFilters += listOf("arm64-v8a")
@@ -50,7 +50,7 @@ android {
                     keyPassword = "android"
                 }
             }
-            // Same fallback keystore for debug â†’ debug APKs install -r over the
+            // Same fallback keystore for debug â†?debug APKs install -r over the
             // release build (shared signing) without an uninstall.
             getByName("debug") {
                 storeFile = file("debug.keystore")
@@ -120,7 +120,7 @@ android {
 }
 
 dependencies {
-    // Compose BOM â€” unified versions
+    // Compose BOM â€?unified versions
     val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
     implementation(composeBom)
 

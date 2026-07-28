@@ -38,6 +38,7 @@ import com.sdw.music.player.ui.animation.SharedCoverOverlay
 import com.sdw.music.player.ui.animation.SharedCoverState
 import com.sdw.music.player.ui.screens.*
 import com.sdw.music.player.SongRepository
+import com.sdw.music.player.PlaylistManager
 import com.sdw.music.player.MusicService
 import com.sdw.music.player.ui.screens.LyricFullscreenScreen
 import com.sdw.music.player.ui.screens.PlaylistDetailScreen
@@ -362,7 +363,18 @@ fun SDWNavHost(
                     onPlaySongs = { songs ->
                         if (songs.isNotEmpty()) vm.handleIntent(PlayerIntent.PlaySongList(songs, startIndex = 0))
                         navController.navigate(Screen.Player.route)
-                    }
+                    },
+                    onAddSongs = { navController.navigate(Screen.SongPicker.createRoute(playlistId)) }
+                )
+            }
+            composable(Screen.SongPicker.route) { backStackEntry ->
+                val playlistId = backStackEntry.arguments?.getString("playlistId")?.toLongOrNull() ?: 0L
+                val playlist = PlaylistManager.getPlaylist(playlistId)
+                SongPickerScreen(
+                    playlistId = playlistId,
+                    existingSongIds = playlist?.songIds?.toSet() ?: emptySet(),
+                    onNavigateBack = { navController.popBackStack() },
+                    onSongsAdded = { navController.popBackStack() }
                 )
             }
             composable(Screen.Equalizer.route) {

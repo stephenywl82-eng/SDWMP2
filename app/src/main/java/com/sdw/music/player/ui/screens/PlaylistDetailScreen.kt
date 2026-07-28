@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +39,8 @@ import com.sdw.music.player.ui.theme.*
 fun PlaylistDetailScreen(
     playlistId: Long,
     onNavigateBack: () -> Unit,
-    onPlaySongs: (List<Song>) -> Unit
+    onPlaySongs: (List<Song>) -> Unit,
+    onAddSongs: () -> Unit
 ) {
     var playlist by remember { mutableStateOf(PlaylistManager.getPlaylist(playlistId)) }
     var songs by remember { mutableStateOf(PlaylistManager.getPlaylistSongs(playlistId)) }
@@ -47,6 +49,12 @@ fun PlaylistDetailScreen(
     LaunchedEffect(playlistId) {
         playlist = PlaylistManager.getPlaylist(playlistId)
         songs = PlaylistManager.getPlaylistSongs(playlistId)
+    }
+
+    // Refresh when returning from SongPicker
+    LaunchedEffect(Unit) {
+        songs = PlaylistManager.getPlaylistSongs(playlistId)
+        playlist = PlaylistManager.getPlaylist(playlistId)
     }
 
     Scaffold(
@@ -69,6 +77,11 @@ fun PlaylistDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onAddSongs) {
+                        Icon(Icons.Default.Add, "Add songs", tint = TextPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
