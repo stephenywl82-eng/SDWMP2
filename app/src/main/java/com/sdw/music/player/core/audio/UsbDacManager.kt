@@ -249,16 +249,57 @@ object UsbDacManager {
     }
 
     // 【V3.3.0】libFLAC 硬解封装:解码线程在 native,直入 ring buffer
-    fun flacOpen(path: String): Boolean =
-        isNativeLoaded && try { nativeFlacOpen(path) } catch (_: Throwable) { false }
+    // 【V3.3.5】NDK fopen 不支持 UTF-8 路径（中文名→false），复制到 ASCII 临时路径绕过
+    private var flacTempPath: String? = null
+    private fun getFlacTempDir(): java.io.File {
+        val ctx = contextRef ?: return java.io.File("/data/local/tmp")
+        return java.io.File(ctx.cacheDir, "flac_temp").also { it.mkdirs() }
+    }
+    
+    fun flacOpen(path: String): Boolean {
+        if (!isNativeLoaded) { DebugLog.add(TAG, "flacOpen: native not loaded"); return false }
+        return try {
+            // 【V3.3.5】纯 ASCII 路径直接用；含非 ASCII 字符则复制到 cache/flac_temp/
+            val openPath = if (path.all { it.code <= 0x7F }) {
+                path
+            } else {
+                val tmp = java.io.File(getFlacTempDir(), "f_${path.hashCode().toUInt().toString(16)}.flac")
+                if (!tmp.exists() || tmp.length() != java.io.File(path).length()) {
+                    DebugLog.add(TAG, "flacOpen: copying UTF-8 file to ASCII temp \"${tmp.name}\"")
+                    java.io.File(path).copyTo(tmp, overwrite = true)
+                }
+                flacTempPath = tmp.absolutePath
+                tmp.absolutePath
+            }
+            val ok = nativeFlacOpen(openPath)
+            DebugLog.add(TAG, "flacOpen(\"${path.takeLast(80)}\") = $ok")
+            ok
+        } catch (e: Throwable) {
+            DebugLog.add(TAG, "flacOpen EXCEPTION: ${e.javaClass.simpleName}: ${e.message}")
+            false
+        }
+    }
     /** [sampleRate, channels, bits, durationMs] */
-    fun flacInfo(): IntArray =
-        if (isNativeLoaded) try { nativeFlacInfo() } catch (_: Throwable) { intArrayOf(0,0,0,0) } else intArrayOf(0,0,0,0)
+    fun flacInfo(): IntArray {
+        if (!isNativeLoaded) return intArrayOf(0,0,0,0)
+        return try {
+            val info = nativeFlacInfo()
+            DebugLog.add(TAG, "flacInfo: ${info.contentToString()}")
+            info
+        } catch (e: Throwable) {
+            DebugLog.add(TAG, "flacInfo EXCEPTION: ${e.javaClass.simpleName}: ${e.message}")
+            intArrayOf(0,0,0,0)
+        }
+    }
     fun flacStart(): Boolean =
         isNativeLoaded && try { nativeFlacStart() } catch (_: Throwable) { false }
     fun flacPause(paused: Boolean) { if (isNativeLoaded) try { nativeFlacPause(paused) } catch (_: Throwable) {} }
     fun flacSeek(ms: Long) { if (isNativeLoaded) try { nativeFlacSeek(ms) } catch (_: Throwable) {} }
-    fun flacStop() { if (isNativeLoaded) try { nativeFlacStop() } catch (_: Throwable) {} }
+    fun flacStop() {
+        if (isNativeLoaded) try { nativeFlacStop() } catch (_: Throwable) {}
+        // 【V3.3.5】清理 ASCII 临时文件
+        flacTempPath?.let { try { java.io.File(it).delete() } catch (_: Throwable) {} }; flacTempPath = null
+    }
     fun flacIsEos(): Boolean = isNativeLoaded && try { nativeFlacIsEos() } catch (_: Throwable) { true }
     fun flacPositionMs(): Long = if (isNativeLoaded) try { nativeFlacPositionMs() } catch (_: Throwable) { 0L } else 0L
     /** Gapless 切曲:优先调 native flacGaplessSeek(支持跨文件);fallback 同文件内用 native flacSeek

@@ -16,8 +16,8 @@
         android:name=".SDWApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Moto music"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="Moto Music Pro"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.SDWMusic"
         android:requestLegacyExternalStorage="true"
@@ -30,7 +30,7 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
 
             android:windowSoftInputMode="adjustNothing"
-            android:label="Moto music">
+            android:label="Moto Music Pro">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

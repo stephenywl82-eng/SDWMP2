@@ -20,7 +20,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.sdw.music.player"
+        applicationId = "com.sdw.music.player.pro"
         minSdk = 24
         targetSdk = 35
         versionCode = 13
@@ -64,7 +64,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
-            isShrinkResources = false
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android.txt"),

@@ -8,6 +8,7 @@ add_library(oboe_bridge SHARED
     oboe_bridge.cpp
     usb_audio_driver.cpp
     usb_audio_jni.cpp
+    flac_decoder_jni.cpp
 )
 
 target_include_directories(oboe_bridge PRIVATE

@@ -359,6 +359,21 @@ class PlayerConnection(private val context: Context) {
      * Previous
      */
     fun skipToPrevious() {
+        if (MusicService.instance?.isUsbExclusiveMode() == true) {
+            MusicService.instance?.playPrevious()
+            val svc = MusicService.instance!!
+            val newIdx = MusicService.currentIndex
+            val songs = _songList.value
+            if (newIdx in songs.indices) {
+                _currentSongIndex.value = newIdx
+                _currentSong.value = songs[newIdx]
+                val dur = svc.getDuration()
+                if (dur > 0) _durationMs.value = dur
+            }
+            _isPlaying.value = true
+            startPositionUpdates()
+            return
+        }
         if (MusicService.instance?.isOboeDirectMode() == true) {
             MusicService.instance?.playPrevious()
             // 銆怴7.xx銆慜boe鍒囨瓕鍚庢墜鍔ㄥ惎鍔ㄨ繘搴︽洿鏂?
@@ -384,6 +399,21 @@ class PlayerConnection(private val context: Context) {
      * 涓嬩竴鏇?
      */
     fun skipToNext() {
+        if (MusicService.instance?.isUsbExclusiveMode() == true) {
+            MusicService.instance?.playNext()
+            val svc = MusicService.instance!!
+            val newIdx = MusicService.currentIndex
+            val songs = _songList.value
+            if (newIdx in songs.indices) {
+                _currentSongIndex.value = newIdx
+                _currentSong.value = songs[newIdx]
+                val dur = svc.getDuration()
+                if (dur > 0) _durationMs.value = dur
+            }
+            _isPlaying.value = true
+            startPositionUpdates()
+            return
+        }
         if (MusicService.instance?.isOboeDirectMode() == true) {
             MusicService.instance?.playNext()
             // 銆怴7.xx銆慜boe鍒囨瓕鍚庢墜鍔ㄥ惎鍔ㄨ繘搴︽洿鏂?

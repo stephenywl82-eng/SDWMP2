@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat.MediaStyle
@@ -96,6 +97,8 @@ class MusicService : MediaSessionService() {
 
     // USB DAC Exclusive mode controller
     private var usbDacController: UsbDacPlaybackController? = null
+    private var dacPlayGeneration: Int = 0  // [V4.0.1] invalidate stale onCompletion
+    private var dacWakeLock: PowerManager.WakeLock? = null  // [V4.0.2] prevent CPU deep-sleep in Doze mode
 
     // ??v6.29??DSP EQ ??????
     private var dspEqEnabled: Boolean = false
@@ -147,6 +150,25 @@ class MusicService : MediaSessionService() {
         DebugLog.add(TAG, "releaseUsbDac: stopDecode (keep DAC claim)")
         usbDacController?.stopDecode()
         usbDacController = null
+        releaseDacWakeLock()
+    }
+
+    private fun acquireDacWakeLock() {
+        if (dacWakeLock == null) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            dacWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SDWMP3:USB_DAC")
+        }
+        if (dacWakeLock?.isHeld == false) {
+            dacWakeLock?.acquire()
+            Log.w(TAG, "WakeLock acquired for USB DAC")
+        }
+    }
+
+    private fun releaseDacWakeLock() {
+        if (dacWakeLock?.isHeld == true) {
+            dacWakeLock?.release()
+            Log.w(TAG, "WakeLock released")
+        }
     }
 
     private fun tryClaimUsbDac() {
@@ -303,6 +325,12 @@ class MusicService : MediaSessionService() {
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             try {
+                // [V4.0.2] DAC模式下 currentSong 由 playSong USB分支维护，
+                // ExoPlayer 单曲队列的 index=0 不能覆盖
+                if (isUsbExclusiveMode()) {
+                    Log.d(TAG, "Media item transition: reason=$reason, IGNORED (USB DAC mode)")
+                    return
+                }
                 Log.d(TAG, "Media item transition: reason=$reason, title=${mediaItem?.mediaMetadata?.title}")
                 Log.d(TAG, "servicePlaylist size=${servicePlaylist.size}, source=$playlistSource")
 
@@ -1092,18 +1120,46 @@ class MusicService : MediaSessionService() {
             if (key == "audio_output") {
                 val newMode = sharedPrefs.getString("audio_output", "Oboe\u72ec\u5360") ?: "Oboe\u72ec\u5360"
                 handler.post { reconfigureAudioOutput(newMode) }
+            }
             if (key == "usb_exclusive") {
                 val enabled = sharedPrefs.getBoolean("usb_exclusive", false)
                 handler.post {
                     if (enabled) {
-                        UsbDacManager.init(this@MusicService)
-                        tryClaimUsbDac()
-                    } else {
+                        // [V4.0.2] Seamless switch: save position, stop ExoPlayer, play via USB DAC
+                        val savedPos = exoPlayer?.currentPosition ?: 0L
+                        val savedSong = currentSong
+                        val savedIdx = currentIndex
                         releaseUsbDacController()
                         UsbDacManager.stopAndRelease()
+                        UsbDacManager.init(this@MusicService)
+                        tryClaimUsbDac()
+                        if (savedSong != null && usbDacController != null && UsbDacManager.isClaimed()) {
+                            handler.postDelayed({
+                                playSong(savedIdx)
+                                usbDacController?.seekTo(savedPos)
+                                Log.w(TAG, "Switched to USB DAC mode, restored ${savedSong.title} @ ${savedPos}ms")
+                            }, 200)  // wait for claim to stabilize
+                        }
+                    } else {
+                        // [V4.0.2] Seamless switch: save position, release USB DAC, play via ExoPlayer
+                        val savedPos = usbDacController?.audiblePositionMs ?: 0L
+                        val savedSong = currentSong
+                        val savedIdx = currentIndex
+                        releaseUsbDacController()
+                        UsbDacManager.stopAndRelease()
+                        if (savedSong != null) {
+                            val mediaItems = servicePlaylist.ifEmpty { SongRepository.getSongs() }
+                                .map { s -> MediaItem.Builder().setUri(s.path).setMediaMetadata(MediaMetadata.Builder().setTitle(s.title).build()).build() }
+                            exoPlayer?.stop()
+                            exoPlayer?.clearMediaItems()
+                            exoPlayer?.setMediaItems(mediaItems, savedIdx, savedPos)
+                            exoPlayer?.prepare()
+                            exoPlayer?.playWhenReady = true
+                            exoPlayer?.play()
+                            Log.w(TAG, "Switched to ExoPlayer mode, restored ${savedSong.title} @ ${savedPos}ms")
+                        }
                     }
                 }
-            }
             }
         }
         settingsPrefs.registerOnSharedPreferenceChangeListener(settingsPrefsListener)
@@ -1218,6 +1274,7 @@ class MusicService : MediaSessionService() {
 
         // USB DAC Exclusive mode — Salt-style: claim once, keep forever
         if (isUsbExclusiveMode()) {
+            dacPlayGeneration++  // [V4.0.1] invalidate stale onCompletion
             val dacStreaming = UsbDacManager.isClaimed()  // [V3.3.3] claim survives EOS pauseStream; only first play needs claim
             DebugLog.add(TAG, "playSong[$index]: usbExclusive=true, isStreaming=$dacStreaming")
 
@@ -1253,10 +1310,15 @@ class MusicService : MediaSessionService() {
                 resolveContentUriToPath(filePath)
             } else filePath
             if (actualPath != null) {
+                acquireDacWakeLock()
                 val controller = UsbDacPlaybackController(
                     onCompletion = {
                         DebugLog.add(TAG, "USB DAC: song complete, playing next")
-                        handler.post { playNext() }
+                        val capturedGen = dacPlayGeneration
+                        handler.post {
+                            if (dacPlayGeneration == capturedGen) playNext()
+                            else android.util.Log.w(TAG, "USB DAC: stale onCompletion ignored (gen=$capturedGen, current=$dacPlayGeneration)")
+                        }
                     },
                     onError = { msg ->
                         DebugLog.add(TAG, "USB DAC error: $msg")
@@ -1615,6 +1677,7 @@ class MusicService : MediaSessionService() {
 
     /** ??V7.17??Oboe ?????????? ExoPlayer ?????????(??????????) */
     private fun playSongFallbackExo(index: Int, songs: List<Song>) {
+        releaseDacWakeLock()
         val song = songs[index]
         oboeFlowTrace = "\u2139\uFE0F ????ExoPlayer: ${song.title} (failures=$oboeFailureCount)"
         Log.w(TAG, "Falling back to ExoPlayer for: ${song.title}")
@@ -1931,11 +1994,15 @@ class MusicService : MediaSessionService() {
         // [V3.3.22] REMOVED direct stopDecode() here — releaseUsbDacController() in playSong() handles it
         // V3.3.4: isShuffleMode is the single source of truth (ExoPlayer flag can be stale)
         // V3.3.8: 添加日志确认随机状态
-        android.util.Log.d(TAG, "playNext: isShuffleMode=$isShuffleMode, exoPlayer.shuffleModeEnabled=${exoPlayer?.shuffleModeEnabled}")
+        // [V4.0.1] Find real position by currentSong.id, not currentIndex (may be stale)
+        val currentId = currentSong?.id
+        val realIdx = if (currentId != null) songs.indexOfFirst { it.id == currentId }.coerceAtLeast(0)
+                       else currentIndex
+        android.util.Log.d(TAG, "playNext: realIdx=$realIdx isShuffleMode=$isShuffleMode, exoPlayer.shuffleModeEnabled=${exoPlayer?.shuffleModeEnabled}")
         val nextIndex = if (isShuffleMode) {
-            if (songs.size <= 1) 0 else (0 until songs.size).filter { it != currentIndex }.random()
+            if (songs.size <= 1) 0 else (0 until songs.size).filter { it != realIdx }.random()
         } else {
-            (currentIndex + 1) % songs.size
+            (realIdx + 1) % songs.size
         }
         android.util.Log.d(TAG, "playNext: nextIndex=$nextIndex (random=${isShuffleMode && songs.size > 1})")
         playSong(nextIndex)
@@ -1946,7 +2013,11 @@ class MusicService : MediaSessionService() {
         val songs = servicePlaylist.ifEmpty { SongRepository.getSongs() }
         if (songs.isEmpty()) return
 
-        val prevIndex = if (currentIndex > 0) currentIndex - 1 else songs.size - 1
+        // [V4.0.1] Find real position by currentSong.id, not currentIndex (may be stale)
+        val currentId = currentSong?.id
+        val realIdx = if (currentId != null) songs.indexOfFirst { it.id == currentId }.coerceAtLeast(0)
+                       else currentIndex
+        val prevIndex = if (realIdx > 0) realIdx - 1 else songs.size - 1
         playSong(prevIndex)
     }
 
@@ -2338,10 +2409,12 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                 try {
                     if (usbDacController != null) {
                         usbDacController?.pause()
+                        notifyPlayStateChanged(false)  // [V4.0.2] trigger idle timer for standby policy
                         updateNotification()
                         Log.d(TAG, "ForwardingPlayer(new).pause → USB DAC")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
                         oboeDirectPlayer?.pause()
+                        notifyPlayStateChanged(false)  // [V4.0.2] trigger idle timer
                         updateNotification()
                     } else {
                         super.pause()
