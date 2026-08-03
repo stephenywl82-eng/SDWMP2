@@ -32,6 +32,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -117,6 +118,7 @@ fun PlayerScreen(
     onDeleteSong: () -> Unit,
     onNavigateToAlbum: (albumName: String) -> Unit = {},
     onNavigateToArtist: (artistName: String) -> Unit = {},
+    onPlayQueueIndex: (Int) -> Unit = {},
     onDismiss: (() -> Unit)? = null,
     audioSessionId: Int = 0,
 ) {
@@ -136,6 +138,7 @@ fun PlayerScreen(
         Color(android.graphics.Color.HSVToColor(hsv))
     }
     var showMenu by remember { mutableStateOf(false) }
+    var showQueue by remember { mutableStateOf(false) }
 
     // Lyrics
     val lyricsLines = remember(state.currentLyrics) {
@@ -414,7 +417,8 @@ fun PlayerScreen(
                 onToggleFavorite = onToggleFavorite,
                 onToggleEqualizer = onToggleEqualizer,
                 onShare = onShare,
-                onNavigateToLyrics = onNavigateToLyrics
+                onNavigateToLyrics = onNavigateToLyrics,
+                onNavigateToQueue = { showQueue = true }
             )
         } else if (isLandscape) {
             LandscapeLayout(
@@ -449,7 +453,8 @@ fun PlayerScreen(
                 onToggleFavorite = onToggleFavorite,
                 onToggleEqualizer = onToggleEqualizer,
                 onShare = onShare,
-                onNavigateToLyrics = onNavigateToLyrics
+                onNavigateToLyrics = onNavigateToLyrics,
+                onNavigateToQueue = { showQueue = true }
             )
         } else {
             PortraitLayout(
@@ -486,7 +491,18 @@ fun PlayerScreen(
                 onToggleFavorite = onToggleFavorite,
                 onToggleEqualizer = onToggleEqualizer,
                 onShare = onShare,
-                onNavigateToLyrics = onNavigateToLyrics
+                onNavigateToLyrics = onNavigateToLyrics,
+                onNavigateToQueue = { showQueue = true }
+            )
+        }
+
+        if (showQueue) {
+            QueueSheet(
+                queue = state.queue,
+                currentSongId = state.currentSongId,
+                accentColor = accentColor,
+                onSongClick = onPlayQueueIndex,
+                onDismiss = { showQueue = false }
             )
         }
     }
@@ -526,7 +542,8 @@ private fun FoldableLayout(
     onToggleFavorite: () -> Unit,
     onToggleEqualizer: () -> Unit,
     onShare: () -> Unit,
-    onNavigateToLyrics: () -> Unit
+    onNavigateToLyrics: () -> Unit,
+    onNavigateToQueue: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout)
@@ -542,6 +559,7 @@ private fun FoldableLayout(
                 onDismissMenu = onDismissMenu,
                 onNavigateBack = onNavigateBack,
                 onDelete = onDeleteSong,
+                onNavigateToQueue = onNavigateToQueue,
                 modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp)
             )
 
@@ -725,7 +743,8 @@ private fun LandscapeLayout(
     onToggleFavorite: () -> Unit,
     onToggleEqualizer: () -> Unit,
     onShare: () -> Unit,
-    onNavigateToLyrics: () -> Unit
+    onNavigateToLyrics: () -> Unit,
+    onNavigateToQueue: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout)
@@ -740,7 +759,8 @@ private fun LandscapeLayout(
                 onToggleMenu = onToggleMenu,
                 onDismissMenu = onDismissMenu,
                 onNavigateBack = onNavigateBack,
-                onDelete = onDeleteSong
+                onDelete = onDeleteSong,
+                onNavigateToQueue = onNavigateToQueue
             )
 
             // Center: song info
@@ -861,7 +881,8 @@ private fun PortraitLayout(
     onToggleFavorite: () -> Unit,
     onToggleEqualizer: () -> Unit,
     onShare: () -> Unit,
-    onNavigateToLyrics: () -> Unit
+    onNavigateToLyrics: () -> Unit,
+    onNavigateToQueue: () -> Unit = {}
 ) {
     val hPadding = if (isCompact) 24.dp else 48.dp
     val infoPadding = if (isCompact) 20.dp else 32.dp
@@ -879,17 +900,22 @@ private fun PortraitLayout(
             IconButton(onClick = onNavigateBack) {
                 Icon(Icons.Default.KeyboardArrowDown, "Back", tint = TextPrimary, modifier = Modifier.size(32.dp))
             }
-            Text("Now Playing", style = MaterialTheme.typography.labelLarge, color = TextSecondary)
-            Box {
-                IconButton(onClick = onToggleMenu) {
-                    Icon(Icons.Default.MoreVert, "Menu", tint = TextSecondary)
+            Spacer(modifier = Modifier.weight(1f))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onNavigateToQueue) {
+                    Icon(Icons.Default.QueueMusic, "Queue", tint = TextSecondary, modifier = Modifier.size(20.dp))
                 }
-                DropdownMenu(expanded = showMenu, onDismissRequest = onDismissMenu) {
+                Box {
+                    IconButton(onClick = onToggleMenu) {
+                        Icon(Icons.Default.MoreVert, "Menu", tint = TextSecondary)
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = onDismissMenu) {
                     DropdownMenuItem(
                         text = { Text("Delete Song", color = Color.Red) },
                         onClick = { onDismissMenu(); onDeleteSong() },
                         leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) }
                     )
+                }
                 }
             }
         }

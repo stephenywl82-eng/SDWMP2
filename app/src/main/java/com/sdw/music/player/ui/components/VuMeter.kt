@@ -45,17 +45,16 @@ internal class Smooth(val alpha: Float = 0.35f) {
  */
 private fun jittered(v: Float, barIndex: Int, totalBars: Int, frameSeed: Long): Float {
     if (v < 0.01f) return 0f
-    // Position-based sine wave: lower bars get mid emphasis, higher bars get high emphasis
     val pos = barIndex.toFloat() / (totalBars - 1)
     val shape = when {
-        pos < 0.25f -> 0.6f + 0.4f * sin(pos * Math.PI.toFloat() * 4f)     // sub region: gentle wave
-        pos < 0.45f -> 1.0f - 0.15f * sin(pos * Math.PI.toFloat() * 2.5f)   // bass: slight variation
-        pos < 0.65f -> 0.85f + 0.15f * sin(pos * Math.PI.toFloat() * 3f)    // mid: moderate
-        else        -> 0.7f + 0.3f * sin(pos * Math.PI.toFloat() * 5f + frameSeed * 0.1f)  // high: busy
+        pos < 0.25f -> 0.6f + 0.4f * sin(pos * Math.PI.toFloat() * 4f)
+        pos < 0.45f -> 1.0f - 0.15f * sin(pos * Math.PI.toFloat() * 2.5f)
+        pos < 0.65f -> 0.85f + 0.15f * sin(pos * Math.PI.toFloat() * 3f)
+        else        -> 0.7f + 0.3f * sin(pos * Math.PI.toFloat() * 5f + frameSeed * 0.1f)
     }
-    // Small per-frame random jitter (±15%)
-    val rng = Random(barIndex * 7919L + frameSeed % 1009L)
-    val jitter = 0.85f + rng.nextFloat() * 0.30f
+    // Deterministic jitter using trig hash: avoids Random alloc per-bar per-frame
+    val h = sin((barIndex * 7919 + frameSeed % 1009).toFloat() * 0.73f) * 0.5f + 0.5f
+    val jitter = 0.85f + h * 0.30f
     return (v * shape * jitter).coerceIn(0f, 1f)
 }
 
@@ -215,21 +214,22 @@ private fun VuNeonBar(sub: Float, bass: Float, mid: Float, high: Float,
 private fun VuMixer(sub: Float, bass: Float, mid: Float, high: Float,
                     isActive: Boolean, accentColor: Color, modifier: Modifier) {
     val smooth = remember { Array(14) { Smooth(0.7f) } }
-    // Peak: instant rise, fast fall
     val peaks = remember { FloatArray(14) }
     val frame = remember { longArrayOf(0L) }
-    // Derive strip hue from accentColor; fallback to warm orange
-    val hsv = FloatArray(3)
-    java.util.Arrays.fill(hsv, 0f)
-    android.graphics.Color.colorToHSV(
-        android.graphics.Color.rgb(
-            (accentColor.red * 255).toInt().coerceIn(0, 255),
-            (accentColor.green * 255).toInt().coerceIn(0, 255),
-            (accentColor.blue * 255).toInt().coerceIn(0, 255)
-        ), hsv
-    )
-    val baseHue = hsv[0]
-    val baseSat = hsv[1].coerceAtLeast(0.55f)
+
+    // Pre-compute 14 strip base hues from accentColor (once, not per-frame)
+    val stripHues = remember(accentColor) {
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(
+            android.graphics.Color.rgb(
+                (accentColor.red * 255).toInt().coerceIn(0, 255),
+                (accentColor.green * 255).toInt().coerceIn(0, 255),
+                (accentColor.blue * 255).toInt().coerceIn(0, 255)
+            ), hsv
+        )
+        val baseHue = hsv[0]
+        FloatArray(14) { i -> (baseHue + (i - 7f) * 2.5f + 360f) % 360f }
+    }
 
     Canvas(modifier = modifier.fillMaxWidth().height(64.dp)) {
         frame[0]++
@@ -244,26 +244,26 @@ private fun VuMixer(sub: Float, bass: Float, mid: Float, high: Float,
             val v = smooth[i].update(target)
             // Peak: instant rise, slow fall
             if (v > peaks[i]) peaks[i] = v
-            else peaks[i] += (v - peaks[i]) * 0.20f  // peak hold ~250ms visible tail
+            else peaks[i] += (v - peaks[i]) * 0.20f
             val pk = peaks[i].coerceIn(0f, 1f)
             val x = gap + i * (stripW + gap)
             val half = stripW / 2f - 1.dp.toPx()
-            // Color from cover: hue shifts slightly per strip, brightness = v
-            val hueShift = (i - 7f) * 2.5f // ±17° spread across strips
-            val hCol = (baseHue + hueShift + 360f) % 360f
-            val stripColor = Color.hsl(hCol, baseSat, 0.15f + v * 0.7f, 1f)
-            val peakColor = Color.hsl(hCol, baseSat.coerceAtMost(0.9f), 0.45f + pk * 0.55f, 0.92f)
+            // Color: use Android native HSV→ARGB (faster than Compose Color.hsl)
+            val hCol = stripHues[i]
+            val stripAlpha = (0.15f + v * 0.7f).coerceIn(0f, 1f)
+            val stripColor = colorFromHsv(hCol, 0.55f + v * 0.35f, 0.25f + v * 0.55f, stripAlpha)
+            val peakColor = colorFromHsv(hCol, 0.55f + pk * 0.35f, 0.45f + pk * 0.55f, (0.78f + pk * 0.22f).coerceAtMost(0.92f))
             // Main strip
             val lh = (v * h).coerceAtLeast(0f)
             if (lh > 1f) drawRoundRect(stripColor, Offset(x, h - lh), Size(half, lh), CornerRadius(cr, cr))
-            // Peak block (delayed fall)
+            // Peak block
             val pkH = (pk * h).coerceAtLeast(0f)
             if (pk > 0.03f && pkH > 2f) drawRoundRect(peakColor, Offset(x, h - pkH - 2.dp.toPx()),
                 Size(half, 3.dp.toPx()), CornerRadius(1.5.dp.toPx()))
-            // Right channel (mirror, slightly dimmer)
+            // Right channel (slightly dimmer)
             val rv = v * 0.92f
             val rh = (rv * h).coerceAtLeast(0f)
-            val rc = stripColor.copy(alpha = 0.85f)
+            val rc = colorFromHsv(hCol, 0.55f + rv * 0.35f, 0.25f + rv * 0.55f, stripAlpha * 0.85f)
             val rx = x + stripW / 2f + 1.dp.toPx()
             if (rh > 1f) drawRoundRect(rc, Offset(rx, h - rh), Size(half, rh), CornerRadius(cr, cr))
             val rpk = (pk * 0.92f).coerceIn(0f, 1f)
@@ -272,6 +272,13 @@ private fun VuMixer(sub: Float, bass: Float, mid: Float, high: Float,
                 Size(half, 3.dp.toPx()), CornerRadius(1.5.dp.toPx()))
         }
     }
+}
+
+// Fast HSV→ARGB: native FloatArray API avoids Compose Color.hsl allocs
+private fun colorFromHsv(h: Float, s: Float, v: Float, alpha: Float): Color {
+    val hsv = floatArrayOf(h, s.coerceIn(0f,1f), v.coerceIn(0f,1f))
+    val argb = android.graphics.Color.HSVToColor((alpha * 255).toInt().coerceIn(0, 255), hsv)
+    return Color(argb)
 }
 
 // ═══════════════════════════════════════════════════════════════════

@@ -65,7 +65,7 @@ class MusicService : MediaSessionService() {
         )
     }
     // ProcessLifecycleOwner tracks app foreground/background reliably
-    // (ActivityLifecycleCallbacks can fire too late 鈥?Service starts after Activity resumes)
+    // (ActivityLifecycleCallbacks can fire too late �?Service starts after Activity resumes)
     // Delayed release to avoid flicker during activity transitions or brief screen-off
     private var isAppForeground = false
     private val visualizerReleaseTask = Runnable {
@@ -82,7 +82,7 @@ class MusicService : MediaSessionService() {
     // ??v4.79?????????????????????? + ??????????
     private val volumeGuard by lazy {
         VolumeGuard(this, this::pause, this::resume, this::isPlaying) { pct ->
-            // [V8.x] System volume key → USB DAC digital gain
+            // [V8.x] System volume key �� USB DAC digital gain
             val claimed = com.sdw.music.player.core.audio.UsbDacManager.isClaimed()
             DebugLog.add(TAG, "VolumeGuard callback: pct=$pct claimed=$claimed")
             if (claimed) {
@@ -104,7 +104,9 @@ class MusicService : MediaSessionService() {
     private var dspEqEnabled: Boolean = false
 
     // [V8.x] AudioDeviceCallback: detect USB DAC hotplug -> restart Oboe Exclusive
-    private var oboeUsbGuardMs: Long = 0L  // [V8.1] prevent race: Oboe startup itself triggers device-add callback
+    @Volatile  // [V4.1.x] Oboe pause/resume state �� avoids JNI isPlaying lag in getPlayWhenReady()
+    private var oboePlayWhenReady: Boolean = true
+    private var oboeUsbGuardMs: Long = 0L
     private var oboeSuppressUsbRestart: Boolean = false  // [V8.2] block USB restarts when Oboe is already playing
     private val usbDacCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
@@ -203,7 +205,7 @@ class MusicService : MediaSessionService() {
         if (!oboeModeCacheValid) refreshOboeModeCache()
         return cachedOboeMode
     }
-    // [V8.x] Album art LruCache — avoids repeated disk I/O on every notification refresh
+    // [V8.x] Album art LruCache �� avoids repeated disk I/O on every notification refresh
     private val coverCache = android.util.LruCache<String, android.graphics.Bitmap>(4)
 
     private fun loadCoverAsync(uri: String, onLoaded: (android.graphics.Bitmap?) -> Unit) {
@@ -252,7 +254,7 @@ class MusicService : MediaSessionService() {
     /** ??V7.XX????????? audioSessionId??Equalizer???????????*/
     fun getAudioSessionId(): Int = exoPlayer?.audioSessionId ?: 0
 
-    // ??Steven??Service ?????Playlists(ExoPlayer ??),????? SongRepository ????锟斤拷?
+    // ??Steven??Service ?????Playlists(ExoPlayer ??),????? SongRepository ????��?
     private var servicePlaylist: List<Song> = emptyList()
     private var _originalPlaylist: List<Song> = emptyList()  // [V3.3.2]
 
@@ -260,10 +262,10 @@ class MusicService : MediaSessionService() {
     private var oboeFailureCount = 0
     private val OBOE_MAX_FAILURES = 3
 
-    // ???? settings SharedPreferences ????????Output Mode?锟斤拷???
+    // ???? settings SharedPreferences ????????Output Mode?��???
     private var settingsPrefsListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
 
-    /** ??v4.77??????????????锟斤拷??????(?锟斤拷??????? BottomSheet)*/
+    /** ??v4.77??????????????��??????(?��??????? BottomSheet)*/
     fun getServicePlaylist(): List<Song> = servicePlaylist
 
     // FFT ??????
@@ -277,8 +279,8 @@ class MusicService : MediaSessionService() {
         override fun onPlayerError(error: PlaybackException) {
             try {
                 Log.e(TAG, "Player error: code=${error.errorCode} msg=${error.message} cause=${error.cause?.message}")
-                // IO ?????? 2000-2999 ??锟斤拷:????????/????????/?????锟斤拷??
-                // ??锟斤拷??????ExoPlayer ??????锟斤拷??,???????????????
+                // IO ?????? 2000-2999 ??��:????????/????????/?????��??
+                // ??��??????ExoPlayer ??????��??,???????????????
                 val errorCode = error.errorCode
                 val isRecoverable = errorCode < 2000 || errorCode >= 3000
                 if (isRecoverable) {
@@ -295,10 +297,10 @@ class MusicService : MediaSessionService() {
 
         override fun onPlaybackStateChanged(playbackState: Int) {
             try {
-                // ??V7.50??Oboe????OboeDirectPlayer.onCompletion??????锟斤拷锟絢
-                // ???ExoPlayer STATE_ENDED??锟斤拷???playNext()???????playNext???
+                // ??V7.50??Oboe????OboeDirectPlayer.onCompletion??????���k
+                // ???ExoPlayer STATE_ENDED??��???playNext()???????playNext???
                 // ??manifest?"Repeating / No Sound"??
-                // [V3.3.4] DAC 模式下 ExoPlayer 只有单曲（用于 MediaSession 元数据），seekToNext 无意义且会触发错误的 onMediaItemTransition
+                // [V3.3.4] DAC ģʽ�� ExoPlayer ֻ�е��������� MediaSession Ԫ���ݣ���seekToNext �������һᴥ������� onMediaItemTransition
                 if (playbackState == Player.STATE_ENDED && !isOboeDirectMode() && !isUsbExclusiveMode()) {
                     Log.d(TAG, "Playback ended, auto-playing next song")
                     exoPlayer?.seekToNext()
@@ -325,8 +327,8 @@ class MusicService : MediaSessionService() {
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             try {
-                // [V4.0.2] DAC模式下 currentSong 由 playSong USB分支维护，
-                // ExoPlayer 单曲队列的 index=0 不能覆盖
+                // [V4.0.2] DACģʽ�� currentSong �� playSong USB��֧ά����
+                // ExoPlayer �������е� index=0 ���ܸ���
                 if (isUsbExclusiveMode()) {
                     Log.d(TAG, "Media item transition: reason=$reason, IGNORED (USB DAC mode)")
                     return
@@ -337,7 +339,7 @@ class MusicService : MediaSessionService() {
                 val songs = servicePlaylist.ifEmpty { SongRepository.getSongs() }
 
                 // ??v5.16 ?????shuffle On??? ExoPlayer ??????????,
-                // currentMediaItemIndex ??????锟斤拷??,??? songs[newIndex] ?????????????
+                // currentMediaItemIndex ??????��??,??? songs[newIndex] ?????????????
                 // ???? MEDIA_ID_CUSTOM extras ????????????
                 val newSong = if (mediaItem != null) {
                     val mediaId = mediaItem.mediaMetadata.extras?.getString("MEDIA_ID_CUSTOM")
@@ -353,9 +355,9 @@ class MusicService : MediaSessionService() {
                     Log.d(TAG, "Updated current song (by ID): ${currentSong?.title}, idx=$idxInList")
                     notifySongChanged(currentSong)
                 } else {
-                    // ????:?? currentMediaItemIndex(shuffle Close???锟斤拷)
-                    // ??Widget????????? ?: 0????????锟斤拷????? currentMediaItemIndex ? null??
-                    // ???? 0 ????????currentSong ??????锟斤拷??????
+                    // ????:?? currentMediaItemIndex(shuffle Close???��)
+                    // ??Widget????????? ?: 0????????��????? currentMediaItemIndex ? null??
+                    // ???? 0 ????????currentSong ??????��??????
                     val newIndex = exoPlayer?.currentMediaItemIndex
                     if (newIndex != null && newIndex in songs.indices) {
                         currentSong = songs[newIndex]
@@ -389,18 +391,18 @@ class MusicService : MediaSessionService() {
             }
         }
 
-        // 【V3.3.22】修复双向同步：listener 在 shuffle 设置之后才注册，
-        // 导致初始化时 isShuffleMode 与 ExoPlayer 不同步。
-        // 关键修复：在设置 shuffleModeEnabled 后立即同步 isShuffleMode。
+        // ��V3.3.22���޸�˫��ͬ����listener �� shuffle ����֮���ע�ᣬ
+        // ���³�ʼ��ʱ isShuffleMode �� ExoPlayer ��ͬ����
+        // �ؼ��޸��������� shuffleModeEnabled ������ͬ�� isShuffleMode��
         override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
             try {
                 Log.d(TAG, "onShuffleModeEnabledChanged: $shuffleModeEnabled, current isShuffleMode=$isShuffleMode")
-                // 【V3.3.22】始终同步 isShuffleMode，无论是否与当前值不同
-                // 原因：PlayerConnection.setShuffleEnabled() 设置 ExoPlayer 时，
-                // 如果值相同（都为true）ExoPlayer 不触发回调，导致 isShuffleMode 停留在 false
+                // ��V3.3.22��ʼ��ͬ�� isShuffleMode�������Ƿ��뵱ǰֵ��ͬ
+                // ԭ��PlayerConnection.setShuffleEnabled() ���� ExoPlayer ʱ��
+                // ���ֵ��ͬ����Ϊtrue��ExoPlayer �������ص������� isShuffleMode ͣ���� false
                 isShuffleMode = shuffleModeEnabled
                 exoPlayer?.shuffleModeEnabled = shuffleModeEnabled
-                // 持久化到 MusicPlayer prefs
+                // �־û��� MusicPlayer prefs
                 getSharedPreferences("MusicPlayer", MODE_PRIVATE)
                     .edit().putBoolean("shuffle_mode", shuffleModeEnabled).apply()
                 updateNotification()
@@ -438,9 +440,9 @@ class MusicService : MediaSessionService() {
     }
 
     /**
-     * ??Steven v1.6????????????锟斤拷???????
+     * ??Steven v1.6????????????��???????
      * ???????????????? Fragment/Adapter ???????,
-     * ?锟斤拷????????,?????????????????
+     * ?��????????,?????????????????
      */
     interface OnCurrentSongChangedListener {
         fun onCurrentSongChanged(song: Song?)
@@ -469,7 +471,7 @@ class MusicService : MediaSessionService() {
 
     companion object {
         // ??V7.16???????????????
-        var oboeFlowTrace: String = "锟斤拷On?"
+        var oboeFlowTrace: String = "��On?"
             private set
 
         // ??Compose??StateFlow ?? ViewModel ???
@@ -479,7 +481,7 @@ class MusicService : MediaSessionService() {
         private val _themeColorFlow = kotlinx.coroutines.flow.MutableStateFlow(0)
         val themeColorFlow: kotlinx.coroutines.flow.StateFlow<Int> = _themeColorFlow
 
-        /** ?????????锟斤拷? - ??????? handler.post ??? */
+        /** ?????????��? - ??????? handler.post ??? */
         private val songChangedListeners = mutableListOf<OnCurrentSongChangedListener>()
     private val playStateChangedListeners = mutableListOf<OnPlayStateChangedListener>()
 
@@ -497,7 +499,7 @@ class MusicService : MediaSessionService() {
             }
         }
 
-        /** ?????锟斤拷???????????????锟斤拷?(??????????) */
+        /** ?????��???????????????��?(??????????) */
         private fun notifySongChanged(song: Song?) {
             _songChangedFlow.value = song  // ??Compose?????? Flow
             // ???????Save???????? SharedPreferences???????????????
@@ -511,7 +513,7 @@ class MusicService : MediaSessionService() {
                     try { listener.onCurrentSongChanged(song) } catch (_: Exception) {}
                 }
             }
-            // ??Widget?????????/???锟斤拷????锟斤拷????
+            // ??Widget?????????/???��????��????
             try { MusicWidgetProvider.updateAllWidgets(instance ?: return) } catch (_: Exception) {}
             try { MusicWidgetProvider3x2.updateAllWidgets(instance ?: return) } catch (_: Exception) {}
     
@@ -533,7 +535,7 @@ class MusicService : MediaSessionService() {
             }
         }
 
-        /** ?????锟斤拷?????????????锟斤拷(???/????) */
+        /** ?????��?????????????��(???/????) */
         @Volatile private var stoppedByIdlePolicy = false
 
         private fun notifyPlayStateChanged(isPlaying: Boolean) {
@@ -613,7 +615,7 @@ class MusicService : MediaSessionService() {
             } catch (_: Exception) { 0L }
             val isPlaying = try {
                 when {
-                    instance?.isOboeDirectMode() == true -> instance?.oboeDirectPlayer?.isPlaying ?: false
+                    instance?.isOboeDirectMode() == true -> instance?.oboePlayWhenReady ?: false
                     else -> instance?.exoPlayer?.isPlaying ?: false
                 }
             } catch (_: Exception) { false }
@@ -635,7 +637,7 @@ class MusicService : MediaSessionService() {
         var isShuffleMode: Boolean = false
             private set
 
-        // ??Steven??Playlists???:???? UI ??????????锟斤拷?
+        // ??Steven??Playlists???:???? UI ??????????��?
         var playlistSource: String = "All Songs"
             private set
 
@@ -643,7 +645,7 @@ class MusicService : MediaSessionService() {
         var instance: MusicService? = null
             private set
 
-        // ??Steven v1.5?????????? - Palette ????????,????/?锟斤拷?????
+        // ??Steven v1.5?????????? - Palette ????????,????/?��?????
         var themeColor: Int = 0
             set(value) {
                 field = value
@@ -654,12 +656,12 @@ class MusicService : MediaSessionService() {
         val player: Player?
             get() = instance?.exoPlayer
 
-        // [v7.113] 锟斤拷频锟斤拷锟斤拷锟斤拷锟?
+        // [v7.113] ��Ƶ�������?
         private var audioFocusListener: AudioManager.OnAudioFocusChangeListener? = null
         private var hasAudioFocus = false
 
         fun requestAudioFocusIfNeeded(ctx: android.content.Context) {
-            // Oboe Exclusive mode doesn't need AudioFocus 鈥?AAudio manages it independently
+            // Oboe Exclusive mode doesn't need AudioFocus �?AAudio manages it independently
             if (instance?.isOboeDirectMode() == true) return
             if (hasAudioFocus) return
             val am = ctx.getSystemService(android.content.Context.AUDIO_SERVICE) as? AudioManager ?: return
@@ -674,7 +676,7 @@ class MusicService : MediaSessionService() {
                                 svc.pause()
                                 android.util.Log.d("MusicService", "Audio focus lost, pausing (ExoPlayer mode)")
                             } else {
-                                // Oboe mode: don't pause 鈥?Oboe streams bypass AudioFocus
+                                // Oboe mode: don't pause �?Oboe streams bypass AudioFocus
                                 // requesting Exclusive AAudio triggers spurious focus loss
                                 svc?.wasPlayingBeforeFocusLoss = true
                                 android.util.Log.d("MusicService", "Audio focus lost, ignoring (Oboe mode)")
@@ -710,30 +712,30 @@ class MusicService : MediaSessionService() {
             android.util.Log.d("MusicService", "Audio focus abandoned")
         }
 
-        // [v7.113] 锟斤拷录锟斤拷锟姐丢失前锟侥诧拷锟斤拷状态
+        // [v7.113] ��¼���㶪ʧǰ�Ĳ���״̬
         var wasPlayingBeforeFocusLoss = false
             private set
 
-        // [v7.113] 锟斤拷锟铰的诧拷锟斤拷状态锟斤拷锟斤拷Widget锟斤拷询锟斤拷锟斤拷锟斤拷Oboe JNI锟接迟ｏ拷
+        // [v7.113] ���µĲ���״̬����Widget��ѯ������Oboe JNI�ӳ٣�
         var lastKnownPlayingState: Boolean = false
             private set
     }
 
-    // ??Steven v1.9.1????锟斤拷 Media3 ??????????,????????????
-    // Media3 ???????????????????????锟斤拷?,??????????????? updateNotification()
+    // ??Steven v1.9.1????�� Media3 ??????????,????????????
+    // Media3 ???????????????????????��?,??????????????? updateNotification()
     override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) {
-        // ??v7.112??Service ???????????????stopSelf ?? skip ???锟斤拷??
+        // ??v7.112??Service ???????????????stopSelf ?? skip ???��??
         if (isDestroyed) return
         Log.d(TAG, "onUpdateNotification called, currentSong=${currentSong?.title}, startInForeground=$startInForegroundRequired")
-        // ????锟斤拷??????????????????????
+        // ????��??????????????????????
         if (currentSong != null) {
             updateNotification()
             Log.d(TAG, "Custom notification updated via onUpdateNotification")
         }
-        // ?????? super,??? Media3 ??????????????????锟斤拷?
+        // ?????? super,??? Media3 ??????????????????��?
     }
 
-    // [v7.113] 锟斤拷锟姐丢失前锟角凤拷锟节诧拷锟斤拷
+    // [v7.113] ���㶪ʧǰ�Ƿ��ڲ���
     private var wasPlayingBeforeFocusLoss = false
 
     override fun onCreate() {
@@ -759,7 +761,7 @@ class MusicService : MediaSessionService() {
             }
         })
 
-        // [V3.3.7] 灭屏时暂停 FFT 可视化，降低 CPU 消耗（不影响 DAC 播放）
+        // [V3.3.7] ����ʱ��ͣ FFT ���ӻ������� CPU ���ģ���Ӱ�� DAC ���ţ�
         registerScreenOffReceiver()
 
         createNotificationChannel()
@@ -802,12 +804,12 @@ class MusicService : MediaSessionService() {
         val player = ExoPlayer.Builder(this, renderersFactory)
             .setAudioAttributes(audioAttributes, true)   // true = ??????????
             .setLoadControl(loadControl)
-            .setHandleAudioBecomingNoisy(true)           // ?锟斤拷?????????
+            .setHandleAudioBecomingNoisy(true)           // ?��?????????
             .build()
 
         // ??????????????????????????
         player.setSkipSilenceEnabled(false)
-        // ??Steven v1.6?????Playlists,???? STATE_ENDED ?? seekToNext ????锟斤拷
+        // ??Steven v1.6?????Playlists,???? STATE_ENDED ?? seekToNext ????��
         player.repeatMode = Player.REPEAT_MODE_OFF
 
         // volume ???? 1.0 ??????
@@ -843,12 +845,14 @@ class MusicService : MediaSessionService() {
                         usbDacController?.resume()
                         notifyPlayStateChanged(true)
                         updateNotification()
-                        Log.d(TAG, "ForwardingPlayer.play → USB DAC resume")
+                        Log.d(TAG, "ForwardingPlayer.play �� USB DAC resume")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
                         oboeDirectPlayer?.resume()
+                    oboePlayWhenReady = true
+                    exoPlayer?.playWhenReady = true
                         notifyPlayStateChanged(true)
                         updateNotification()
-                        Log.d(TAG, "ForwardingPlayer.play 鈫?OboeDirectPlayer.resume()")
+                        Log.d(TAG, "ForwardingPlayer.play �?OboeDirectPlayer.resume()")
                     } else {
                         super.play()
                     }
@@ -862,12 +866,14 @@ class MusicService : MediaSessionService() {
                         usbDacController?.pause()
                         notifyPlayStateChanged(false)
                         updateNotification()
-                        Log.d(TAG, "ForwardingPlayer.pause → USB DAC")
+                        Log.d(TAG, "ForwardingPlayer.pause �� USB DAC")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
                         oboeDirectPlayer?.pause()
+                    oboePlayWhenReady = false
+                    exoPlayer?.playWhenReady = false
                         notifyPlayStateChanged(false)
                         updateNotification()
-                        Log.d(TAG, "ForwardingPlayer.pause 鈫?OboeDirectPlayer.pause()")
+                        Log.d(TAG, "ForwardingPlayer.pause �?OboeDirectPlayer.pause()")
                     } else {
                         super.pause()
                     }
@@ -878,7 +884,7 @@ class MusicService : MediaSessionService() {
             override fun seekToNext() {
                 if (usbDacController != null) {
                     playNext()
-                    Log.d(TAG, "ForwardingPlayer.seekToNext → playNext() (DAC)")
+                    Log.d(TAG, "ForwardingPlayer.seekToNext �� playNext() (DAC)")
                 } else if (isOboeDirectMode()) {
                     playNext()
                     Log.d(TAG, "ForwardingPlayer.seekToNext ?? playNext() (Oboe)")
@@ -889,7 +895,7 @@ class MusicService : MediaSessionService() {
             override fun seekToPrevious() {
                 if (usbDacController != null) {
                     playPrevious()
-                    Log.d(TAG, "ForwardingPlayer.seekToPrev → playPrevious() (DAC)")
+                    Log.d(TAG, "ForwardingPlayer.seekToPrev �� playPrevious() (DAC)")
                 } else if (isOboeDirectMode()) {
                     playPrevious()
                     Log.d(TAG, "ForwardingPlayer.seekToPrev ?? playPrevious() (Oboe)")
@@ -923,7 +929,7 @@ class MusicService : MediaSessionService() {
                     if (usbDacController != null) {
                         usbDacController?.seekTo(positionMs)
                         super.seekTo(positionMs)
-                        Log.d(TAG, "ForwardingPlayer.seekTo → USB DAC($positionMs)")
+                        Log.d(TAG, "ForwardingPlayer.seekTo �� USB DAC($positionMs)")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
                         oboeDirectPlayer?.seekTo(positionMs)
                         super.seekTo(positionMs)
@@ -943,7 +949,7 @@ class MusicService : MediaSessionService() {
             }
             override fun getPlayWhenReady(): Boolean {
                 if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return oboeDirectPlayer?.isPlaying ?: false
+                    return oboePlayWhenReady
                 }
                 return super.getPlayWhenReady()
             }
@@ -954,6 +960,8 @@ class MusicService : MediaSessionService() {
                 }
                 if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
                     if (playWhenReady) oboeDirectPlayer?.resume() else oboeDirectPlayer?.pause()
+                    oboePlayWhenReady = playWhenReady
+                    exoPlayer?.playWhenReady = playWhenReady
                     return
                 }
                 super.setPlayWhenReady(playWhenReady)
@@ -962,13 +970,13 @@ class MusicService : MediaSessionService() {
 
         // ??Steven v1.6?????Shuffle???? ExoPlayer(????Shuffle,seekToNext ?????Shuffle)
         player.shuffleModeEnabled = isShuffleMode
-        // 【V3.3.22】双向同步：ExoPlayer 设置后立即同步 isShuffleMode（listener 还没注册）
+        // ��V3.3.22��˫��ͬ����ExoPlayer ���ú�����ͬ�� isShuffleMode��listener ��ûע�ᣩ
         isShuffleMode = player.shuffleModeEnabled
 
-        // ?????????????????????????????????? + ?锟斤拷???????????
+        // ?????????????????????????????????? + ?��???????????
         player.addListener(playerListener)
 
-        // ??v5.39??????? Equilizer??????? Oboe ??????锟斤拷
+        // ??v5.39??????? Equilizer??????? Oboe ??????��
         if (!isOboeDirectMode()) {
             EqualizerManager.init(player.audioSessionId)
             EqualizerManager.restoreSettings(this)
@@ -995,7 +1003,7 @@ class MusicService : MediaSessionService() {
                     val playerCommands = MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
                         .build()
 
-                    // ??Steven v1.9.4??CustomLayout ??????y?锟斤拷?(Previous+????+?????)
+                    // ??Steven v1.9.4??CustomLayout ??????y?��?(Previous+????+?????)
                     val prevButton = CommandButton.Builder()
                         .setDisplayName("Previous")
                         .setIconResId(android.R.drawable.ic_media_previous)
@@ -1108,13 +1116,13 @@ class MusicService : MediaSessionService() {
             Log.d(TAG, "AudioDeviceCallback registered for USB DAC detection")
         }
 
-        // [v7.113] 锟阶达拷锟斤拷锟斤拷锟斤拷频锟斤拷锟姐（锟斤拷锟斤拷时锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
+        // [v7.113] �״�������Ƶ���㣨����ʱ����������
         requestAudioFocusIfNeeded(this)
 
         // ??v4.79???????????? + ???????????????(???,???????? Fragment)
         volumeGuard.register()
 
-        // ???????Output Mode?锟斤拷???apply ????????
+        // ???????Output Mode?��???apply ????????
         val settingsPrefs = getSharedPreferences("settings", MODE_PRIVATE)
         settingsPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPrefs, key ->
             if (key == "audio_output") {
@@ -1180,7 +1188,7 @@ class MusicService : MediaSessionService() {
         }
 
         // ??v2.0 ??????????? 5 ??????? startForeground,????????
-        // ???????锟斤拷???????????????????
+        // ???????��???????????????????
         if (currentSong == null) {
             val emptyNotification = NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Moto Music")
@@ -1210,7 +1218,7 @@ class MusicService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     /**
-     * ???y?锟斤拷???????On MainActivity (SINGLE_TOP ?????)
+     * ???y?��???????On MainActivity (SINGLE_TOP ?????)
      * ???? TaskStackBuilder ?? ?? Service ?????????????????????,
      * ???? Activity ??? ?? ViewModel ??? ?? connect() ??? ?? Playing?? + ????
      */
@@ -1226,15 +1234,15 @@ class MusicService : MediaSessionService() {
     }
 
     // ??Steven v1.51 ?????setSongs ??? Service ?????Playlists,
-    // ??????? SongRepository ?????????锟斤拷?(????Back?Folders?????)
+    // ??????? SongRepository ?????????��?(????Back?Folders?????)
     /**
      * ??Steven v1.51?????? Service Playlists + ??? ExoPlayer
-     * keepCurrentPosition=true ???????????????????(???? onResume ?锟斤拷??锟斤拷?)
+     * keepCurrentPosition=true ???????????????????(???? onResume ?��??��?)
      */
     /**
      * SettingsPlaylists??
-     * @param songs ??????????锟斤拷?
-     * @param updateGlobal ?????????? SongRepository ????锟斤拷?(???锟斤拷?=true,Folders=false)
+     * @param songs ??????????��?
+     * @param updateGlobal ?????????? SongRepository ????��?(???��?=true,Folders=false)
      */
     fun setSongs(songs: List<Song>, updateGlobal: Boolean = true, source: String = "All Songs") {
         Log.d(TAG, "setSongs: ${songs.size} songs ?? servicePlaylist, source=$source, updateGlobal=$updateGlobal")
@@ -1252,8 +1260,8 @@ class MusicService : MediaSessionService() {
         playlistSource = "All Songs"
     }
 
-    /** 同步播放清单到 servicePlaylist（仅改内存字段，不做磁盘 I/O），确保紧接着的 playSong 用同一份列表
-     *  否则 USB/Oboe 模式下 playSong(index) 会按旧 servicePlaylist 错位放错歌 */
+    /** ͬ�������嵥�� servicePlaylist�������ڴ��ֶΣ��������� I/O����ȷ������ŵ� playSong ��ͬһ���б�
+     *  ���� USB/Oboe ģʽ�� playSong(index) �ᰴ�� servicePlaylist ��λ�Ŵ�� */
     fun setServicePlaylist(songs: List<Song>, source: String = "All Songs") {
         _originalPlaylist = songs  // [V3.3.2]
         servicePlaylist = songs
@@ -1261,7 +1269,7 @@ class MusicService : MediaSessionService() {
     }
 
     fun playSong(index: Int) {
-        // [v7.113] 锟斤拷始锟斤拷锟斤拷时锟斤拷锟斤拷锟斤拷频锟斤拷锟斤拷
+        // [v7.113] ��ʼ����ʱ������Ƶ����
         requestAudioFocusIfNeeded(this)
 
         val songs = servicePlaylist.ifEmpty { SongRepository.getSongs() }
@@ -1272,7 +1280,7 @@ class MusicService : MediaSessionService() {
             return
         }
 
-        // USB DAC Exclusive mode — Salt-style: claim once, keep forever
+        // USB DAC Exclusive mode �� Salt-style: claim once, keep forever
         if (isUsbExclusiveMode()) {
             dacPlayGeneration++  // [V4.0.1] invalidate stale onCompletion
             val dacStreaming = UsbDacManager.isClaimed()  // [V3.3.3] claim survives EOS pauseStream; only first play needs claim
@@ -1341,8 +1349,8 @@ class MusicService : MediaSessionService() {
                         UsbDacManager.setVolume(pct)
                     }
                     currentSong.let { song -> MusicService.currentSong = song; currentIndex = index }
-                    // 【V3.2.8】DAC 分支早 return 不走后面 V8.1 playlist 同步，
-                    // MediaSession 里还是旧 MediaItem → 系统媒体卡片歌名不同步，这里补
+                    // ��V3.2.8��DAC ��֧�� return ���ߺ��� V8.1 playlist ͬ����
+                    // MediaSession �ﻹ�Ǿ� MediaItem �� ϵͳý�忨Ƭ������ͬ�������ﲹ
                     syncSessionMediaItem(index, songs)
                     updateNotification()
                     notifySongChanged(songs[index])
@@ -1358,7 +1366,7 @@ class MusicService : MediaSessionService() {
         if (oboeMode) {
             playSongOboeDirect(index, songs)
             // notification refresh is deferred to handler.post after replaceMediaItem in Oboe success handler
-            // ??V7.44+V7.46??Oboe?????????UI?????????????????锟斤拷??Playing"??
+            // ??V7.44+V7.46??Oboe?????????UI?????????????????��??Playing"??
             notifySongChanged(songs[index])
             return  // ??V7.46 ?????????return???????????????????ExoPlayer?????
                     // replaceMediaItem????currentSong??????????????
@@ -1368,18 +1376,18 @@ class MusicService : MediaSessionService() {
         Log.d(TAG, "playSong: switching to ${song.title} (id=${song.id})")
 
         // ??Steven v1.6 ?????? + Bug ?????
-        // ????1:???????????????Playlists ?? ??? seekTo ????,???????1????锟斤拷?
-        // ????2:Playlists????(?锟斤拷?Folders/???锟斤拷?)?? ????锟斤拷?
+        // ????1:???????????????Playlists ?? ??? seekTo ????,???????1????��?
+        // ????2:Playlists????(?��?Folders/???��?)?? ????��?
         mediaSession?.player?.let { player ->
             val existingPlaylistSize = player.mediaItemCount
             val isSamePlaylist = existingPlaylistSize == songs.size
 
             if (isSamePlaylist && player.playbackState != Player.STATE_IDLE) {
-                // ??????1????锟斤拷????锟斤拷?:??? seekTo,?????? MediaItem
-                // ???? clearMediaItems() + setMediaItems ???锟斤拷? ExoPlayer ??????
+                // ??????1????��????��?:??? seekTo,?????? MediaItem
+                // ???? clearMediaItems() + setMediaItems ???��? ExoPlayer ??????
                 Log.d(TAG, "playSong: same playlist, seeking to index=$index")
                 player.seekTo(index, 0)
-                player.playWhenReady = true  // ??V7.XX??STATE_ENDED??playWhenReady=false?????????????锟斤拷?????????
+                player.playWhenReady = true  // ??V7.XX??STATE_ENDED??playWhenReady=false?????????????��?????????
                 currentSong = song
                 currentIndex = index
                 notifySongChanged(song)
@@ -1390,7 +1398,7 @@ class MusicService : MediaSessionService() {
                     tryInitEqualizerFallback()
                 }, 300)
             } else {
-                // ??????2??Playlists?锟斤拷:??? MediaItem ?锟斤拷?
+                // ??????2??Playlists?��:??? MediaItem ?��?
                 val mediaItems = songs.map { s ->
                     val artworkUri = if (s.albumArtUri.isNotEmpty()) {
                         android.net.Uri.parse(s.albumArtUri)
@@ -1447,8 +1455,8 @@ class MusicService : MediaSessionService() {
     /**
      * ??Steven ???????????? song.id ????,???????????????
      *
-     * ???锟斤拷???????????????????? servicePlaylist ???? ID ???,
-     * ????????锟斤拷???????锟斤拷??????
+     * ???��???????????????????? servicePlaylist ???? ID ???,
+     * ????????��???????��??????
      */
     fun playSongById(songId: Long, allSongs: List<Song>) {
         val songs = servicePlaylist.ifEmpty { allSongs }
@@ -1461,7 +1469,7 @@ class MusicService : MediaSessionService() {
             Log.d(TAG, "playSongById: found in current playlist at $index (source=$playlistSource)")
             playSong(index)
         } else {
-            // ??????????Playlists(?????Folders?锟斤拷????锟斤拷?),?锟斤拷???????锟斤拷?
+            // ??????????Playlists(?????Folders?��????��?),?��???????��?
             Log.d(TAG, "playSongById: not in current playlist, switching to full list")
             setSongs(allSongs, updateGlobal = true, source = "All Songs")
             index = allSongs.indexOfFirst { it.id == songId }
@@ -1580,7 +1588,7 @@ class MusicService : MediaSessionService() {
             oboeFlowTrace = "2705 Oboe OK (mode=${newPlayer.getDspMode()?.displayName}, exclusive=${newPlayer.isExclusiveMode()})"
 
             handler.post {
-                // Oboe mode: mute ExoPlayer but DON'T stop it — MediaSession needs it alive
+                // Oboe mode: mute ExoPlayer but DON'T stop it �� MediaSession needs it alive
                 // for metadata (notification title/artist). Volume=0 + playWhenReady=false saves CPU.
                 if (isOboeDirectMode()) {
                     exoPlayer?.volume = 0f
@@ -1602,7 +1610,7 @@ class MusicService : MediaSessionService() {
 
                 // [V8.1] Always sync ExoPlayer playlist so ForwardingPlayer.getCurrentMediaItem()
                 // returns correct metadata (system notification / lock screen / car / Wear OS).
-                // In Oboe mode: update MediaItem without prepare() 鈥?avoids CPU waste on
+                // In Oboe mode: update MediaItem without prepare() �?avoids CPU waste on
                 // parallel MediaCodec decoding since audio is driven by OboeDirectPlayer.
                 exoPlayer?.let { player ->
                     val existingPlaylistSize = player.mediaItemCount
@@ -1727,7 +1735,7 @@ class MusicService : MediaSessionService() {
         }
     }
 
-    /** ??v6.29??DSP EQ ?????????????锟斤拷???,?? SharedPreferences ???? */
+    /** ??v6.29??DSP EQ ?????????????��???,?? SharedPreferences ???? */
     fun setCustomDspEq(
         enabled: Boolean,
         highShelfFreq: Float, highShelfDb: Float, highShelfQ: Float,
@@ -1816,7 +1824,7 @@ class MusicService : MediaSessionService() {
         } catch (_: Exception) { -1 }
     }
 
-    // ??V7.34??Brand Presets????? ?? ??? DSP Mode???????Steven Special / 锟斤拷锟斤拷 / Close??
+    // ??V7.34??Brand Presets????? ?? ??? DSP Mode???????Steven Special / ���� / Close??
 
     /** ??V7.05??????? - softClip ???????,???????????*/
     fun setNightMode(enabled: Boolean) {
@@ -1862,12 +1870,14 @@ class MusicService : MediaSessionService() {
                 notifyPlayStateChanged(false)
             } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
                 oboeDirectPlayer?.pause()
+                    oboePlayWhenReady = false
+                    exoPlayer?.playWhenReady = false
                 notifyPlayStateChanged(false)
             } else {
                 mediaSession?.player?.pause()
                 // ExoPlayer ?? onIsPlayingChanged ??????? UI
             }
-            // [v7.113] 锟斤拷停时锟酵凤拷锟斤拷频锟斤拷锟姐，锟斤拷系统锟斤拷锟斤拷锟斤拷锟斤拷
+            // [v7.113] ��ͣʱ�ͷ���Ƶ���㣬��ϵͳ��������
             abandonAudioFocus(this)
             Log.d(TAG, "Paused")
             updateNotification()
@@ -1881,10 +1891,12 @@ class MusicService : MediaSessionService() {
             requestAudioFocusIfNeeded(this)
             if (usbDacController != null) {
                 usbDacController?.resume()
+                oboePlayWhenReady = true
                 onOboeResumeSuccess()
             } else if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true && oboeDirectPlayer?.isPlaying == false) {
                 val ok = oboeDirectPlayer?.resume() ?: false
                 if (ok) {
+                oboePlayWhenReady = true
                     onOboeResumeSuccess()
                 } else {
                     // [vX] nativeResume may return false during rapid state transitions (e.g. volume 0->restore)
@@ -1895,6 +1907,7 @@ class MusicService : MediaSessionService() {
                             if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true && oboeDirectPlayer?.isPlaying == false) {
                                 val retry = oboeDirectPlayer?.resume() ?: false
                                 if (retry) {
+                oboePlayWhenReady = true
                                     onOboeResumeSuccess()
                                 } else {
                                     Log.e(TAG, "Oboe resume retry also failed, falling back to ExoPlayer")
@@ -1953,8 +1966,8 @@ class MusicService : MediaSessionService() {
     fun getCurrentPosition(): Long {
         // [V8.x] USB DAC: audible position = decode position - ring buffer depth
         usbDacController?.let { if (it.isPlaying || it.audiblePositionMs >= 0) return it.audiblePositionMs }
-        // ??V7.34????????????isOboeDirectMode(),??????Oboe ?锟斤拷?????????
-        // oboeDirectPlayer.isPrepared ??? true ?? Back??????Oboe 锟斤拷?? ?? ?????????
+        // ??V7.34????????????isOboeDirectMode(),??????Oboe ?��?????????
+        // oboeDirectPlayer.isPrepared ??? true ?? Back??????Oboe ��?? ?? ?????????
         val isOboe = isOboeDirectMode()
         if (isOboe && oboeDirectPlayer?.isPrepared == true) return oboeDirectPlayer?.getCurrentPositionMs() ?: 0
         val pos = mediaSession?.player?.currentPosition ?: 0
@@ -1991,9 +2004,9 @@ class MusicService : MediaSessionService() {
         DebugLog.add(TAG, "playNext: servicePlaylist=${servicePlaylist.size} songs=${songs.size} curIdx=$currentIndex shuffle=$isShuffleMode")
         if (songs.isEmpty()) return
 
-        // [V3.3.22] REMOVED direct stopDecode() here — releaseUsbDacController() in playSong() handles it
+        // [V3.3.22] REMOVED direct stopDecode() here �� releaseUsbDacController() in playSong() handles it
         // V3.3.4: isShuffleMode is the single source of truth (ExoPlayer flag can be stale)
-        // V3.3.8: 添加日志确认随机状态
+        // V3.3.8: �����־ȷ�����״̬
         // [V4.0.1] Find real position by currentSong.id, not currentIndex (may be stale)
         val currentId = currentSong?.id
         val realIdx = if (currentId != null) songs.indexOfFirst { it.id == currentId }.coerceAtLeast(0)
@@ -2009,7 +2022,7 @@ class MusicService : MediaSessionService() {
     }
 
     fun playPrevious() {
-        // [V3.3.22] REMOVED direct stopDecode() — releaseUsbDacController() in playSong() handles it
+        // [V3.3.22] REMOVED direct stopDecode() �� releaseUsbDacController() in playSong() handles it
         val songs = servicePlaylist.ifEmpty { SongRepository.getSongs() }
         if (songs.isEmpty()) return
 
@@ -2022,7 +2035,7 @@ class MusicService : MediaSessionService() {
     }
 
     /**
-     * ??Steven v1.6??Shuffle?????锟斤拷? - ??? ExoPlayer ???? shuffleModeEnabled
+     * ??Steven v1.6??Shuffle?????��? - ??? ExoPlayer ???? shuffleModeEnabled
      * Settings?? seekToNext() / seekToPrevious() ?????Shuffle???
      */
     fun toggleShuffle(): Boolean {
@@ -2063,11 +2076,11 @@ class MusicService : MediaSessionService() {
             .putBoolean("shuffle_mode", enabled).apply()
     }
 
-    // ??Steven????????? updateShuffleButton,y?锟斤拷????Close???
+    // ??Steven????????? updateShuffleButton,y?��????Close???
 
     /**
      * ??Steven ???????????????????????????,????LifecycleRegistry ????
-     * ??????:???锟斤拷???,?????????
+     * ??????:???��???,?????????
      */
     private fun performHardExit() {
         try {
@@ -2079,7 +2092,7 @@ class MusicService : MediaSessionService() {
             try { oboeDirectPlayer?.stop() } catch (_: Exception) {}
 
             // 1. ??????:???????????????
-            // release() ???????????锟斤拷?????
+            // release() ???????????��?????
             exoPlayer?.stop()
             exoPlayer?.release()
             exoPlayer = null
@@ -2108,12 +2121,12 @@ class MusicService : MediaSessionService() {
 
             Log.d(TAG, "=== performHardExit: Clean exit completed ===")
 
-            // 7. ????????锟斤拷:????????????,??????
+            // 7. ????????��:????????????,??????
             android.os.Process.killProcess(android.os.Process.myPid())
 
         } catch (e: Exception) {
             Log.e(TAG, "performHardExit error: ${e.message}")
-            // ??????????????,???????锟斤拷??
+            // ??????????????,???????��??
             android.os.Process.killProcess(android.os.Process.myPid())
         }
     }
@@ -2126,7 +2139,7 @@ class MusicService : MediaSessionService() {
                 NotificationManager.IMPORTANCE_LOW  // LOW = ??????,????????
             ).apply {
                 description = "Music playback controls"
-                setSound(null, null)  // ??V7.0????????????锟斤拷
+                setSound(null, null)  // ??V7.0????????????��
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
@@ -2137,8 +2150,8 @@ class MusicService : MediaSessionService() {
         }
     }
 
-    // 【V3.2.8】DAC 模式下同步 MediaSession 的 MediaItem：系统媒体卡片歌名/封面读的是
-    // session 里的 metadata，不是 NotificationCompat 的 title，不同步就显示旧歌
+    // ��V3.2.8��DAC ģʽ��ͬ�� MediaSession �� MediaItem��ϵͳý�忨Ƭ����/���������
+    // session ��� metadata������ NotificationCompat �� title����ͬ������ʾ�ɸ�
     private fun syncSessionMediaItem(index: Int, songs: List<Song>) {
         try {
             val player = exoPlayer ?: return
@@ -2160,11 +2173,11 @@ class MusicService : MediaSessionService() {
                 // V3.3.4: seek FIRST, then replace. Replacing while the idle session player
                 // still sits on index 0 fires a metadata event for the first song -> cover flash.
                 if (player.currentMediaItemIndex != index) player.seekToDefaultPosition(index)
-                player.replaceMediaItem(index, newItem)  // 强制 session 重读 metadata
+                player.replaceMediaItem(index, newItem)  // ǿ�� session �ض� metadata
             } else {
                 player.setMediaItems(listOf(newItem), 0, 0L)
             }
-            player.playWhenReady = false  // ExoPlayer 不驱动音频，仅提供 metadata
+            player.playWhenReady = false  // ExoPlayer ��������Ƶ�����ṩ metadata
         } catch (e: Exception) {
             Log.e(TAG, "syncSessionMediaItem: ${e.message}")
         }
@@ -2189,11 +2202,11 @@ class MusicService : MediaSessionService() {
 
         // [V8.x] Use lastKnownPlayingState instead of player.isPlaying
         // Oboe JNI isPlaying has lag; lastKnownPlayingState is set synchronously
-        // in notifyPlayStateChanged 鈫?reflects caller intent immediately
+        // in notifyPlayStateChanged �?reflects caller intent immediately
         val isPlaying = if (isOboeDirectMode()) lastKnownPlayingState else player.isPlaying
 
         // ??V7.33????? getService ???? getBroadcast
-        // getBroadcast ??? BroadcastReceiver,????锟斤拷??? ?? ??????????????
+        // getBroadcast ??? BroadcastReceiver,????��??? ?? ??????????????
         // getService ???? Intent ????? MusicService.onStartCommand()
         val prevIntent = PendingIntent.getService(
             this, 0, Intent(this, MusicService::class.java).apply { action = "com.sdw.music.player.PREV" }, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
@@ -2206,7 +2219,7 @@ class MusicService : MediaSessionService() {
         )
 
         // ??????????????Cover??
-                // [V8.x] Cached album art — no disk I/O on main thread (prev jank in DAC mode)
+                // [V8.x] Cached album art �� no disk I/O on main thread (prev jank in DAC mode)
         val artBitmap = if (song.albumArtUri.isNotEmpty()) {
             try { coverCache.get(song.albumArtUri) } catch (_: Exception) { null }
         } else null
@@ -2229,8 +2242,8 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(isPlaying)
             // ??Steven v1.9.4?????Previous????,Shuffle???????????????
-            // 【V3.2.8】删除手动 addAction：Android 13+ 系统媒体卡片自动从 MediaSession
-            // 生成按钮，手动 action 会在右下角重复显示播放/上一曲键
+            // ��V3.2.8��ɾ���ֶ� addAction��Android 13+ ϵͳý�忨Ƭ�Զ��� MediaSession
+            // ���ɰ�ť���ֶ� action �������½��ظ���ʾ����/��һ����
 
         @Suppress("DEPRECATION")
         notificationBuilder.setStyle(
@@ -2238,7 +2251,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                     .setMediaSession(session.sessionCompatToken)
             )
 
-        // [V8.x] Use cached artBitmap (or null if not yet loaded — async load fills cache next time)
+        // [V8.x] Use cached artBitmap (or null if not yet loaded �� async load fills cache next time)
         if (artBitmap != null) {
             notificationBuilder.setLargeIcon(artBitmap as android.graphics.Bitmap)
         }
@@ -2267,19 +2280,19 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean
             ): AudioSink {
-                // ??v7.07??Oboe ?????:ExoPlayer ?????锟斤拷??(?????????0),OboeDirectPlayer ???????????DSP ??锟斤拷)
+                // ??v7.07??Oboe ?????:ExoPlayer ?????��??(?????????0),OboeDirectPlayer ???????????DSP ??��)
                 val builder = DefaultAudioSink.Builder(context)
                 when (audioOutputMode) {
                     "AAudio" -> {
                         // AAudio ??:????????? Float ????
-                        // Android 8.1+ ??????????????????????? AAudio 锟斤拷??
+                        // Android 8.1+ ??????????????????????? AAudio ��??
                         // ??v7.112????????? enableAudioTrackPlaybackParams=true,
-                        // ?????锟斤拷 AudioTrack ????? playback params ?????????
+                        // ?????�� AudioTrack ????? playback params ?????????
                         builder.setEnableFloatOutput(enableFloatOutput)
                     }
                     "OpenSL ES" -> {
                         // OpenSL ES ??????:16-bit PCM + ???????
-                        // ??? OpenSL ES ?????????锟斤拷??,?????????????
+                        // ??? OpenSL ES ?????????��??,?????????????
                         builder.setEnableFloatOutput(false)
                         builder.setEnableAudioTrackPlaybackParams(false)
                     }
@@ -2293,14 +2306,14 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
         }
     }
 
-    // ??v4.94???锟斤拷????Output Mode - ??? ExoPlayer
+    // ??v4.94???��????Output Mode - ??? ExoPlayer
     fun reconfigureAudioOutput(mode: String) {
         // ??V7.35????????????OboeDirectPlayer ??????
-        // ?? Oboe ???? ExoPlayer ??锟斤拷???(锟斤拷 prepare),
+        // ?? Oboe ???? ExoPlayer ??��???(�� prepare),
         // ?? OboeDirectPlayer ????? ?? wasPlaying ?? true
         val wasPlaying = exoPlayer?.isPlaying == true || oboeDirectPlayer?.isPlaying == true
-        // ??V7.35??Oboe ???? ExoPlayer 锟斤拷 prepare,currentPosition=0
-        // ????? OboeDirectPlayer ??????????锟斤拷??
+        // ??V7.35??Oboe ???? ExoPlayer �� prepare,currentPosition=0
+        // ????? OboeDirectPlayer ??????????��??
         val currentPosition = if (oboeDirectPlayer?.isPrepared == true) {
             oboeDirectPlayer?.getCurrentPositionMs() ?: exoPlayer?.currentPosition ?: 0
         } else {
@@ -2367,7 +2380,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             player.release()
             release()
         }
-        // ??V7.108????? wrappedPlayer??? Oboe ???锟斤拷?y?锟斤拷??????????????? playNext()/playPrevious()
+        // ??V7.108????? wrappedPlayer??? Oboe ???��?y?��??????????????? playNext()/playPrevious()
         val newWrappedPlayer = object : androidx.media3.common.ForwardingPlayer(newPlayer) {
             // V3.3.4: session player holds a single MediaItem, so ExoPlayer never advertises
             // next/prev commands and the system media card hides those buttons.
@@ -2394,7 +2407,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                         usbDacController?.resume()
                         notifyPlayStateChanged(true)
                         updateNotification()
-                        Log.d(TAG, "ForwardingPlayer(new).play → USB DAC resume")
+                        Log.d(TAG, "ForwardingPlayer(new).play �� USB DAC resume")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
                         oboeDirectPlayer?.resume()
                         updateNotification()
@@ -2411,9 +2424,11 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                         usbDacController?.pause()
                         notifyPlayStateChanged(false)  // [V4.0.2] trigger idle timer for standby policy
                         updateNotification()
-                        Log.d(TAG, "ForwardingPlayer(new).pause → USB DAC")
+                        Log.d(TAG, "ForwardingPlayer(new).pause �� USB DAC")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
                         oboeDirectPlayer?.pause()
+                    oboePlayWhenReady = false
+                    exoPlayer?.playWhenReady = false
                         notifyPlayStateChanged(false)  // [V4.0.2] trigger idle timer
                         updateNotification()
                     } else {
@@ -2426,7 +2441,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             override fun seekToNext() {
                 if (usbDacController != null) {
                     playNext()
-                    Log.d(TAG, "ForwardingPlayer(new).seekToNext → playNext() (DAC)")
+                    Log.d(TAG, "ForwardingPlayer(new).seekToNext �� playNext() (DAC)")
                 } else if (isOboeDirectMode()) {
                     playNext()
                     Log.d(TAG, "ForwardingPlayer(new).seekToNext ?? playNext()")
@@ -2437,7 +2452,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             override fun seekToPrevious() {
                 if (usbDacController != null) {
                     playPrevious()
-                    Log.d(TAG, "ForwardingPlayer(new).seekToPrev → playPrevious() (DAC)")
+                    Log.d(TAG, "ForwardingPlayer(new).seekToPrev �� playPrevious() (DAC)")
                 } else if (isOboeDirectMode()) {
                     playPrevious()
                     Log.d(TAG, "ForwardingPlayer(new).seekToPrev ?? playPrevious()")
@@ -2471,7 +2486,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                     if (usbDacController != null) {
                         usbDacController?.seekTo(positionMs)
                         super.seekTo(positionMs)
-                        Log.d(TAG, "ForwardingPlayer(new).seekTo → USB DAC($positionMs)")
+                        Log.d(TAG, "ForwardingPlayer(new).seekTo �� USB DAC($positionMs)")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
                         oboeDirectPlayer?.seekTo(positionMs)
                         super.seekTo(positionMs)
@@ -2491,7 +2506,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             }
             override fun getPlayWhenReady(): Boolean {
                 if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return oboeDirectPlayer?.isPlaying ?: false
+                    return oboePlayWhenReady
                 }
                 return super.getPlayWhenReady()
             }
@@ -2502,6 +2517,8 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                 }
                 if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
                     if (playWhenReady) oboeDirectPlayer?.resume() else oboeDirectPlayer?.pause()
+                    oboePlayWhenReady = playWhenReady
+                    exoPlayer?.playWhenReady = playWhenReady
                     return
                 }
                 super.setPlayWhenReady(playWhenReady)
@@ -2592,7 +2609,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             Log.d(TAG, "reconfigureAudioOutput: Oboe mode, DSP only (no Android Equalizer)")
         }
 
-        // ???Playlists??锟斤拷??
+        // ???Playlists??��??
         if (savedPlaylist.isNotEmpty()) {
             servicePlaylist = savedPlaylist
             val mediaItems = savedPlaylist.map { song ->
@@ -2648,8 +2665,8 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             }, 500)
         }
 
-        // ??V7.34???锟斤拷??? Oboe ???,??????? oboeDirectPlayer
-        // ???? isPrepared ????? true ???? getCurrentPosition/getDuration ???锟斤拷??
+        // ??V7.34???��??? Oboe ???,??????? oboeDirectPlayer
+        // ???? isPrepared ????? true ???? getCurrentPosition/getDuration ???��??
         if (mode != "Oboe Exclusive" && mode != "Oboe???" && oboeDirectPlayer != null) {
             oboeDirectPlayer?.stop()
             oboeDirectPlayer = null
@@ -2669,7 +2686,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
         isDestroyed = true
         Log.d(TAG, "onDestroy - Service being destroyed")
 
-        // [V3.3.7] 注销屏幕状态接收器
+        // [V3.3.7] ע����Ļ״̬������
         unregisterScreenOffReceiver()
         unregisterStandbyBucketReceiver()
 
@@ -2684,7 +2701,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             UsbDacManager.stopAndRelease()
         }
 
-        // ??Steven ?????????????,?????????????锟斤拷??????
+        // ??Steven ?????????????,?????????????��??????
         try {
             oboeDirectPlayer?.stop()
             oboeDirectPlayer = null
@@ -2697,7 +2714,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             Log.w(TAG, "stop error: ${e.message}")
         }
 
-        // [v7.113] 锟酵凤拷锟斤拷频锟斤拷锟斤拷
+        // [v7.113] �ͷ���Ƶ����
         abandonAudioFocus(this)
 
         instance = null
@@ -2799,7 +2816,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
         }
     }
 
-    // [V3.3.7] 灭屏暂停 FFT 可视化，降低 CPU 消耗
+    // [V3.3.7] ������ͣ FFT ���ӻ������� CPU ����
     private var screenOffReceiver: BroadcastReceiver? = null
     private var isScreenOn = true
 
@@ -2812,8 +2829,8 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                     Intent.ACTION_SCREEN_OFF -> {
                         isScreenOn = false
                         Log.d(TAG, "Screen OFF, pausing Visualizer (DAC playback continues)")
-                        // [V3.3.7] 灭屏时释放 Visualizer，节省 CPU
-                        // 注意：DAC 播放线程不受影响
+                        // [V3.3.7] ����ʱ�ͷ� Visualizer����ʡ CPU
+                        // ע�⣺DAC �����̲߳���Ӱ��
                         if (visualizerManager.isReady()) {
                             visualizerManager.release()
                         }
@@ -2821,7 +2838,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                     Intent.ACTION_SCREEN_ON -> {
                         isScreenOn = true
                         Log.d(TAG, "Screen ON, resuming Visualizer")
-                        // 亮屏时恢复 Visualizer（如果需要）
+                        // ����ʱ�ָ� Visualizer�������Ҫ��
                         if (fftCallback != null && !visualizerManager.isReady() && isAppForeground) {
                             handler.postDelayed({ visualizerManager.setup() }, 300)
                         }
@@ -2887,6 +2904,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
         }
     }
 }
+
 
 
 

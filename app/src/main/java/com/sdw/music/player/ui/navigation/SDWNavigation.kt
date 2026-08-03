@@ -3,6 +3,8 @@ package com.sdw.music.player.ui.navigation
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -98,10 +100,16 @@ fun SDWNavHost(
             composable(
                 Screen.SongList.route,
                 exitTransition = {
-                    fadeOut(animationSpec = tween(200))
+                    slideOutHorizontally(
+                        targetOffsetX = { -it / 4 },
+                        animationSpec = tween(250)
+                    ) + fadeOut(tween(200))
                 },
                 popEnterTransition = {
-                    fadeIn(animationSpec = tween(250))
+                    slideInHorizontally(
+                        initialOffsetX = { -it / 4 },
+                        animationSpec = tween(250)
+                    ) + fadeIn(tween(200))
                 }
             ) {
                 // Root back: minimize only when SongList is current route
@@ -124,7 +132,8 @@ fun SDWNavHost(
                     onSongClick = { song ->
                         val index = state.songList.indexOfFirst { it.id == song.id }
                         if (index >= 0) {
-                            vm.handleIntent(PlayerIntent.PlaySong(index))
+                            vm.handleIntent(PlayerIntent.PlaySongList(state.songList, startIndex = index))
+                            navController.navigate(Screen.Player.route)
                         }
                     },
                     onNavigateToPlayer = {
@@ -199,10 +208,28 @@ fun SDWNavHost(
             composable(
                 Screen.Player.route,
                 enterTransition = {
-                    fadeIn(animationSpec = tween(200))
+                    slideInHorizontally(
+                        initialOffsetX = { it / 4 },
+                        animationSpec = tween(300)
+                    ) + fadeIn(tween(250))
+                },
+                exitTransition = {
+                    slideOutHorizontally(
+                        targetOffsetX = { it / 4 },
+                        animationSpec = tween(250)
+                    ) + fadeOut(tween(200))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(
+                        initialOffsetX = { -it / 4 },
+                        animationSpec = tween(300)
+                    ) + fadeIn(tween(250))
                 },
                 popExitTransition = {
-                    fadeOut(animationSpec = tween(200))
+                    slideOutHorizontally(
+                        targetOffsetX = { -it / 4 },
+                        animationSpec = tween(250)
+                    ) + fadeOut(tween(200))
                 }
             ) {
                 val context = androidx.compose.ui.platform.LocalContext.current
@@ -308,6 +335,7 @@ fun SDWNavHost(
                         }
                     },
                     audioSessionId = MusicService.instance?.getAudioSessionId() ?: 0,
+                    onPlayQueueIndex = { index -> vm.handleIntent(PlayerIntent.PlaySong(index)) },
                     onDismiss = {
                         sharedCoverState.exit()
                         sharedCoverState.onAnimationEnd = {

@@ -315,7 +315,7 @@ class PlayerViewModel @Inject constructor(
                 connection.songList.collect { songs ->
                     // 忽略空列表，防止覆盖 FAST PATH 已加载的歌曲
                     if (songs.isNotEmpty()) {
-                        _state.update { it.copy(songCount = songs.size, queue = songs) }
+                        _state.update { it.copy(songCount = songs.size) }
                     }
                 }
             } catch (e: Exception) {
@@ -334,12 +334,7 @@ class PlayerViewModel @Inject constructor(
     fun handleIntent(intent: PlayerIntent) {
         when (intent) {
             is PlayerIntent.PlaySong -> {
-                val songs = _state.value.songList
-                if (songs.isNotEmpty()) {
-                    connection.setSongs(songs, updateGlobal = false)
-                    connection.playSong(intent.index)
-                    _state.update { it.copy(queue = songs, songCount = songs.size) }
-                }
+                connection.playSong(intent.index)
             }
             is PlayerIntent.PlayPause -> {
                 connection.togglePlayPause()

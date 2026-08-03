@@ -1,11 +1,15 @@
 ﻿package com.sdw.music.player.ui.screens
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -760,11 +764,23 @@ fun MiniPlayer(
 ) {
     if (song == null) return
     
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "miniPlayerPress"
+    )
+    
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .background(MaterialTheme.colorScheme.surface)
-            .clickable { onClick() }
+            .clickable(interactionSource = interactionSource, indication = null) { onClick() }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

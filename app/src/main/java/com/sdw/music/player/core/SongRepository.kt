@@ -552,7 +552,20 @@ object SongRepository {
 
                         // 过滤Ringtone/去电文件名
                         val fileName = path.substringAfterLast("/")
-                        if (fileName.contains("Ringtone") || fileName.contains("去电")) continue
+                        if (fileName.contains("Ringtone") || fileName.contains("来电") || fileName.contains("去电")) continue
+                        if (path.contains("/Music/Recorder/", ignoreCase = true) ||
+                            path.contains("/Recordings/", ignoreCase = true) ||
+                            path.contains("/Voice Recorder/", ignoreCase = true) ||
+                            path.contains("/CallRecordings/", ignoreCase = true) ||
+                            path.contains("/Call/", ignoreCase = true) ||
+                            path.contains("/MicroMsg/", ignoreCase = true) ||
+                            path.contains("/Notifications/", ignoreCase = true) ||
+                            path.contains("/Ringtones/", ignoreCase = true) ||
+                            path.contains("/Alarms/", ignoreCase = true) ||
+                            path.contains("/Recorder/", ignoreCase = true) ||
+                            path.contains("/record/", ignoreCase = true) ||
+                            path.contains("/Sound_recorder/", ignoreCase = true) ||
+                            path.contains("/Telephony/", ignoreCase = true)) continue
 
                         val contentUri = Uri.withAppendedPath(
                             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString()

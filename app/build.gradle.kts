@@ -23,8 +23,8 @@ android {
         applicationId = "com.sdw.music.player.pro"
         minSdk = 24
         targetSdk = 35
-        versionCode = 13
-        versionName = "4.0"
+        versionCode = 14
+        versionName = "4.1"
 
         ndk {
             abiFilters += listOf("arm64-v8a")

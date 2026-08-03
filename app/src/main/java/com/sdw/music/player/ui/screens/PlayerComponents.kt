@@ -7,11 +7,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,6 +40,9 @@ import androidx.media3.common.Player
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
+import androidx.compose.foundation.Image
+import com.sdw.music.player.Song
 import com.sdw.music.player.ui.animation.CoverPosition
 import com.sdw.music.player.ui.animation.SharedCoverState
 import com.sdw.music.player.ui.components.DefaultCoverImage
@@ -55,6 +61,7 @@ fun PlayerTopBar(
     onDismissMenu: () -> Unit,
     onNavigateBack: () -> Unit,
     onDelete: () -> Unit,
+    onNavigateToQueue: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -65,17 +72,22 @@ fun PlayerTopBar(
         IconButton(onClick = onNavigateBack, modifier = Modifier.size(36.dp)) {
             Icon(Icons.Default.KeyboardArrowDown, "Back", tint = TextPrimary, modifier = Modifier.size(24.dp))
         }
-        Text("Now Playing", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
-        Box {
-            IconButton(onClick = onToggleMenu, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.MoreVert, "Menu", tint = TextSecondary, modifier = Modifier.size(20.dp))
+        Text("Now Playing", style = MaterialTheme.typography.labelMedium, color = TextSecondary, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onNavigateToQueue, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.QueueMusic, "Queue", tint = TextSecondary, modifier = Modifier.size(20.dp))
             }
-            DropdownMenu(expanded = showMenu, onDismissRequest = onDismissMenu) {
-                DropdownMenuItem(
-                    text = { Text("Delete Song", color = Color.Red) },
-                    onClick = { onDismissMenu(); onDelete() },
-                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) }
-                )
+            Box {
+                IconButton(onClick = onToggleMenu, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.MoreVert, "Menu", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = onDismissMenu) {
+                    DropdownMenuItem(
+                        text = { Text("Delete Song", color = Color.Red) },
+                        onClick = { onDismissMenu(); onDelete() },
+                        leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red) }
+                    )
+                }
             }
         }
     }
@@ -97,6 +109,20 @@ fun PlayerCoverArt(
     modifier: Modifier = Modifier
 ) {
     val rippleRadius = sizeDp / 2
+
+    // Crossfade on song change: drop alpha → animate back up (300ms tween)
+    var coverAlpha by remember { mutableFloatStateOf(1f) }
+    val animatedAlpha by animateFloatAsState(coverAlpha, tween(300), label = "coverCrossfade")
+    val prevUri = remember { mutableStateOf(artUri) }
+    LaunchedEffect(artUri) {
+        if (prevUri.value != artUri) {
+            coverAlpha = 0f
+            kotlinx.coroutines.delay(16)
+            coverAlpha = 1f
+            prevUri.value = artUri
+        }
+    }
+
     Box(
         modifier = modifier
             .size(glowSizeDp)
@@ -113,33 +139,44 @@ fun PlayerCoverArt(
                 .clip(CircleShape)
                 .background(accentColor.copy(alpha = 0.08f))
         )
-        // Album art
-        SubcomposeAsyncImage(
-            model = artUri,
-            contentDescription = "Album Art",
-            modifier = Modifier
-                .size(sizeDp)
-                .clip(CircleShape)
-                .then(
-                    if (onCoverPositioned != null) {
-                        Modifier.onGloballyPositioned { coords ->
-                            onCoverPositioned(
-                                Offset(coords.positionInWindow().x, coords.positionInWindow().y),
-                                Size(coords.size.width.toFloat(), coords.size.height.toFloat())
-                            )
-                        }
-                    } else Modifier
-                )
-                .then(if (isPlaying) Modifier.rotate(rotation) else Modifier),
-            contentScale = ContentScale.Crop,
-            alignment = Alignment.Center
-        ) {
-            val imgState = painter.state
-            if (imgState is AsyncImagePainter.State.Loading || imgState is AsyncImagePainter.State.Error) {
+        if (artUri.isNullOrEmpty()) {
+            Box(
+                modifier = Modifier.size(sizeDp),
+                contentAlignment = Alignment.Center
+            ) {
                 DefaultCoverImage(songTitle, songArtist, Modifier.size(sizeDp))
-            } else {
-                SubcomposeAsyncImageContent()
             }
+        } else {
+            SubcomposeAsyncImage(
+                model = artUri,
+                contentDescription = "Album Art",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(sizeDp)
+                    .clip(CircleShape)
+                    .then(
+                        if (onCoverPositioned != null) {
+                            Modifier.onGloballyPositioned { coords ->
+                                onCoverPositioned(
+                                    Offset(coords.positionInWindow().x, coords.positionInWindow().y),
+                                    Size(coords.size.width.toFloat(), coords.size.height.toFloat())
+                                )
+                            }
+                        } else Modifier
+                    )
+                    .then(if (isPlaying) Modifier.rotate(rotation) else Modifier)
+                    .graphicsLayer { alpha = animatedAlpha },
+                loading = {
+                    Box(modifier = Modifier.size(sizeDp), contentAlignment = Alignment.Center) {
+                        DefaultCoverImage(songTitle, songArtist, Modifier.size(sizeDp))
+                    }
+                },
+                error = {
+                    Box(modifier = Modifier.size(sizeDp), contentAlignment = Alignment.Center) {
+                        DefaultCoverImage(songTitle, songArtist, Modifier.size(sizeDp))
+                    }
+                }
+            )
         }
     }
 }
@@ -496,4 +533,167 @@ private fun DacInfoDivider(color: Color) {
     Spacer(Modifier.width(9.dp))
     Box(Modifier.width(1.dp).height(10.dp).background(color.copy(alpha = 0.2f)))
     Spacer(Modifier.width(9.dp))
+}
+
+// ============================================================================
+// Queue Sheet - ModalBottomSheet showing the full play queue
+// ============================================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QueueSheet(
+    queue: List<Song>,
+    currentSongId: Long,
+    accentColor: Color,
+    onSongClick: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val bgColor = Color(0xFF0A0A0A)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = bgColor,
+        contentColor = TextPrimary,
+        scrimColor = Color.Black.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 12.dp, bottom = 8.dp)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accentColor.copy(alpha = 0.35f))
+            )
+        }
+    ) {
+        Column(modifier = modifier.fillMaxWidth()) {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.QueueMusic,
+                        contentDescription = null,
+                        tint = accentColor.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Playing Queue", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                }
+                Text("${queue.size} songs", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+            }
+            Spacer(Modifier.height(8.dp))
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .padding(bottom = 32.dp)
+            ) {
+                itemsIndexed(queue) { idx, song ->
+                    val isCurrent = song.id == currentSongId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (isCurrent) accentColor.copy(alpha = 0.08f) else Color.Transparent
+                            )
+                            .clickable {
+                                onSongClick(idx)
+                                onDismiss()
+                            }
+                            .padding(start = 0.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left accent bar for current song
+                        if (isCurrent) {
+                            Spacer(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(48.dp)
+                                    .background(
+                                        accentColor,
+                                        RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp)
+                                    )
+                            )
+                        } else {
+                            Spacer(Modifier.width(3.dp))
+                        }
+                        Spacer(Modifier.width(13.dp))
+                        // Album art thumbnail
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(accentColor.copy(alpha = 0.06f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (song.albumArtUri.isNotBlank()) {
+                                val painter = rememberAsyncImagePainter(
+                                    model = song.albumArtUri,
+                                    contentScale = ContentScale.Crop
+                                )
+                                Image(
+                                    painter = painter,
+                                    contentDescription = song.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                DefaultCoverImage(
+                                    songTitle = song.title,
+                                    songArtist = song.artist,
+                                    modifier = Modifier.fillMaxSize(),
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                song.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isCurrent) accentColor else TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                song.artist,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary.copy(alpha = if (isCurrent) 0.7f else 0.5f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (isCurrent) {
+                            val pulseAlpha by rememberInfiniteTransition(label = "pulse").animateFloat(
+                                initialValue = 0.4f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(800, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "pulseAlpha"
+                            )
+                            Icon(
+                                Icons.Default.Equalizer,
+                                contentDescription = null,
+                                tint = accentColor.copy(alpha = pulseAlpha),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
