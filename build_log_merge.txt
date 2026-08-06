@@ -1,0 +1,103 @@
+Starting a Gradle Daemon, 1 stopped Daemon could not be reused, use --status for details
+> Task :analyzer:preBuild UP-TO-DATE
+> Task :analyzer:preReleaseBuild UP-TO-DATE
+
+> Task :analyzer:configureCMakeRelWithDebInfo[arm64-v8a]
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+[CXX5304] This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+
+> Task :analyzer:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :analyzer:mergeReleaseJniLibFolders
+> Task :analyzer:mergeReleaseNativeLibs
+> Task :analyzer:generateReleaseResValues UP-TO-DATE
+> Task :analyzer:extractDeepLinksForAarRelease
+> Task :analyzer:checkKotlinGradlePluginConfigurationErrors
+> Task :analyzer:generateReleaseResources UP-TO-DATE
+> Task :analyzer:packageReleaseResources UP-TO-DATE
+> Task :analyzer:parseReleaseLocalResources UP-TO-DATE
+> Task :analyzer:generateReleaseRFile UP-TO-DATE
+> Task :analyzer:compileReleaseKotlin UP-TO-DATE
+> Task :analyzer:stripReleaseDebugSymbols
+> Task :analyzer:extractReleaseAnnotations
+> Task :analyzer:copyReleaseJniLibsProjectAndLocalJars
+> Task :analyzer:javaPreCompileRelease
+> Task :analyzer:mergeReleaseShaders
+> Task :analyzer:compileReleaseJavaWithJavac NO-SOURCE
+> Task :analyzer:mergeReleaseGeneratedProguardFiles
+> Task :analyzer:mergeReleaseConsumerProguardFiles
+> Task :analyzer:compileReleaseShaders NO-SOURCE
+> Task :analyzer:generateReleaseAssets UP-TO-DATE
+> Task :analyzer:packageReleaseAssets
+> Task :analyzer:prepareLintJarForPublish
+> Task :analyzer:prepareReleaseArtProfile
+> Task :analyzer:processReleaseJavaRes
+> Task :analyzer:writeReleaseAarMetadata
+> Task :analyzer:processReleaseManifest
+> Task :analyzer:mergeReleaseJavaResource
+> Task :analyzer:mapReleaseSourceSetPaths
+> Task :analyzer:syncReleaseLibJars
+> Task :analyzer:bundleReleaseAar
+> Task :analyzer:mergeReleaseResources
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :analyzer:copyReleaseJniLibsProjectOnly
+> Task :app:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :analyzer:verifyReleaseResources
+> Task :analyzer:assembleRelease
+> Task :analyzer:exportReleaseConsumerProguardFiles
+> Task :analyzer:bundleLibCompileToJarRelease
+> Task :analyzer:bundleLibRuntimeToJarRelease
+> Task :app:mergeReleaseNativeLibs
+> Task :app:mergeReleaseArtProfile UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:stripReleaseDebugSymbols
+> Task :app:checkReleaseAarMetadata
+> Task :app:generateReleaseResValues UP-TO-DATE
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:extractReleaseNativeSymbolTables
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:mergeReleaseNativeDebugMetadata
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :analyzer:extractDeepLinksRelease
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :app:mergeReleaseResources
+
+> Task :app:processReleaseMainManifest FAILED
+E:\SDWMP3\app\src\main\AndroidManifest.xml Error:
+	uses-sdk:minSdkVersion 24 cannot be smaller than version 26 declared in library [:analyzer] E:\SDWMP3\analyzer\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml as the library might be using APIs not available in 24
+	Suggestion: use a compatible library with a minSdk of at most 24,
+		or increase this project's minSdk version to at least 26,
+		or use tools:overrideLibrary="com.sdw.audio.analyzer" to force usage (may lead to runtime failures)
+
+See https://developer.android.com/r/studio-ui/build/manifest-merger for more information about the manifest merger.
+
+
+[Incubating] Problems report is available at: file:///E:/SDWMP3/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:processReleaseMainManifest'.
+> Manifest merger failed : uses-sdk:minSdkVersion 24 cannot be smaller than version 26 declared in library [:analyzer] E:\SDWMP3\analyzer\build\intermediates\merged_manifest\release\processReleaseManifest\AndroidManifest.xml as the library might be using APIs not available in 24
+  	Suggestion: use a compatible library with a minSdk of at most 24,
+  		or increase this project's minSdk version to at least 26,
+  		or use tools:overrideLibrary="com.sdw.audio.analyzer" to force usage (may lead to runtime failures)
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 1m 56s
+55 actionable tasks: 40 executed, 15 up-to-date

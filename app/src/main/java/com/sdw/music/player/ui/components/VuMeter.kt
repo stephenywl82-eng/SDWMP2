@@ -216,6 +216,15 @@ private fun VuMixer(sub: Float, bass: Float, mid: Float, high: Float,
     val smooth = remember { Array(14) { Smooth(0.7f) } }
     val peaks = remember { FloatArray(14) }
     val frame = remember { longArrayOf(0L) }
+    // [v6.0.15] Own 60fps frame clock — decouples from FFT polling (80ms),
+    // keeps peak-fall animation smooth even when Edge Glow is off.
+    var tick by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameMillis { tick = it }
+        }
+    }
+    val f = tick  // read to trigger recompose every frame
 
     // Pre-compute 14 strip base hues from accentColor (once, not per-frame)
     val stripHues = remember(accentColor) {
@@ -232,7 +241,6 @@ private fun VuMixer(sub: Float, bass: Float, mid: Float, high: Float,
     }
 
     Canvas(modifier = modifier.fillMaxWidth().height(64.dp)) {
-        frame[0]++
         val w = size.width; val h = size.height
         val strips = 14; val gap = 3.5.dp.toPx()
         val stripW = ((w - gap * (strips - 1) - gap * 2) / strips).coerceAtLeast(3.dp.toPx())
@@ -240,7 +248,7 @@ private fun VuMixer(sub: Float, bass: Float, mid: Float, high: Float,
         for (i in 0 until strips) {
             val bi = (i * 24 / strips).coerceIn(0, 23)
             val raw = when { bi < 6 -> sub; bi < 14 -> bass; bi < 20 -> mid; else -> high }
-            val target = if (isActive) jittered(raw, bi, 24, frame[0]) else 0.03f
+            val target = if (isActive) jittered(raw, bi, 24, f) else 0.03f
             val v = smooth[i].update(target)
             // Peak: instant rise, slow fall
             if (v > peaks[i]) peaks[i] = v

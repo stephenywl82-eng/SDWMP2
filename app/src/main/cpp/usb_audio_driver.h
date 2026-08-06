@@ -16,7 +16,7 @@
  * Flow:
  *   Java UsbDacManager �?JNI (usb_audio_jni.cpp) �?UsbAudioDriver
  *
- * Ring buffer: lock-free SPSC, 65536 frames (~1.5s buffer at 44.1kHz stereo float).
+ * Ring buffer: lock-free SPSC, 32768 frames (~740ms buffer at 44.1kHz stereo float).
  * Streaming: dedicated thread with isochronous URB submission (64 packets per URB).
  * Sample rate: synchronous mode �?clock derived from USB SOF, no control transfer needed.
  *
@@ -43,7 +43,7 @@ struct UsbDacStats {
 
 class UsbAudioDriver {
 public:
-    static constexpr int kRingFrames    = 131072;      // ~3s buffer at 44.1kHz
+    static constexpr int kRingFrames    = 32768;       // ~740ms buffer at 44.1kHz (was 131072/3s, cut gap between songs)
     static constexpr int kMaxUrbCount   = 16;          // in-flight URBs
     static constexpr int kPacketsPerUrb = 64;          // Salt-style: 64 ISO packets per URB
     static constexpr int kMaxPacketSize = 576;         // max bytes per ISO packet (384 mps + headroom)

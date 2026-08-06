@@ -33,7 +33,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() -> Unit)? = null) {
+fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() -> Unit)? = null, onNavigateToAudioQuality: (() -> Unit)? = null) {
     val context = LocalContext.current
     var refreshTrigger by remember { mutableStateOf(0) }
 
@@ -523,6 +523,18 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                     )
                 }
             }
+            // Audio Quality Analyzer
+            if (onNavigateToAudioQuality != null) {
+                item { SettingsDivider() }
+                item {
+                    SettingsItem(
+                        icon = Icons.Default.GraphicEq,
+                        title = "Audio Quality Analysis",
+                        subtitle = "批量扫描音频文件，评估频谱质量与真假无损",
+                        onClick = onNavigateToAudioQuality
+                    )
+                }
+            }
 
             // === USB DAC Debug Log — Salt-style: Kotlin + Native (C++) + Audio Info ===
             // V3.3.10: 仅在 DebugLog 开启时显示，避免滚动卡顿
@@ -607,7 +619,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "Moto Music",
-                    subtitle = "v4.1 | Developed by Stephen Yu"
+                    subtitle = "v6.0 | Developed by Stephen Yu"
                 )
             }
             item {

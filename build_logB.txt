@@ -1,0 +1,188 @@
+Starting a Gradle Daemon, 3 stopped Daemons could not be reused, use --status for details
+> Task :app:clean UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:buildKotlinToolingMetadata
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:checkReleaseAarMetadata
+> Task :app:generateReleaseResValues
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:mergeReleaseResources
+> Task :app:packageReleaseResources
+> Task :app:parseReleaseLocalResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:processReleaseManifestForPackage
+> Task :app:processReleaseResources
+> Task :app:kaptGenerateStubsReleaseKotlin
+> Task :app:kaptReleaseKotlin
+> Task :app:compileReleaseKotlin
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:9:29 'Allocation' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:10:29 'Element' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:11:29 'RenderScript' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:12:29 'ScriptIntrinsicBlur' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:15:42 'SimpleTarget<Z : Any!>' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:49:28 'SimpleTarget<Z : Any!>' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:97:18 'RenderScript' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:97:31 'create(Context!): RenderScript!' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:98:21 'Allocation' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:98:32 'createFromBitmap(RenderScript!, Bitmap!): Allocation!' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:99:22 'Allocation' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:99:33 'createTyped(RenderScript!, Type!): Allocation!' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:99:55 'getter for type: Type!' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:100:22 'ScriptIntrinsicBlur' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:100:42 'create(RenderScript!, Element!): ScriptIntrinsicBlur!' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:100:53 'Element' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:100:61 'U8_4(RenderScript!): Element!' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:101:16 'setRadius(Float): Unit' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:102:16 'setInput(Allocation!): Unit' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:103:16 'forEach(Allocation!): Unit' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:104:16 'copyTo(Bitmap!): Unit' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:105:12 'destroy(): Unit' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:130:13 Variable 'x' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:131:13 Variable 'y' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:132:13 Variable 'i' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:142:14 Name shadowed: i
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:162:14 Name shadowed: y
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:166:13 The value 'r1' assigned to 'var rbs: Int defined in com.sdw.music.player.BlurUtils.blurStack' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:167:18 Name shadowed: i
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:189:18 Name shadowed: x
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:238:14 Name shadowed: x
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:243:18 Name shadowed: i
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:266:18 Name shadowed: y
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/CrashHandler.kt:84:29 Unnecessary safe call on a non-null receiver of type Array<(out) StackTraceElement!>!
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/CrashHandler.kt:93:29 Unnecessary safe call on a non-null receiver of type Array<(out) StackTraceElement!>!
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/MemoryManager.kt:99:54 'getBitmap(ContentResolver!, Uri!): Bitmap!' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/MemoryManager.kt:166:54 'getBitmap(ContentResolver!, Uri!): Bitmap!' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/AudioAnalyzer.kt:214:65 Parameter 'title' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/AudioAnalyzer.kt:214:85 Parameter 'filePath' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/AudioAnalyzer.kt:214:108 Parameter 'artist' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/AudioAnalyzer.kt:271:17 Variable 'key' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:35:40 'SonicAudioProcessor' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:687:36 Unnecessary safe call on a non-null receiver of type MusicService?
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:688:36 Unnecessary safe call on a non-null receiver of type MusicService?
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:695:29 'requestAudioFocus(AudioManager.OnAudioFocusChangeListener!, Int, Int): Int' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:708:42 'abandonAudioFocus(AudioManager.OnAudioFocusChangeListener!): Int' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1560:73 Unnecessary safe call on a non-null receiver of type OboeDirectPlayer.DspMode
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1648:60 Elvis operator (?:) always returns the left operand of non-nullable type Int
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1649:66 Elvis operator (?:) always returns the left operand of non-nullable type Int
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1651:61 Elvis operator (?:) always returns the left operand of non-nullable type String
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1652:208 Unnecessary safe call on a non-null receiver of type OboeDirectPlayer.DspMode
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2178:13 Variable 'prevIntent' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2181:13 Variable 'playPauseIntent' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2184:13 Variable 'nextIntent' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2223:56 No cast needed
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:153:55 Unnecessary safe call on a non-null receiver of type String
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:172:29 Condition 'mi != null' is always 'true'
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:174:48 Unnecessary safe call on a non-null receiver of type String
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:291:49 Parameter 'i' is never used, could be renamed to _
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:299:56 Unnecessary safe call on a non-null receiver of type String
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:531:49 Parameter 'i' is never used, could be renamed to _
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:539:53 Unnecessary safe call on a non-null receiver of type String
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacManager.kt:417:30 Parameter 'conn' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacManager.kt:417:57 Parameter 'id' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:396:46 No cast needed
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:396:49 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:402:46 No cast needed
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:402:49 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:411:46 No cast needed
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:411:49 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:483:88 No cast needed
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:483:91 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:544:96 No cast needed
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:544:99 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:619:69 Unnecessary non-null assertion (!!) on a non-null receiver of type ByteArray
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:628:91 Unnecessary non-null assertion (!!) on a non-null receiver of type ByteArray
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:628:110 Unnecessary non-null assertion (!!) on a non-null receiver of type ByteArray
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:654:96 No cast needed
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:654:99 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/lyrics/LRCLIBProvider.kt:168:65 Parameter 'duration' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/components/AlphabetIndexBar.kt:71:5 Parameter 'onLetterChanged' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/components/LyricViewCompose.kt:66:5 Parameter 'themeColor' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/components/VuMeter.kt:287:75 Parameter 'rms' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/navigation/SDWNavigation.kt:235:21 Name shadowed: context
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:39:5 Parameter 'currentSongId' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:40:5 Parameter 'isPlaying' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:110:61 Unchecked cast: Any to Pair<String, Any>
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:122:61 Unchecked cast: Any to Pair<String, Any>
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:123:47 Unchecked cast: Any to Pair<List<Song>, String>
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioDiagnosticScreen.kt:61:9 Variable 'outputDeviceLabelSnapshot' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricFullscreenScreen.kt:87:20 'setDecorFitsSystemWindows(Boolean): Unit' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricFullscreenScreen.kt:108:28 'setDecorFitsSystemWindows(Boolean): Unit' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricFullscreenScreen.kt:408:33 Condition 'song != null' is always 'true'
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricFullscreenScreen.kt:410:73 Unnecessary non-null assertion (!!) on a non-null receiver of type Song
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricSearchScreen.kt:48:9 Variable 'expandedLrc' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:62:9 Variable 'accentPurple' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:118:67 Parameter 'index' is never used, could be renamed to _
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:210:5 Parameter 'onPlaySongs' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:211:5 Parameter 'onAddToPlaylist' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:408:13 Variable 'pl' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerComponents.kt:78:36 'QueueMusic: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.QueueMusic
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerComponents.kt:584:39 'QueueMusic: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.QueueMusic
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:103:5 Parameter 'fullCoverVisible' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:205:9 Variable 'vuSessionId' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:319:9 Variable 'seedHues' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:330:9 Variable 'bandReactiveBlobs' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:9 Variable 'ease' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:9 Variable 'subBeat' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:9 Variable 'bassBeat' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:357:9 Variable 'midBeat' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:358:9 Variable 'highBeat' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:541:5 Parameter 'onNavigateToArtist' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:906:40 'QueueMusic: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.QueueMusic
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1024:47 Elvis operator (?:) always returns the left operand of non-nullable type String
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1083:21 Variable 'f' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1096:9 Variable 'fallbackHue' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/SongListScreen.kt:69:5 Parameter 'onNavigateBack' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/SongListScreen.kt:879:5 Parameter 'onNavigateToPlayer' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/widget/MusicWidgetProvider.kt:93:84 Parameter 'rounded' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/widget/MusicWidgetProvider.kt:122:80 Parameter 'rounded' is never used
+
+> Task :app:javaPreCompileRelease
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:hiltAggregateDepsRelease
+> Task :app:hiltJavaCompileRelease
+> Task :app:transformReleaseClassesWithAsm
+> Task :app:dexBuilderRelease
+> Task :app:desugarReleaseFileDependencies
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeExtDexRelease
+> Task :app:mergeDexRelease
+> Task :app:mergeReleaseArtProfile
+> Task :app:mergeReleaseGlobalSynthetics
+> Task :app:compileReleaseArtProfile
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:processReleaseJavaRes
+> Task :app:mergeReleaseJavaResource
+> Task :app:optimizeReleaseResources
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:mergeReleaseNativeLibs
+> Task :app:stripReleaseDebugSymbols
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect
+
+[Incubating] Problems report is available at: file:///E:/SDWMP3/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 8m 1s
+50 actionable tasks: 49 executed, 1 up-to-date
+BUILD SUCCESS  

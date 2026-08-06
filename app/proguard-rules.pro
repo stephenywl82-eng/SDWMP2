@@ -122,3 +122,9 @@
     public static int v(...);
     public static int i(...);
 }
+
+# AudioQualityAnalyzer
+-keep class com.sdw.audio.analyzer.** { *; }
+-keep class com.sdw.music.player.ui.screens.AudioQualityScreen { *; }
+-keep class com.sdw.music.player.ui.screens.QualityUiState { *; }
+-keep class com.sdw.music.player.ui.screens.SortMode { *; }

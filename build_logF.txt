@@ -1,0 +1,256 @@
+Starting a Gradle Daemon, 4 stopped Daemons could not be reused, use --status for details
+> Task :app:clean UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:buildKotlinToolingMetadata
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:checkReleaseAarMetadata
+> Task :app:generateReleaseResValues
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:mergeReleaseResources
+> Task :app:packageReleaseResources
+> Task :app:parseReleaseLocalResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:processReleaseManifestForPackage
+> Task :app:processReleaseResources
+> Task :app:kaptGenerateStubsReleaseKotlin
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:970:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:970:15 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:970:16 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:970:35 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:970:37 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:972:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:972:23 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:972:25 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:972:31 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:972:32 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:975:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:975:15 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:975:16 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:975:27 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:975:28 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:975:42 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:978:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:978:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:978:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:978:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:978:30 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:978:31 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:978:32 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:978:34 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:22 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:24 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:36 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:37 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:44 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:45 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:49 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:51 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:985:64 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:986:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:986:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:986:25 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:986:32 Name expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1057:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1058:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1058:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1058:32 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1058:33 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1058:52 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1058:53 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1058:54 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1059:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1059:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1059:19 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1059:20 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1061:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1061:18 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1061:20 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1062:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1062:29 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1062:30 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:15 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:18 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:20 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:21 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:41 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1063:42 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1066:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1066:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1066:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1066:31 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1066:32 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1066:33 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1066:35 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:18 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:19 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:26 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:27 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:35 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:38 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:43 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:44 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:57 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:58 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:59 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1072:61 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1079:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1079:34 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1079:35 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1079:39 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1082:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1082:20 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1082:21 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1082:29 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1082:30 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:31 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:33 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:40 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:41 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:48 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:49 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:66 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:67 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:100 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1086:113 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1132:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1132:22 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1132:23 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1132:63 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1132:64 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1132:85 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:22 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:24 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:36 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:37 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:44 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:45 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:49 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:51 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2483:67 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2484:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2484:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2484:25 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2484:32 Name expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2515:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2516:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2516:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2516:19 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2516:20 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2518:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2518:19 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2518:21 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2525:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2525:25 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2525:26 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2525:33 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2525:34 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2526:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2526:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2526:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2526:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2526:25 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2526:27 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2531:11 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2531:16 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:26 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:27 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:37 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:38 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:39 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2536:41 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2583:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2583:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2583:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2583:25 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2583:28 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2583:32 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2583:34 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:18 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:21 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:22 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:36 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:38 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:41 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:46 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:49 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:50 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:57 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:59 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:62 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:79 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:82 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:86 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2593:88 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:14 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:15 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:18 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:20 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:21 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:56 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:57 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:61 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:71 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:72 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:82 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2599:83 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2602:9 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2602:12 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2602:13 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2602:25 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2602:28 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2602:32 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2602:34 Expecting member declaration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2829:2 Expecting '}'
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2829:2 Missing '}
+
+> Task :app:kaptGenerateStubsReleaseKotlin FAILED
+
+[Incubating] Problems report is available at: file:///E:/SDWMP3/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kaptGenerateStubsReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 2m 40s
+18 actionable tasks: 17 executed, 1 up-to-date
+BUILD SUCCESS  

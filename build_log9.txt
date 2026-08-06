@@ -1,0 +1,83 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:checkReleaseDuplicateClasses UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:generateReleaseResValues UP-TO-DATE
+> Task :app:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:mergeReleaseResources UP-TO-DATE
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :app:processReleaseMainManifest UP-TO-DATE
+> Task :app:processReleaseManifest UP-TO-DATE
+> Task :app:processReleaseManifestForPackage UP-TO-DATE
+> Task :app:processReleaseResources UP-TO-DATE
+> Task :app:kaptGenerateStubsReleaseKotlin
+> Task :app:kaptReleaseKotlin
+> Task :app:compileReleaseKotlin
+e: java.lang.OutOfMemoryError: Java heap space
+	at androidx.compose.compiler.plugins.kotlin.lower.DeepCopyIrTreeWithRemappedComposableTypes.shallowCopyCall(ComposableTypeRemapper.kt:393)
+	at androidx.compose.compiler.plugins.kotlin.lower.DeepCopyIrTreeWithRemappedComposableTypes.visitCall(ComposableTypeRemapper.kt:348)
+	at androidx.compose.compiler.plugins.kotlin.lower.DeepCopyIrTreeWithRemappedComposableTypes.visitCall(ComposableTypeRemapper.kt:72)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitCall(IrElementTransformerVoid.kt:215)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitCall(IrElementTransformerVoid.kt:24)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:26)
+	at org.jetbrains.kotlin.ir.expressions.IrExpression.transform(IrExpression.kt:31)
+	at org.jetbrains.kotlin.ir.expressions.IrExpression.transform(IrExpression.kt:22)
+	at org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols.visitVariable(DeepCopyIrTreeWithSymbols.kt:954)
+	at org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols.visitVariable(DeepCopyIrTreeWithSymbols.kt:53)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitVariable(IrElementTransformerVoid.kt:102)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitVariable(IrElementTransformerVoid.kt:24)
+	at org.jetbrains.kotlin.ir.declarations.IrVariable.accept(IrVariable.kt:38)
+	at org.jetbrains.kotlin.ir.IrElementBase.transform(IrElementBase.kt:24)
+	at org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols.visitBlock(DeepCopyIrTreeWithSymbols.kt:1015)
+	at org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols.visitBlock(DeepCopyIrTreeWithSymbols.kt:53)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitBlock(IrElementTransformerVoid.kt:170)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitBlock(IrElementTransformerVoid.kt:24)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:20)
+	at org.jetbrains.kotlin.ir.expressions.IrExpression.transform(IrExpression.kt:31)
+	at org.jetbrains.kotlin.ir.expressions.IrExpression.transform(IrExpression.kt:22)
+	at org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols.visitTry(DeepCopyIrTreeWithSymbols.kt:1051)
+	at org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols.visitTry(DeepCopyIrTreeWithSymbols.kt:53)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitTry(IrElementTransformerVoid.kt:290)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitTry(IrElementTransformerVoid.kt:24)
+	at org.jetbrains.kotlin.ir.expressions.IrTry.accept(IrTry.kt:28)
+	at org.jetbrains.kotlin.ir.expressions.IrExpression.transform(IrExpression.kt:31)
+	at org.jetbrains.kotlin.ir.expressions.IrExpression.transform(IrExpression.kt:22)
+	at org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols.visitBlockBody(DeepCopyIrTreeWithSymbols.kt:976)
+	at org.jetbrains.kotlin.ir.util.DeepCopyIrTreeWithSymbols.visitBlockBody(DeepCopyIrTreeWithSymbols.kt:53)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitBlockBody(IrElementTransformerVoid.kt:118)
+	at org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid.visitBlockBody(IrElementTransformerVoid.kt:24)
+
+
+> Task :app:compileReleaseKotlin FAILED
+
+[Incubating] Problems report is available at: file:///E:/SDWMP3/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Not enough memory to run compilation. Try to increase it via 'gradle.properties':
+     kotlin.daemon.jvmargs=-Xmx<size>
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 2m 30s
+19 actionable tasks: 4 executed, 15 up-to-date
+BUILD SUCCESS  

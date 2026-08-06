@@ -1,0 +1,81 @@
+Starting a Gradle Daemon, 3 stopped Daemons could not be reused, use --status for details
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:generateReleaseResValues UP-TO-DATE
+> Task :app:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:mergeReleaseResources UP-TO-DATE
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :app:processReleaseMainManifest UP-TO-DATE
+> Task :app:processReleaseManifest UP-TO-DATE
+> Task :app:processReleaseManifestForPackage UP-TO-DATE
+> Task :app:processReleaseResources UP-TO-DATE
+> Task :app:kaptGenerateStubsReleaseKotlin
+> Task :app:kaptReleaseKotlin UP-TO-DATE
+> Task :app:compileReleaseKotlin
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:35:40 'SonicAudioProcessor' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:687:36 Unnecessary safe call on a non-null receiver of type MusicService?
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:688:36 Unnecessary safe call on a non-null receiver of type MusicService?
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:695:29 'requestAudioFocus(AudioManager.OnAudioFocusChangeListener!, Int, Int): Int' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:708:42 'abandonAudioFocus(AudioManager.OnAudioFocusChangeListener!): Int' is deprecated. Deprecated in Java
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1563:73 Unnecessary safe call on a non-null receiver of type OboeDirectPlayer.DspMode
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1651:60 Elvis operator (?:) always returns the left operand of non-nullable type Int
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1652:66 Elvis operator (?:) always returns the left operand of non-nullable type Int
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1654:61 Elvis operator (?:) always returns the left operand of non-nullable type String
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1655:208 Unnecessary safe call on a non-null receiver of type OboeDirectPlayer.DspMode
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2181:13 Variable 'prevIntent' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2184:13 Variable 'playPauseIntent' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2187:13 Variable 'nextIntent' is never used
+w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2226:56 No cast needed
+
+> Task :app:checkReleaseDuplicateClasses UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :app:javaPreCompileRelease UP-TO-DATE
+> Task :app:compileReleaseJavaWithJavac UP-TO-DATE
+> Task :app:hiltAggregateDepsRelease UP-TO-DATE
+> Task :app:hiltJavaCompileRelease UP-TO-DATE
+> Task :app:transformReleaseClassesWithAsm
+> Task :app:dexBuilderRelease
+> Task :app:desugarReleaseFileDependencies UP-TO-DATE
+> Task :app:mergeReleaseStartupProfile UP-TO-DATE
+> Task :app:mergeExtDexRelease UP-TO-DATE
+> Task :app:mergeDexRelease
+> Task :app:mergeReleaseArtProfile UP-TO-DATE
+> Task :app:mergeReleaseGlobalSynthetics UP-TO-DATE
+> Task :app:compileReleaseArtProfile
+> Task :app:mergeReleaseShaders UP-TO-DATE
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets UP-TO-DATE
+> Task :app:compressReleaseAssets UP-TO-DATE
+> Task :app:extractReleaseVersionControlInfo UP-TO-DATE
+> Task :app:processReleaseJavaRes UP-TO-DATE
+> Task :app:mergeReleaseJavaResource UP-TO-DATE
+> Task :app:optimizeReleaseResources UP-TO-DATE
+> Task :app:collectReleaseDependencies UP-TO-DATE
+> Task :app:sdkReleaseDependencyData UP-TO-DATE
+> Task :app:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :app:mergeReleaseNativeLibs UP-TO-DATE
+> Task :app:stripReleaseDebugSymbols UP-TO-DATE
+> Task :app:validateSigningRelease UP-TO-DATE
+> Task :app:writeReleaseAppMetadata UP-TO-DATE
+> Task :app:writeReleaseSigningConfigVersions UP-TO-DATE
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect UP-TO-DATE
+
+[Incubating] Problems report is available at: file:///E:/SDWMP3/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 3m 6s
+49 actionable tasks: 8 executed, 41 up-to-date
+BUILD SUCCESS  

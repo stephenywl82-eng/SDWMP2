@@ -369,7 +369,22 @@ fun SDWNavHost(
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToAudioDiagnostic = { navController.navigate(Screen.AudioDiagnostic.route) }
+                    onNavigateToAudioDiagnostic = { navController.navigate(Screen.AudioDiagnostic.route) },
+                    onNavigateToAudioQuality = { navController.navigate(Screen.AudioQuality.route) }
+                )
+            }
+            composable(Screen.AudioQuality.route) {
+                AudioQualityScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    songs = state.songList,
+                    onPlaySong = { song ->
+                        val songs = state.songList
+                        val idx = songs.indexOfFirst { it.id == song.id }
+                        if (idx >= 0) {
+                            vm.handleIntent(PlayerIntent.PlaySongList(songs, startIndex = idx))
+                            navController.navigate(Screen.Player.route)
+                        }
+                    }
                 )
             }
             composable(Screen.LyricFullscreen.route) {

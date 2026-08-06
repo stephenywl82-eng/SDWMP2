@@ -1,0 +1,171 @@
+> Task :analyzer:preBuild UP-TO-DATE
+> Task :analyzer:preReleaseBuild UP-TO-DATE
+> Task :analyzer:configureCMakeRelWithDebInfo[arm64-v8a]
+> Task :analyzer:buildCMakeRelWithDebInfo[arm64-v8a]
+> Task :analyzer:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :analyzer:mergeReleaseNativeLibs UP-TO-DATE
+> Task :analyzer:stripReleaseDebugSymbols UP-TO-DATE
+> Task :analyzer:copyReleaseJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :analyzer:generateReleaseResValues UP-TO-DATE
+> Task :analyzer:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :analyzer:checkKotlinGradlePluginConfigurationErrors
+> Task :analyzer:generateReleaseResources UP-TO-DATE
+> Task :analyzer:packageReleaseResources UP-TO-DATE
+> Task :analyzer:parseReleaseLocalResources UP-TO-DATE
+> Task :analyzer:generateReleaseRFile UP-TO-DATE
+> Task :analyzer:compileReleaseKotlin UP-TO-DATE
+> Task :analyzer:extractReleaseAnnotations UP-TO-DATE
+> Task :analyzer:javaPreCompileRelease UP-TO-DATE
+> Task :analyzer:compileReleaseJavaWithJavac NO-SOURCE
+> Task :analyzer:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :analyzer:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :analyzer:mergeReleaseShaders UP-TO-DATE
+> Task :analyzer:compileReleaseShaders NO-SOURCE
+> Task :analyzer:generateReleaseAssets UP-TO-DATE
+> Task :analyzer:packageReleaseAssets UP-TO-DATE
+> Task :analyzer:prepareLintJarForPublish UP-TO-DATE
+> Task :analyzer:prepareReleaseArtProfile UP-TO-DATE
+> Task :analyzer:processReleaseManifest UP-TO-DATE
+> Task :analyzer:processReleaseJavaRes UP-TO-DATE
+> Task :analyzer:mergeReleaseJavaResource UP-TO-DATE
+> Task :analyzer:syncReleaseLibJars UP-TO-DATE
+> Task :analyzer:writeReleaseAarMetadata UP-TO-DATE
+> Task :analyzer:bundleReleaseAar UP-TO-DATE
+> Task :analyzer:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :analyzer:mergeReleaseResources UP-TO-DATE
+> Task :analyzer:verifyReleaseResources UP-TO-DATE
+> Task :analyzer:assembleRelease UP-TO-DATE
+> Task :analyzer:copyReleaseJniLibsProjectOnly UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :app:mergeReleaseJniLibFolders UP-TO-DATE
+> Task :app:mergeReleaseNativeLibs UP-TO-DATE
+> Task :app:stripReleaseDebugSymbols UP-TO-DATE
+> Task :app:extractReleaseNativeSymbolTables UP-TO-DATE
+> Task :app:mergeReleaseNativeDebugMetadata UP-TO-DATE
+> Task :analyzer:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :analyzer:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :analyzer:bundleLibRuntimeToJarRelease UP-TO-DATE
+> Task :app:checkReleaseDuplicateClasses UP-TO-DATE
+> Task :app:mergeReleaseArtProfile UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:checkReleaseAarMetadata UP-TO-DATE
+> Task :app:generateReleaseResValues UP-TO-DATE
+> Task :app:mapReleaseSourceSetPaths UP-TO-DATE
+> Task :app:generateReleaseResources UP-TO-DATE
+> Task :app:mergeReleaseResources UP-TO-DATE
+> Task :app:packageReleaseResources UP-TO-DATE
+> Task :app:parseReleaseLocalResources UP-TO-DATE
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :analyzer:extractDeepLinksRelease UP-TO-DATE
+> Task :app:extractDeepLinksRelease UP-TO-DATE
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:javaPreCompileRelease UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:mergeReleaseStartupProfile UP-TO-DATE
+> Task :app:mergeReleaseShaders UP-TO-DATE
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets UP-TO-DATE
+> Task :app:compressReleaseAssets UP-TO-DATE
+> Task :app:extractReleaseVersionControlInfo UP-TO-DATE
+> Task :app:collectReleaseDependencies UP-TO-DATE
+> Task :app:sdkReleaseDependencyData UP-TO-DATE
+> Task :app:validateSigningRelease UP-TO-DATE
+> Task :app:writeReleaseAppMetadata UP-TO-DATE
+> Task :app:writeReleaseSigningConfigVersions UP-TO-DATE
+> Task :app:processReleaseManifestForPackage
+> Task :app:processReleaseResources
+> Task :app:convertLinkedResourcesToProtoRelease
+> Task :app:kaptGenerateStubsReleaseKotlin
+
+> Task :app:kaptReleaseKotlin
+警告: 以下选项未被任何处理程序识别: '[dagger.fastInit, dagger.hilt.android.internal.disableAndroidSuperclassValidation, dagger.hilt.android.internal.projectType, dagger.hilt.internal.useAggregatingRootProcessor, kapt.kotlin.generated]'
+
+> Task :app:compileReleaseKotlin
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:65:35 Unresolved reference: durationSec
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:65:60 Unresolved reference: channels
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:66:16 Type mismatch: inferred type is Float but Double was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:66:33 Type mismatch: inferred type is Float but Double was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:66:49 Type mismatch: inferred type is Float but Double was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:66:57 Type mismatch: inferred type is Float but Double was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:66:64 Type mismatch: inferred type is Float but Double was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:67:5 Unresolved reference: clipPercent
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:67:18 Type mismatch: inferred type is Float but Double was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:67:36 Type mismatch: inferred type is Float but Double was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:67:46 Type mismatch: inferred type is Float but Double was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:67:74 Unresolved reference: tags
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:71:35 Type mismatch: inferred type is Int but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:72:16 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:72:33 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:72:49 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:72:57 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:72:64 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:73:5 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:73:18 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:73:36 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:73:46 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:87:17 Type mismatch: inferred type is Int but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:88:43 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:88:75 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:89:17 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:89:40 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:89:62 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:90:17 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:90:45 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:90:78 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:91:17 Type mismatch: inferred type is Double but Float was expected
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:102:32 Unresolved reference: durationSec
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:102:101 Unresolved reference: channels
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:106:32 Unresolved reference: clipPercent
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:110:11 Unresolved reference: tags
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:110:16 Overload resolution ambiguity: 
+public inline fun <T> Iterable<TypeVariable(T)>.forEach(action: (TypeVariable(T)) -> Unit): Unit defined in kotlin.collections
+public inline fun <K, V> Map<out TypeVariable(K), TypeVariable(V)>.forEach(action: (Map.Entry<TypeVariable(K), TypeVariable(V)>) -> Unit): Unit defined in kotlin.collections
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:110:33 Unresolved reference: it
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:302:28 Unresolved reference: 开始扫描
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:302:28 Unsupported [literal prefixes and suffixes]
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:355:63 Unresolved reference: clipPercent
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:355:91 Unresolved reference: clipPercent
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:359:24 Unresolved reference: tags
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:362:28 Unresolved reference: tags
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:362:33 Overload resolution ambiguity: 
+public inline fun <T> Iterable<TypeVariable(T)>.forEach(action: (TypeVariable(T)) -> Unit): Unit defined in kotlin.collections
+public inline fun <K, V> Map<out TypeVariable(K), TypeVariable(V)>.forEach(action: (Map.Entry<TypeVariable(K), TypeVariable(V)>) -> Unit): Unit defined in kotlin.collections
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:362:43 Cannot infer a type for this parameter. Please specify it explicitly.
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:369:25 Overload resolution ambiguity: 
+public fun Text(text: AnnotatedString, modifier: Modifier = ..., color: Color = ..., fontSize: TextUnit = ..., fontStyle: FontStyle? = ..., fontWeight: FontWeight? = ..., fontFamily: FontFamily? = ..., letterSpacing: TextUnit = ..., textDecoration: TextDecoration? = ..., textAlign: TextAlign? = ..., lineHeight: TextUnit = ..., overflow: TextOverflow = ..., softWrap: Boolean = ..., maxLines: Int = ..., minLines: Int = ..., inlineContent: Map<String, InlineTextContent> = ..., onTextLayout: (TextLayoutResult) -> Unit = ..., style: TextStyle = ...): Unit defined in androidx.compose.material3
+public fun Text(text: String, modifier: Modifier = ..., color: Color = ..., fontSize: TextUnit = ..., fontStyle: FontStyle? = ..., fontWeight: FontWeight? = ..., fontFamily: FontFamily? = ..., letterSpacing: TextUnit = ..., textDecoration: TextDecoration? = ..., textAlign: TextAlign? = ..., lineHeight: TextUnit = ..., overflow: TextOverflow = ..., softWrap: Boolean = ..., maxLines: Int = ..., minLines: Int = ..., onTextLayout: ((TextLayoutResult) -> Unit)? = ..., style: TextStyle = ...): Unit defined in androidx.compose.material3
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:387:68 Unresolved reference: clipPercent
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:388:40 Unresolved reference: tags
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:388:84 Unresolved reference: tags
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:463:13 Unresolved reference: FilterChipColors
+
+> Task :app:compileReleaseKotlin FAILED
+
+[Incubating] Problems report is available at: file:///E:/SDWMP3/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileReleaseKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 3m 4s
+74 actionable tasks: 13 executed, 61 up-to-date
+DONE 

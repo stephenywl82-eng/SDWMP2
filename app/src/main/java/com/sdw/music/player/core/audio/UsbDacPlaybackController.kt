@@ -283,15 +283,15 @@ class UsbDacPlaybackController(
      * 同文件相邻轨：flacGaplessSeek 内部只做 sample seek（不重建 decoder），无断流
      * 跨文件：flacGaplessSeek 内部 close+open+seek（比 Kotlin 层 open 快）
      */
-    fun play(targetSample: Long = 0L) {
+    fun play(targetSample: Long = 0L, streamAlreadyRunning: Boolean = false) {
         if (isPlaying) return
         if (!wavDirect && !flacDirect && (codec == null || extractor == null)) { onError("Not ready"); return }
         shouldStop = false; paused = false; isPlaying = true
 
         decodeThread = Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
-            // [V3.3.4] clean ring before prebuffer; native start() no longer resets positions
-            UsbDacManager.resetRingBuffer()
+            // [v6.0.13] keep-claim: skip reset when stream alive, avoid glitch from mid-stream memset
+            if (!streamAlreadyRunning) UsbDacManager.resetRingBuffer()
 
             // 【V3.3.0】FLAC 直解：native 解码线程自行填 ring，Kotlin 只做预缓冲等待+监控
             if (flacDirect) {
@@ -345,11 +345,12 @@ class UsbDacPlaybackController(
             //   decoder 降级 16bit（enc16Forced）→ 诚实走 alt=1 / MPS=192 / 4B帧，显式告知
             // 严禁声明 24bit 却喂 16bit 精度数据（隐式降级）
             val outBits = if (sourceBits > 16 && !enc16Forced) 24 else 16
+            if (outBits > playbackWireBits) playbackWireBits = outBits  // [v6.0.14] but never downgrade S32_LE
             if (sourceBits > 16 && enc16Forced) {
                 DebugLog.add(TAG, "FAIL-FAST: source ${sourceBits}bit but platform decoder outputs 16bit — " +
                     "DAC honest mode alt=1/16bit (true 24bit needs native FLAC decode)")
             }
-            val started = UsbDacManager.startStreaming(dacSampleRate, dacChannels, outBits)
+            val started = if (streamAlreadyRunning) true else UsbDacManager.startStreaming(dacSampleRate, dacChannels, playbackWireBits)
             if (!started) { onError("startStreaming FAIL"); return@Thread }
             DebugLog.v(TAG, "play: DAC stream started after prebuffer, entering decode loop (wavDirect=$wavDirect)")
             if (wavDirect) wavDecodeLoop() else decodeLoop()
@@ -416,6 +417,17 @@ class UsbDacPlaybackController(
         DebugLog.v(TAG, "stopDecode (DAC stream paused, ring cleared)")
     }
 
+    // [v6.0.15] Same-rate keep-claim: async kill flacMonitor, new controller takes over instantly.
+    // Don't join or releaseResources — old thread cleans itself up while new one fills ring buffer.
+    fun stopMonitor() {
+        shouldStop = true; paused = false; isPlaying = false
+        synchronized(pauseLock) { (pauseLock as java.lang.Object).notifyAll() }
+        decodeThread?.interrupt()  // wake from sleep, don't block on join
+        decodeThread = null
+        // releaseResources() deferred to old thread's natural exit
+        DebugLog.v(TAG, "stopMonitor (async, native stream kept)")
+    }
+
     // 【V3.2.8】seek 改为挂起请求：主线程直接 codec.flush() 会和解码线程的
     // dequeueOutputBuffer 撞车 → IllegalStateException → finally onCompletion → 误切下一曲
     @Volatile private var pendingSeekMs = -1L
@@ -474,22 +486,29 @@ class UsbDacPlaybackController(
     // 【V3.3.0】FLAC 直解监控循环：native 线程自行解码+推流，Kotlin 只同步进度/检测 EOS 排空
     private fun flacMonitorLoop() {
         var lastPosMs = 0L; var stallCount = 0; var lastDebug = 0L
+        val prebufferGraceMs = 3000L  // [v6.0.7] first 3s pos stays 0 during native prebuffer, skip stall detection
+        var prebufferEndTime = System.currentTimeMillis() + prebufferGraceMs
         try {
             var drainWaitMs = 0
             while (!shouldStop) {
                 if (paused) {
-                    // 【诊断】灭屏卡住：Kotlin flacMonitor 卡在 paused wait？
-                    DebugLog.v(TAG, "flacMonitor: paused=true shouldStop=$shouldStop flacIsEos=${UsbDacManager.flacIsEos()}")
                     synchronized(pauseLock) { while (paused && !shouldStop) (pauseLock as java.lang.Object).wait() }
                 }
                 if (shouldStop) break
                 val pos = UsbDacManager.flacPositionMs()
                 positionMs = pos
-                // 【诊断】进度卡死检测：位置不变且非暂停 → native 线程停了
                 if (pos == lastPosMs && !paused) {
+                    if (System.currentTimeMillis() < prebufferEndTime) {
+                        // still in prebuffer grace window, pos=0 is normal
+                        Thread.sleep(50)
+                        continue
+                    }
                     stallCount++
                     if (stallCount >= 4) DebugLog.add(TAG, "flacMonitor: STALL pos=$pos stallCount=$stallCount ringFill=${UsbDacManager.getRingFill()} flacEos=${UsbDacManager.flacIsEos()}")
-                } else stallCount = 0
+                } else {
+                    stallCount = 0
+                    if (pos != 0L) prebufferEndTime = 0  // prebuffer done, disable grace window permanently
+                }
                 lastPosMs = pos
                 if (UsbDacManager.flacIsEos()) {
                     // [V3.3.4] streamLoop consumes whole URBs only; a sub-URB tail residue can
@@ -744,6 +763,7 @@ class UsbDacPlaybackController(
     private var _bufDiagLastPts = -1L
     private var _bufDiagLastSize = 0
     private var _hexDumpDone = 0
+    @Volatile var playbackWireBits = 16  // [v6.0.14] S32_LE DACs override default 16-bit wire format
     @Volatile private var enc16Forced = false
     private var carry24 = ByteArray(0)
     private fun decodeToFloat(buffer: ByteBuffer, size: Int): FloatArray {

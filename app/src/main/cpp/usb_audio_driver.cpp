@@ -161,10 +161,44 @@ bool UsbAudioDriver::open(int fd, int epAddress, int maxPacketSize, int interval
     // Now that the kernel driver is gone, the clock should be free.
     // TTGK defaults to 48kHz → 44.1k data plays 1.088x fast.
     // Must be sent before claimInterface(1) activates the ISO OUT endpoint.
+    // [v6.0.14] 2D13:A001 (USB HiFi Audio) has buggy SET_CUR firmware → Broken pipe.
+    // Skip explicit clock control entirely; rely on alt-setting switch for implicit rate lock.
     sampleRate_ = 44100;
-    int srRet = trySetSampleRate(44100);
-    LOGI("open: trySetSampleRate(44100) → %d", srRet);
-    clockRate_ = (srRet >= 0) ? 44100 : 0;   // 【V3.2.7】记录 DAC 时钟实际速率
+    bool skipSetCur = (vid_ == 0x2D13 && pid_ == 0xA001);
+    int srRet = skipSetCur ? -1 : trySetSampleRate(44100);
+    if (skipSetCur) LOGI("open: skipping SET_CUR for buggy 2D13:A001 (pure alt switch)");
+    else LOGI("open: trySetSampleRate(44100) → %d", srRet);
+    clockRate_ = (skipSetCur || srRet >= 0) ? 44100 : 0;   // [v6.0.14] 2D13:A001: assume alt-switch locks correctly
+
+    // ── DEBUG: 诊断时钟是否真正切换 ──
+    {
+        // 方式1: GET_CUR CS_SAM_FREQ_CONTROL via AC iface (标准读法)
+        for (int tryCid = 1; tryCid <= 10; tryCid++) {
+            uint32_t curRate = 0;
+            struct usbdevfs_ctrltransfer ct = {};
+            ct.bRequestType = 0xA1; ct.bRequest = 0x01; // GET_CUR
+            ct.wValue = 0x0100;  // CS_SAM_FREQ_CONTROL << 8
+            ct.wIndex = (uint16_t)((tryCid & 0xFF) | 0x0000); // clockId + AC iface=0
+            ct.wLength = 4; ct.timeout = 500; ct.data = &curRate;
+            int r = ioctl(fd_, USBDEVFS_CONTROL, &ct);
+            if (r == 4 && curRate > 0) {
+                LOGI("DEBUG GET_CUR OK: clockId=%d rate=%u (ret=%d)", tryCid, curRate, r);
+                clockRate_ = (int)curRate;
+            }
+        }
+        // 方式2: GET_CUR via streaming iface (ifaceNum_)
+        {
+            uint32_t curRate = 0;
+            struct usbdevfs_ctrltransfer ct = {};
+            ct.bRequestType = 0xA1; ct.bRequest = 0x01;
+            ct.wValue = 0x0100;
+            ct.wIndex = (uint16_t)ifaceNum_;
+            ct.wLength = 4; ct.timeout = 500; ct.data = &curRate;
+            int r = ioctl(fd_, USBDEVFS_CONTROL, &ct);
+            LOGI("DEBUG GET_CUR via stream iface=%d: rate=%u (ret=%d)", ifaceNum_, curRate, r);
+        }
+    }
+    // ── END DEBUG ──
 
     // Claim the audio streaming interface (alt=1 activates ISO OUT)
     if (!claimInterface(1)) {
@@ -226,8 +260,11 @@ bool UsbAudioDriver::start(int sampleRate, int channels, int bitsPerSample) {
         setInterfaceAlt(0);
         int scRet = clockRate_;
         if (sampleRate_ != clockRate_) {
-            scRet = trySetSampleRate(sampleRate_);
-            if (scRet >= 0) clockRate_ = sampleRate_;
+            // [v6.0.14] 2D13:A001: skip SET_CUR (broken pipe), rely on alt-switch implicit lock
+            bool buggyDac = (vid_ == 0x2D13 && pid_ == 0xA001);
+            scRet = buggyDac ? sampleRate_ : trySetSampleRate(sampleRate_);
+            if (buggyDac) { LOGI("start: skipping SET_CUR for 2D13:A001 (implicit alt-switch lock)"); clockRate_ = sampleRate_; }
+            else if (scRet >= 0) clockRate_ = sampleRate_;
             else LOGW("start: SET_CUR(%d) failed, clock stays at %d", sampleRate_, clockRate_);
         }
         bool altOk = setInterfaceAlt(targetAlt);
