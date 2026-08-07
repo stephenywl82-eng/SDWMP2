@@ -15,6 +15,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -38,7 +39,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.blur
+import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius
@@ -349,6 +352,8 @@ fun PlayerScreen(
     // Edge light preference — VU-style edge bars only, no background flash
     val edgeLightPref = LocalContext.current.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
     val edgeLightEnabled = edgeLightPref.getBoolean("moto_edge_light", true)
+    // Cover color background — blurred album art as player backdrop
+    val coverColorBgEnabled = edgeLightPref.getBoolean("cover_color_bg", false)
 
     // Per-band beat flash for pulse effect
     data class BandBeat(val flash: Float = 0f, val decay: Float = 0f)
@@ -358,6 +363,39 @@ fun PlayerScreen(
     var highBeat by remember { mutableStateOf(BandBeat()) }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // Cover color blurred background
+        if (coverColorBgEnabled) {
+            val coverUri = state.currentSongAlbumArt
+            if (coverUri?.isNotBlank() == true) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .scale(1.5f)
+                        .blur(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(coverUri),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        alpha = 0.35f
+                    )
+                }
+            }
+            // Accent color overlay gradient
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRect(
+                    Brush.radialGradient(
+                        0.0f to accentColor.copy(alpha = 0.25f),
+                        0.5f to accentColor.copy(alpha = 0.08f),
+                        1.0f to Color.Black.copy(alpha = 0.30f),
+                        center = Offset(size.width / 2f, size.height * 0.4f),
+                        radius = size.width * 0.7f
+                    )
+                )
+            }
+        }
         // VU-style Edge Bars — only when edge light enabled
         if (!isFoldable && edgeLightEnabled) {
             EdgeVuBars(

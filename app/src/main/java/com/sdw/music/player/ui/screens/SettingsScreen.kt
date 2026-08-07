@@ -350,6 +350,26 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
             
             item { SettingsDivider() }
             item {
+                val bgPref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
+                var coverColorBg by remember(refreshTrigger) {
+                    mutableStateOf(bgPref.getBoolean("cover_color_bg", false))
+                }
+                SettingsSwitchItem(
+                    icon = Icons.Default.Palette,
+                    title = "Cover Color Background",
+                    subtitle = if (coverColorBg) "On 路 Player background follows album art"
+                    else "Off",
+                    checked = coverColorBg,
+                    onCheckedChange = { enabled ->
+                        coverColorBg = enabled
+                        bgPref.edit().putBoolean("cover_color_bg", enabled).apply()
+                        refreshTrigger++
+                    }
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+            item { SettingsDivider() }
+            item {
                 val edgeLightPref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
                 var edgeLightEnabled by remember(refreshTrigger) {
                     mutableStateOf(edgeLightPref.getBoolean("moto_edge_light", true))

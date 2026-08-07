@@ -413,6 +413,37 @@ object UsbDacManager {
         }
     }
 
+    /** Full DAC diagnostic dump (DebugLog.add, visible in Settings panel) */
+    fun dumpDacInfo(device: UsbDevice, audioManager: android.media.AudioManager? = null) {
+        DebugLog.add(TAG, "======== DAC DIAGNOSTIC START ========")
+        DebugLog.add(TAG, "USB: vid=0x${device.vendorId.toString(16)} pid=0x${device.productId.toString(16)} name=${device.productName}")
+        DebugLog.add(TAG, "USB: version=${device.version} devClass=${device.deviceClass} devSub=${device.deviceSubclass} devProto=${device.deviceProtocol} ifaceCount=${device.interfaceCount}")
+        for (i in 0 until device.interfaceCount) {
+            val iface = device.getInterface(i)
+            val sb = StringBuilder()
+            sb.append("iface[$i] id=${iface.id} alt=${iface.alternateSetting} cls=${iface.interfaceClass} sub=${iface.interfaceSubclass} proto=${iface.interfaceProtocol} eps=${iface.endpointCount}")
+            for (j in 0 until iface.endpointCount) {
+                val ep = iface.getEndpoint(j)
+                sb.append(" | ep$j addr=0x${ep.address.toString(16)} type=${ep.type} dir=${ep.direction} mps=${ep.maxPacketSize} interval=${ep.interval}")
+            }
+            DebugLog.add(TAG, sb.toString())
+        }
+        // Android AudioDeviceInfo
+        if (audioManager != null) {
+            val outDevices = audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+            val usbOuts = outDevices.filter { it.type == android.media.AudioDeviceInfo.TYPE_USB_HEADSET || it.type == android.media.AudioDeviceInfo.TYPE_USB_DEVICE }
+            if (usbOuts.isNotEmpty()) {
+                for (d in usbOuts) {
+                    DebugLog.add(TAG, "AudioDevice: id=${d.id} type=${d.type} name=${d.productName} addr=${d.address}")
+                    DebugLog.add(TAG, "AudioDevice: sampleRates=${d.sampleRates?.toList()} channels=${d.channelCounts?.toList()} encodings=${d.encodings?.toList()}")
+                }
+            } else {
+                DebugLog.add(TAG, "AudioDevice: no USB output device found (HAL may not expose)")
+            }
+        }
+        DebugLog.add(TAG, "======== DAC DIAGNOSTIC END ========")
+    }
+
     @Volatile private var dumpedRawId = -1
     private fun maybeDumpRaw(conn: UsbDeviceConnection, id: Int) {
         // V3.3.4: descriptor dump disabled - GET_DESCRIPTOR config transfer hung 2s (read=-1)

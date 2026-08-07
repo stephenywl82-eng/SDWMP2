@@ -1300,6 +1300,7 @@ class MusicService : MediaSessionService() {
             // Path 2: unknown/problem DAC → Oboe system-route
             if (dacProfile.useSystemRoute) {
                 DebugLog.add(TAG, "playSong[$index]: DAC ${dacProfile.name} → Oboe system-route")
+                UsbDacManager.dumpDacInfo(device, getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager)
                 val srcRate = UsbDacManager.getSourceSampleRate(songs[index])
                 val is44k = srcRate in setOf(44100, 88200, 176400, 352800)
                 if (dacProfile.lacks44k1Clock && is44k) {
@@ -1579,6 +1580,13 @@ class MusicService : MediaSessionService() {
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val nativeSampleRate = audioManager.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)?.toIntOrNull() ?: 48000
             newPlayer.setSampleRateNative(nativeSampleRate)
+            // Per-stream routing: only this track goes to USB DAC, system sounds stay on speaker
+            val usbOutDevice = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                .find { it.type == android.media.AudioDeviceInfo.TYPE_USB_HEADSET }
+            if (usbOutDevice != null) {
+                Log.i(TAG, "Oboe: per-stream USB routing via setDeviceId(${usbOutDevice.id})")
+                newPlayer.setOutputDevice(usbOutDevice.id)
+            }
             newPlayer.resetClipStats()
             newPlayer.onCompletion = {
                 Log.i(TAG, "OboeDirect: song completed, playing next")
