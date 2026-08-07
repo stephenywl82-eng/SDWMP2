@@ -648,7 +648,7 @@ private fun FoldableLayout(
                         Text(
                             state.currentSongTitle.ifEmpty { "Not Playing" },
                             style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             maxLines = 1, overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
                         )
@@ -719,20 +719,20 @@ private fun FoldableLayout(
             ) {
                 Text(
                     "Lyrics - ${state.currentSongTitle.ifEmpty { "Lyrics" }}",
-                    style = MaterialTheme.typography.labelLarge, color = TextSecondary,
+                    style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onNavigateToLyrics, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Search, null, tint = TextTertiary.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
                 }
             }
 
             if (lyricsLines.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.MusicNote, null, tint = TextTertiary.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
+                        Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), modifier = Modifier.size(48.dp))
                         Spacer(Modifier.height(8.dp))
-                        Text("No Lyrics", color = TextSecondary.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium)
+                        Text("No Lyrics", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             } else {
@@ -810,7 +810,7 @@ private fun LandscapeLayout(
                 Text(
                     state.currentSongTitle.ifEmpty { "Not Playing" },
                     style = MaterialTheme.typography.titleLarge,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
                 )
@@ -936,16 +936,16 @@ private fun PortraitLayout(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onNavigateBack) {
-                Icon(Icons.Default.KeyboardArrowDown, "Back", tint = TextPrimary, modifier = Modifier.size(32.dp))
+                Icon(Icons.Default.KeyboardArrowDown, "Back", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(32.dp))
             }
             Spacer(modifier = Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onNavigateToQueue) {
-                    Icon(Icons.Default.QueueMusic, "Queue", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.QueueMusic, "Queue", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 }
                 Box {
                     IconButton(onClick = onToggleMenu) {
-                        Icon(Icons.Default.MoreVert, "Menu", tint = TextSecondary)
+                        Icon(Icons.Default.MoreVert, "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = onDismissMenu) {
                     DropdownMenuItem(
@@ -968,7 +968,7 @@ private fun PortraitLayout(
             Text(
                 state.currentSongTitle.ifEmpty { "Not Playing" },
                 style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
             )
             PlayerSongInfo(

@@ -78,10 +78,10 @@ fun AlbumListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Albums", color = TextPrimary) },
+                title = { Text("Albums", color = MaterialTheme.colorScheme.onBackground) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -178,9 +178,9 @@ private fun AlbumGridItem(
             )
         }
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(albumName, style = MaterialTheme.typography.bodyMedium, color = TextPrimary,
+            Text(albumName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text("$songCount songs", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Text("$songCount songs", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -174,10 +174,10 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Audio Diagnostic", color = TextPrimary, style = MaterialTheme.typography.titleMedium) },
+                title = { Text("Audio Diagnostic", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -199,7 +199,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     bitPerfect -> Triple("Bit-Perfect · Exclusive Direct", AccentGreen, Icons.Default.CheckCircle)
                     isExclusiveLive == true -> Triple("Exclusive · App-Layer Resampling", Color(0xFFFF9800), Icons.Default.Warning)
                     isOboeMode -> Triple("AAudio Shared · System Mixer In Path", Color(0xFFFF9800), Icons.Default.Warning)
-                    else -> Triple("Detecting…", TextSecondary, Icons.Default.Info)
+                    else -> Triple("Detecting…", MaterialTheme.colorScheme.onSurfaceVariant, Icons.Default.Info)
                 }
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -272,7 +272,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                         label = "Buffer Size",
                         value = "$framesPerBuffer frames",
                         sublabel = "PROPERTY_OUTPUT_FRAMES_PER_BUFFER",
-                        accent = TextSecondary
+                        accent = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -338,8 +338,8 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                 val dotColor by animateColorAsState(
                     targetValue = when {
                         isUsbDacMode -> AccentGreen
-                        !isOboeMode -> TextSecondary
-                        isExclusiveLive == null -> TextSecondary
+                        !isOboeMode -> MaterialTheme.colorScheme.onSurfaceVariant
+                        isExclusiveLive == null -> MaterialTheme.colorScheme.onSurfaceVariant
                         isExclusiveLive == true -> AccentGreen
                         else -> Color(0xFFFF9800)
                     },
@@ -371,10 +371,10 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                         )
                         Spacer(Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Live Monitor", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Text("Live Monitor", color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                             Text(
                                 "每秒轮询 getSharingMode() · 实时检测系统抢占",
-                                color = TextSecondary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp
                             )
                         }
@@ -401,7 +401,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                 val modeColor = when {
                     isUsbDacMode -> AccentGreen
                     isExclusiveLive == true -> AccentGreen
-                    isExclusiveLive == null -> TextSecondary
+                    isExclusiveLive == null -> MaterialTheme.colorScheme.onSurfaceVariant
                     isOboeMode -> AccentBlue
                     else -> Color(0xFFFF9800)
                 }
@@ -423,7 +423,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
             item {
                 val flagAccent = when {
                     trackFlagsHex.contains("0x004") || trackFlagsHex.contains("0x100") -> AccentGreen
-                    trackFlagsHex == "—" -> TextSecondary
+                    trackFlagsHex == "—" -> MaterialTheme.colorScheme.onSurfaceVariant
                     else -> Color(0xFFFF9800)
                 }
                 DiagnosticRow(
@@ -455,7 +455,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                     "LOSS" -> Icons.Default.Cancel to AccentRed
                                     "LOSS_TRANSIENT" -> Icons.Default.Warning to Color(0xFFFF9800)
                                     "LOSS_TRANSIENT_CAN_DUCK" -> Icons.Default.Remove to AccentBlue
-                                    else -> Icons.Default.Info to TextSecondary
+                                    else -> Icons.Default.Info to MaterialTheme.colorScheme.onSurfaceVariant
                                 }
                                 Row(
                                     modifier = Modifier.padding(vertical = 3.dp),
@@ -463,7 +463,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                 ) {
                                     Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text(event.time, color = TextSecondary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                                    Text(event.time, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                                     Spacer(Modifier.width(8.dp))
                                     Text(event.event, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                                 }
@@ -517,7 +517,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                         "Source ($sourceRate Hz) = DAC Stream ($dacStreamRate Hz / ${dacStreamBits}bit) → USB Host 直写，绕过 AudioFlinger，真正的 bit-perfect 输出"
                                     else
                                         "Source ($sourceRate Hz) = Device Native ($deviceNativeRate Hz) → Oboe Exclusive 绕过 Android Mixer，真正的 bit-perfect 输出",
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 12.sp,
                                     lineHeight = 18.sp
                                 )
@@ -535,7 +535,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     "Source ($sourceRate Hz) → App Stream ($streamRate Hz) → System Mixer → Device ($deviceNativeRate Hz)",
-                                    color = TextPrimary,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     fontSize = 12.sp,
                                     fontFamily = FontFamily.Monospace
                                 )
@@ -543,7 +543,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                 Text(
                                     "Shared 模式下 AudioFlinger 强制将所有音频流重采样到设备原生采样率。即使 App 层未重采样，系统混音器仍会在内部进行 SRC。\n\n" +
                                     "建议: 切换到 Oboe Exclusive 模式以获得真正 bit-perfect 输出。",
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 12.sp,
                                     lineHeight = 18.sp
                                 )
@@ -561,14 +561,14 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     "Source ($sourceRate Hz) → Device ($effectiveDeviceRate Hz)",
-                                    color = TextPrimary,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     fontSize = 12.sp,
                                     fontFamily = FontFamily.Monospace
                                 )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     "音频正在从源采样率重采样到设备原生采样率。重采样在 Oboe/AAudio 层执行，为软件 SRC，不影响音质。",
-                                    color = TextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 12.sp,
                                     lineHeight = 18.sp
                                 )
@@ -592,7 +592,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             "This page shows real-time audio path information.",
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 13.sp,
                             lineHeight = 20.sp
                         )
@@ -607,7 +607,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                             "• Focus Events — 音频焦点变化日志, 显示系统音频抢占时间线\n" +
                             "• Bit-Perfect 仅在 Oboe Exclusive 模式下成立: App直出, 绕过系统Mixer\n" +
                             "• AAudio Shared 模式下 AudioFlinger 始终参与, 内部重采样不可控",
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 12.sp,
                             lineHeight = 18.sp
                         )
@@ -640,8 +640,8 @@ private fun SectionTitle(title: String) {
 @Composable
 private fun CapRow(label: String, value: String) {
     Row(modifier = Modifier.padding(vertical = 1.dp)) {
-        Text(label, color = TextSecondary, fontSize = 11.sp, modifier = Modifier.width(90.dp))
-        Text(value, color = TextPrimary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, modifier = Modifier.width(90.dp))
+        Text(value, color = MaterialTheme.colorScheme.onBackground, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
     }
 }
 
@@ -665,8 +665,8 @@ private fun DiagnosticRow(
             Icon(icon, null, tint = accent, modifier = Modifier.size(22.dp))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(label, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Text(sublabel, color = TextSecondary, fontSize = 11.sp)
+                Text(label, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                Text(sublabel, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
             }
             Text(value, color = accent, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
         }

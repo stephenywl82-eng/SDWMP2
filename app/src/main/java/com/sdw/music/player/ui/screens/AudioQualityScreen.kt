@@ -252,10 +252,10 @@ fun AudioQualityScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Audio Quality", color = TextPrimary) },
+                title = { Text("Audio Quality", color = MaterialTheme.colorScheme.onBackground) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 actions = {
@@ -282,7 +282,7 @@ fun AudioQualityScreen(
                         if (uiState.reports.isEmpty()) "Tap to scan audio files"
                         else "${uiState.reports.size} songs"
                     },
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp,
                     modifier = Modifier.weight(1f)
                 )
@@ -379,7 +379,7 @@ fun AudioQualityScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         if (uiState.reports.isEmpty()) "Tap to scan audio files" else "No matching results",
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
@@ -433,7 +433,7 @@ private fun ReportCard(
                 Column(Modifier.weight(1f)) {
                     Text(
                         report.fileName,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 14.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -441,7 +441,7 @@ private fun ReportCard(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         "${report.qualityLabel} · ${report.sampleRate / 1000}kHz · ${report.bitDepth}bit · ${report.codecName}",
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp,
                         maxLines = 1
                     )
@@ -513,7 +513,7 @@ private fun ReportCard(
                     },
                     modifier = Modifier.size(32.dp)
                 ) {
-                    Icon(Icons.Default.Share, null, tint = TextTertiary, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Share, null, tint = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -523,8 +523,8 @@ private fun ReportCard(
 @Composable
 private fun MetricChip(label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, fontSize = 10.sp, color = TextTertiary)
+        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.outlineVariant)
         Spacer(Modifier.width(4.dp))
-        Text(value, fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+        Text(value, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
     }
 }

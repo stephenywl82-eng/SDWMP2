@@ -57,18 +57,18 @@ fun SongPickerScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Add Songs", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+                        Text("Add Songs", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium)
                         Text(
                             if (selectedIds.isEmpty()) "Select songs to add"
                             else "${selectedIds.size} selected",
-                            color = TextTertiary,
+                            color = MaterialTheme.colorScheme.outlineVariant,
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 actions = {
@@ -91,13 +91,13 @@ fun SongPickerScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 8.dp),
-                placeholder = { Text("Search songs...", color = TextTertiary) },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = TextTertiary) },
+                placeholder = { Text("Search songs...", color = MaterialTheme.colorScheme.outlineVariant) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.outlineVariant) },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
                     focusedBorderColor = AccentPurple,
-                    unfocusedBorderColor = TextTertiary.copy(alpha = 0.3f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                     cursorColor = AccentPurple,
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface
@@ -112,9 +112,9 @@ fun SongPickerScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.MusicNote, null, tint = TextTertiary, modifier = Modifier.size(64.dp))
+                        Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.size(64.dp))
                         Spacer(Modifier.height(12.dp))
-                        Text("No songs found", color = TextSecondary)
+                        Text("No songs found", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             } else {
@@ -165,7 +165,7 @@ fun SongPickerScreen(
                                         .background(
                                             when {
                                                 isSelected -> AccentPurple
-                                                isAlreadyIn -> TextTertiary.copy(alpha = 0.3f)
+                                                isAlreadyIn -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                                                 else -> Color.Transparent
                                             }
                                         ),
@@ -218,14 +218,14 @@ fun SongPickerScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         song.title,
-                                        color = if (isAlreadyIn) TextTertiary else TextPrimary,
+                                        color = if (isAlreadyIn) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.onBackground,
                                         style = MaterialTheme.typography.bodyMedium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         "${song.artist.ifBlank { "Unknown Artist" }} • ${song.album.ifBlank { "Unknown Album" }}",
-                                        color = TextTertiary,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
                                         style = MaterialTheme.typography.bodySmall,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -236,7 +236,7 @@ fun SongPickerScreen(
                                 if (isAlreadyIn) {
                                     Text(
                                         "In playlist",
-                                        color = TextTertiary,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                 }
@@ -252,8 +252,8 @@ fun SongPickerScreen(
     if (showConfirm) {
         AlertDialog(
             onDismissRequest = { showConfirm = false },
-            title = { Text("Add ${selectedIds.size} songs?", color = TextPrimary) },
-            text = { Text("Songs will be added to this playlist.", color = TextSecondary) },
+            title = { Text("Add ${selectedIds.size} songs?", color = MaterialTheme.colorScheme.onBackground) },
+            text = { Text("Songs will be added to this playlist.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -270,7 +270,7 @@ fun SongPickerScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showConfirm = false }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface

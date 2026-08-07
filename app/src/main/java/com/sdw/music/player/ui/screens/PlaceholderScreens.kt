@@ -76,17 +76,17 @@ fun FolderListScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Folders", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+                        Text("Folders", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium)
                         Text(
                             "${folders.size} folders",
-                            color = TextTertiary,
+                            color = MaterialTheme.colorScheme.outlineVariant,
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -104,12 +104,12 @@ fun FolderListScreen(
                     Icon(
                         Icons.Default.Folder,
                         null,
-                        tint = TextTertiary,
+                        tint = MaterialTheme.colorScheme.outlineVariant,
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(Modifier.height(12.dp))
-                    Text("No music folders found", color = TextSecondary)
-                    Text("Scan music in SongList first", color = TextTertiary, style = MaterialTheme.typography.bodySmall)
+                    Text("No music folders found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Scan music in SongList first", color = MaterialTheme.colorScheme.outlineVariant, style = MaterialTheme.typography.bodySmall)
                 }
             }
         } else {
@@ -166,7 +166,7 @@ fun FolderListScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     folder.name,
-                                    color = TextPrimary,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     style = MaterialTheme.typography.bodyLarge,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -174,12 +174,12 @@ fun FolderListScreen(
                                 Spacer(Modifier.height(2.dp))
                                 Text(
                                     "${folder.songCount} songs",
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.outlineVariant,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 Text(
                                     folder.path,
-                                    color = TextTertiary.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                                     style = MaterialTheme.typography.labelSmall,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -189,7 +189,7 @@ fun FolderListScreen(
                             Icon(
                                 Icons.Default.ChevronRight,
                                 null,
-                                tint = TextTertiary,
+                                tint = MaterialTheme.colorScheme.outlineVariant,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -222,17 +222,17 @@ fun PlaylistListScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Playlists", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+                        Text("Playlists", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium)
                         Text(
                             playlists.size.toString() + " playlists",
-                            color = TextTertiary,
+                            color = MaterialTheme.colorScheme.outlineVariant,
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -261,12 +261,12 @@ fun PlaylistListScreen(
                     Icon(
                         Icons.Default.Folder,
                         null,
-                        tint = TextTertiary,
+                        tint = MaterialTheme.colorScheme.outlineVariant,
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(Modifier.height(12.dp))
-                    Text("No playlists yet", color = TextSecondary)
-                    Text("Tap + to create", color = TextTertiary, style = MaterialTheme.typography.bodySmall)
+                    Text("No playlists yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Tap + to create", color = MaterialTheme.colorScheme.outlineVariant, style = MaterialTheme.typography.bodySmall)
                 }
             }
         } else {
@@ -333,7 +333,7 @@ fun PlaylistListScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     playlist.name,
-                                    color = TextPrimary,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     style = MaterialTheme.typography.bodyLarge,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -341,7 +341,7 @@ fun PlaylistListScreen(
                                 Spacer(Modifier.height(2.dp))
                                 Text(
                                     playlist.songIds.size.toString() + " songs",
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.outlineVariant,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -349,7 +349,7 @@ fun PlaylistListScreen(
                             Icon(
                                 Icons.Default.Delete,
                                 null,
-                                tint = TextTertiary.copy(alpha = 0.4f),
+                                tint = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                                 modifier = Modifier
                                     .size(18.dp)
                                     .clickable { showDeleteConfirm = playlist.id }
@@ -365,7 +365,7 @@ fun PlaylistListScreen(
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            title = { Text("New Playlist", color = TextPrimary) },
+            title = { Text("New Playlist", color = MaterialTheme.colorScheme.onBackground) },
             text = {
                 OutlinedTextField(
                     value = newPlaylistName,
@@ -374,10 +374,10 @@ fun PlaylistListScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
                         focusedBorderColor = Color(0xFF8E6FD0),
-                        unfocusedBorderColor = TextTertiary
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                     )
                 )
             },
@@ -397,7 +397,7 @@ fun PlaylistListScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showCreateDialog = false }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -408,11 +408,11 @@ fun PlaylistListScreen(
         val pl = playlists.find { it.id == playlistId }
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = null },
-            title = { Text("Delete Playlist", color = TextPrimary) },
+            title = { Text("Delete Playlist", color = MaterialTheme.colorScheme.onBackground) },
             text = {
                 Text(
                     "Delete this playlist?",
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             confirmButton = {
@@ -428,7 +428,7 @@ fun PlaylistListScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = null }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface
@@ -461,13 +461,13 @@ private fun FolderSongsView(
             TopAppBar(
                 title = {
                     Column {
-                        Text(folder.name, color = TextPrimary, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${songs.size} songs", color = TextTertiary, style = MaterialTheme.typography.labelSmall)
+                        Text(folder.name, color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("${songs.size} songs", color = MaterialTheme.colorScheme.outlineVariant, style = MaterialTheme.typography.labelSmall)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 actions = {
@@ -485,9 +485,9 @@ private fun FolderSongsView(
         if (displayedSongs.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.MusicNote, null, tint = TextTertiary, modifier = Modifier.size(48.dp))
+                    Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(8.dp))
-                    Text("No folders", color = TextSecondary)
+                    Text("No folders", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {

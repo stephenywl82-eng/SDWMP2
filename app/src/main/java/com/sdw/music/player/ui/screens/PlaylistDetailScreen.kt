@@ -64,19 +64,19 @@ fun PlaylistDetailScreen(
                     Column {
                         Text(
                             playlist?.name ?: "Playlist",
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
                             "${songs.size} songs",
-                            color = TextTertiary,
+                            color = MaterialTheme.colorScheme.outlineVariant,
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 actions = {
@@ -104,9 +104,9 @@ fun PlaylistDetailScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.MusicNote, null, tint = TextTertiary, modifier = Modifier.size(64.dp))
+                    Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.size(64.dp))
                     Spacer(Modifier.height(12.dp))
-                    Text("No songs in this playlist", color = TextSecondary)
+                    Text("No songs in this playlist", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -135,7 +135,7 @@ fun PlaylistDetailScreen(
                         Text("Play all (${songs.size})", color = Color(0xFF8E6FD0), style = MaterialTheme.typography.bodyLarge)
                     }
                     HorizontalDivider(
-                        color = TextTertiary.copy(alpha = 0.15f),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                     Spacer(Modifier.height(4.dp))
@@ -188,14 +188,14 @@ fun PlaylistDetailScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     song.title,
-                                    color = TextPrimary,
+                                    color = MaterialTheme.colorScheme.onBackground,
                                     style = MaterialTheme.typography.bodyMedium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     song.artist.ifBlank { "Unknown Artist" },
-                                    color = TextTertiary,
+                                    color = MaterialTheme.colorScheme.outlineVariant,
                                     style = MaterialTheme.typography.bodySmall,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -210,7 +210,7 @@ fun PlaylistDetailScreen(
                                 Icon(
                                     Icons.Default.Delete,
                                     "Remove",
-                                    tint = TextTertiary.copy(alpha = 0.4f),
+                                    tint = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -226,11 +226,11 @@ fun PlaylistDetailScreen(
         val song = songs.find { it.id == songId }
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = null },
-            title = { Text("Remove from playlist", color = TextPrimary) },
+            title = { Text("Remove from playlist", color = MaterialTheme.colorScheme.onBackground) },
             text = {
                 Text(
                     "Remove \"${song?.title ?: ""}\" from this playlist?",
-                    color = TextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             confirmButton = {
@@ -247,7 +247,7 @@ fun PlaylistDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = null }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface

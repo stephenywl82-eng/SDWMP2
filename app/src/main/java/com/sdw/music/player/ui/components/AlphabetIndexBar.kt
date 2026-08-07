@@ -57,7 +57,7 @@ fun AlphabetIndexBar(
                     text = letter,
                     fontSize = 10.sp,
                     fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isActive) AccentBlue else TextSecondary
+                    color = if (isActive) AccentBlue else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

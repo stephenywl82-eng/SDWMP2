@@ -72,10 +72,10 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", color = TextPrimary, style = MaterialTheme.typography.titleMedium) },
+                title = { Text("Settings", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -117,7 +117,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                     .edit().putInt("min_duration", sec).apply()
                                 refreshTrigger++
                             },
-                            label = { Text("${sec}s", color = if (selected) MaterialTheme.colorScheme.background else TextPrimary) },
+                            label = { Text("${sec}s", color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentPurple,
                                 containerColor = MaterialTheme.colorScheme.surface
@@ -155,7 +155,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                 refreshTrigger++
                                 android.widget.Toast.makeText(context, "Switched to $mode. Restart playback for best results.", android.widget.Toast.LENGTH_LONG).show()
                             },
-                            label = { Text(mode, color = if (selected) MaterialTheme.colorScheme.background else TextPrimary, fontSize = 12.sp) },
+                            label = { Text(mode, color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground, fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentPurple,
                                 containerColor = MaterialTheme.colorScheme.surface
@@ -186,7 +186,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                     .edit().putInt("mode", idx - 1).apply()
                                 refreshTrigger++
                             },
-                            label = { Text(label, color = if (selected) MaterialTheme.colorScheme.background else TextPrimary, fontSize = 12.sp) },
+                            label = { Text(label, color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground, fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentPurple,
                                 containerColor = MaterialTheme.colorScheme.surface
@@ -252,7 +252,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                     )
                     Text(
                         if (usbExclusiveEnabled) "On" else "Off",
-                        color = TextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp
                     )
                 }
@@ -449,7 +449,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                 idlePref.edit().putString("idle_level", level).apply()
                                 refreshTrigger++
                             },
-                            label = { Text(if (selected) level else level.take(4), color = if (selected) MaterialTheme.colorScheme.background else TextPrimary, fontSize = 11.sp, maxLines = 1) },
+                            label = { Text(if (selected) level else level.take(4), color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground, fontSize = 11.sp, maxLines = 1) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentPurple,
                                 containerColor = MaterialTheme.colorScheme.surface
@@ -479,7 +479,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                     }
                     Text(
                         "Auto-sync: system standby = $bucketName → idle_level auto-mapped",
-                        color = TextSecondary.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         fontSize = 10.sp,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
                     )
@@ -515,7 +515,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                         refreshTrigger++
                                     },
                                     label = { 
-                                        Text(preset.name, color = if (selected) MaterialTheme.colorScheme.background else TextPrimary, fontSize = 11.sp, maxLines = 1)
+                                        Text(preset.name, color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground, fontSize = 11.sp, maxLines = 1)
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = AccentPurple,
@@ -588,7 +588,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                             ).also { clipboardManager.setText(AnnotatedString(it)) }
                         }) { Text("Copy", color = Color(0xFF00BFFF), fontSize = 11.sp) }
                         TextButton(onClick = { com.sdw.music.player.core.audio.DebugLog.clear(); refreshTrigger++ }) {
-                            Text("Clear", color = TextSecondary, fontSize = 11.sp)
+                            Text("Clear", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                         }
                         TextButton(onClick = { refreshTrigger++ }) {
                             Text("Refresh", color = AccentPurple, fontSize = 11.sp)
@@ -615,14 +615,14 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            InfoChip("Stream", if (streaming) "ON" else "OFF", if (streaming) AccentPurple else TextSecondary)
+                            InfoChip("Stream", if (streaming) "ON" else "OFF", if (streaming) AccentPurple else MaterialTheme.colorScheme.onSurfaceVariant)
                             InfoChip("Underrun", "$underruns", if (underruns > 0) Color(0xFFFF6B6B) else Color(0xFF00FF88))
-                            InfoChip("Native Log", "${nativeLogLen}B", TextSecondary)
+                            InfoChip("Native Log", "${nativeLogLen}B", MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = stats,
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontSize = 10.sp,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                             lineHeight = 14.sp
@@ -673,11 +673,11 @@ private fun SettingsItem(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, tint = TextSecondary, modifier = Modifier.size(22.dp))
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Text(title, color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -696,11 +696,11 @@ private fun SettingsSwitchItem(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, tint = TextSecondary, modifier = Modifier.size(22.dp))
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Text(title, color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
         Switch(
             checked = checked,
@@ -730,7 +730,7 @@ private fun InfoChip(label: String, value: String, color: Color) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextSecondary, fontSize = 10.sp)
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
         Text(value, color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }

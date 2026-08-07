@@ -40,15 +40,15 @@ fun ArtistSongScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(artistName, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = { Text(artistName, color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 actions = {
                     IconButton(onClick = onPlayAll) {
-                        Icon(Icons.AutoMirrored.Filled.PlaylistPlay, "Play All", tint = TextSecondary)
+                        Icon(Icons.AutoMirrored.Filled.PlaylistPlay, "Play All", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -79,7 +79,7 @@ fun ArtistSongScreen(
             Text(
                 text = "${songs.size} songs",
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
@@ -128,9 +128,9 @@ private fun ArtistSongItem(
             )
         }
         Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(song.title, style = MaterialTheme.typography.bodyLarge, color = if (isPlaying) AccentBlue else TextPrimary,
+            Text(song.title, style = MaterialTheme.typography.bodyLarge, color = if (isPlaying) AccentBlue else MaterialTheme.colorScheme.onBackground,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(song.album, style = MaterialTheme.typography.bodySmall, color = TextSecondary,
+            Text(song.album, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (isPlaying) {

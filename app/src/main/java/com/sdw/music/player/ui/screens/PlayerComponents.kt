@@ -70,16 +70,16 @@ fun PlayerTopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onNavigateBack, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Default.KeyboardArrowDown, "Back", tint = TextPrimary, modifier = Modifier.size(24.dp))
+            Icon(Icons.Default.KeyboardArrowDown, "Back", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(24.dp))
         }
-        Text("Now Playing", style = MaterialTheme.typography.labelMedium, color = TextSecondary, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+        Text("Now Playing", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onNavigateToQueue, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.QueueMusic, "Queue", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.QueueMusic, "Queue", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
             Box {
                 IconButton(onClick = onToggleMenu, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.MoreVert, "Menu", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.MoreVert, "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = onDismissMenu) {
                     DropdownMenuItem(
@@ -230,7 +230,7 @@ fun PlayerSongHeader(
     Text(
         title.ifEmpty { "Not Playing" },
         style = MaterialTheme.typography.headlineMedium,
-        color = TextPrimary,
+        color = MaterialTheme.colorScheme.onBackground,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         textAlign = TextAlign.Center,
@@ -271,8 +271,8 @@ fun PlayerProgress(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(formatDurationPlayer(positionMs), style = MaterialTheme.typography.labelSmall, color = TextTertiary)
-            Text(formatDurationPlayer(durationMs), style = MaterialTheme.typography.labelSmall, color = TextTertiary)
+            Text(formatDurationPlayer(positionMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outlineVariant)
+            Text(formatDurationPlayer(durationMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }
@@ -301,12 +301,12 @@ fun PlayerControlBar(
             Icon(
                 if (shuffleEnabled) Icons.Default.ShuffleOn else Icons.Default.Shuffle,
                 null,
-                tint = if (shuffleEnabled) accentColor else TextSecondary,
+                tint = if (shuffleEnabled) accentColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp)
             )
         }
         IconButton(onClick = onPrevious) {
-            Icon(Icons.Default.SkipPrevious, null, tint = TextPrimary, modifier = Modifier.size(36.dp))
+            Icon(Icons.Default.SkipPrevious, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(36.dp))
         }
         FilledIconButton(
             onClick = onPlayPause,
@@ -322,13 +322,13 @@ fun PlayerControlBar(
             )
         }
         IconButton(onClick = onNext) {
-            Icon(Icons.Default.SkipNext, null, tint = TextPrimary, modifier = Modifier.size(36.dp))
+            Icon(Icons.Default.SkipNext, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(36.dp))
         }
         IconButton(onClick = onCycleRepeat) {
             val (icon, tintColor) = when (repeatMode) {
                 Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne to accentColor
                 Player.REPEAT_MODE_ALL -> Icons.Default.Repeat to accentColor
-                else -> Icons.Default.Repeat to TextSecondary
+                else -> Icons.Default.Repeat to MaterialTheme.colorScheme.onSurfaceVariant
             }
             Icon(icon, null, tint = tintColor, modifier = Modifier.size(24.dp))
         }
@@ -351,23 +351,23 @@ fun PlayerBottomActions(
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         IconButton(onClick = onNavigateToLyrics) {
-            Icon(Icons.Default.Lyrics, null, tint = TextSecondary)
+            Icon(Icons.Default.Lyrics, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         IconButton(onClick = onToggleEqualizer) {
             Icon(
                 Icons.Default.Equalizer, null,
-                tint = if (eqEnabled) AccentRed else TextSecondary
+                tint = if (eqEnabled) AccentRed else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         IconButton(onClick = onToggleFavorite) {
             Icon(
                 if (isCurrentSongFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 null,
-                tint = if (isCurrentSongFavorite) AccentRed else TextSecondary
+                tint = if (isCurrentSongFavorite) AccentRed else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         IconButton(onClick = onShare) {
-            Icon(Icons.Default.Share, null, tint = TextSecondary)
+            Icon(Icons.Default.Share, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -556,7 +556,7 @@ fun QueueSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = bgColor,
-        contentColor = TextPrimary,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         scrimColor = Color.Black.copy(alpha = 0.5f),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         dragHandle = {
@@ -587,9 +587,9 @@ fun QueueSheet(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Playing Queue", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                    Text("Playing Queue", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
                 }
-                Text("${queue.size} songs", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                Text("${queue.size} songs", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(8.dp))
             LazyColumn(
@@ -661,7 +661,7 @@ fun QueueSheet(
                             Text(
                                 song.title,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isCurrent) accentColor else TextPrimary,
+                                color = if (isCurrent) accentColor else MaterialTheme.colorScheme.onBackground,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -669,7 +669,7 @@ fun QueueSheet(
                             Text(
                                 song.artist,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary.copy(alpha = if (isCurrent) 0.7f else 0.5f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isCurrent) 0.7f else 0.5f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )

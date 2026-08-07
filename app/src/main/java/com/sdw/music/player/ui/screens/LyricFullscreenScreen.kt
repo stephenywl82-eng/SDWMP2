@@ -159,9 +159,9 @@ fun LyricFullscreenScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.align(Alignment.Center)
             ) {
-                Icon(Icons.Default.MusicNote, null, tint = TextTertiary, modifier = Modifier.size(64.dp))
+                Icon(Icons.Default.MusicNote, null, tint = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.size(64.dp))
                 Spacer(Modifier.height(12.dp))
-                Text("No Lyrics", color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
+                Text("No Lyrics", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyLarge)
             }
             else -> {
                 LyricViewCompose(
@@ -192,7 +192,7 @@ fun LyricFullscreenScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
             }
 
             Spacer(Modifier.width(4.dp))
@@ -200,7 +200,7 @@ fun LyricFullscreenScreen(
             // 歌手名（居中）
             Text(
                 text = songArtist.ifEmpty { "Full-Screen Lyrics" },
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
@@ -210,7 +210,7 @@ fun LyricFullscreenScreen(
             // 手动/自动切换
             Text(
                 text = "Auto",
-                color = if (!isManualSource) accent else TextTertiary,
+                color = if (!isManualSource) accent else MaterialTheme.colorScheme.outlineVariant,
                 fontSize = 11.sp,
                 fontWeight = if (!isManualSource) FontWeight.SemiBold else FontWeight.Normal
             )
@@ -220,14 +220,14 @@ fun LyricFullscreenScreen(
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = accent,
                     checkedTrackColor = accent.copy(alpha = 0.3f),
-                    uncheckedThumbColor = TextTertiary,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.outlineVariant,
                     uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
                 modifier = Modifier.height(22.dp).padding(horizontal = 2.dp)
             )
             Text(
                 text = "Manual",
-                color = if (isManualSource) accent else TextTertiary,
+                color = if (isManualSource) accent else MaterialTheme.colorScheme.outlineVariant,
                 fontSize = 11.sp,
                 fontWeight = if (isManualSource) FontWeight.SemiBold else FontWeight.Normal
             )
@@ -281,7 +281,7 @@ fun LyricFullscreenScreen(
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Select Lyric Source",
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
             )
@@ -301,7 +301,7 @@ fun LyricFullscreenScreen(
                     ) {
                         Text(
                             text = name,
-                            color = if (isSel) accent else TextPrimary,
+                            color = if (isSel) accent else MaterialTheme.colorScheme.onBackground,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Normal
                         )
@@ -324,7 +324,7 @@ fun LyricFullscreenScreen(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Edit Lyrics", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+                    Text("Edit Lyrics", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.weight(1f))
                     Text(
                         text = sourceLabel,
@@ -337,7 +337,7 @@ fun LyricFullscreenScreen(
                 Column {
                     Text(
                         text = "Supports standard LRC format: [mm:ss.xx]Lyric text",
-                        color = TextTertiary,
+                        color = MaterialTheme.colorScheme.outlineVariant,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
@@ -348,14 +348,14 @@ fun LyricFullscreenScreen(
                             .fillMaxWidth()
                             .heightIn(min = 280.dp, max = 420.dp),
                         textStyle = TextStyle(
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontSize = 14.sp,
                             fontFamily = FontFamily.Monospace,
                             lineHeight = 22.sp
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = accent,
-                            unfocusedBorderColor = TextTertiary.copy(alpha = 0.3f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                             cursorColor = accent,
                             focusedContainerColor = MaterialTheme.colorScheme.background,
                             unfocusedContainerColor = MaterialTheme.colorScheme.background
@@ -445,7 +445,7 @@ fun LyricFullscreenScreen(
                 TextButton(
                     onClick = { showEditDialog = false },
                     enabled = !isSaving,
-                    colors = ButtonDefaults.textButtonColors(contentColor = TextSecondary)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                 ) {
                     Text("Cancel")
                 }

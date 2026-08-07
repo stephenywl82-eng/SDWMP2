@@ -64,11 +64,11 @@ fun LyricSearchScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Search Lyrics", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+                    Text("Search Lyrics", color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium)
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -81,8 +81,8 @@ fun LyricSearchScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Title + Artist", color = TextTertiary) },
-                leadingIcon = { Icon(Icons.Default.Search, null, tint = TextTertiary) },
+                placeholder = { Text("Title + Artist", color = MaterialTheme.colorScheme.outlineVariant) },
+                leadingIcon = { Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.outlineVariant) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         TextButton(
@@ -104,10 +104,10 @@ fun LyricSearchScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary,
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
                     focusedBorderColor = Color(0xFF8E6FD0),
-                    unfocusedBorderColor = TextTertiary.copy(alpha = 0.3f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
                     cursorColor = Color(0xFF8E6FD0)
                 ),
                 shape = RoundedCornerShape(12.dp)
@@ -128,7 +128,7 @@ fun LyricSearchScreen(
                 }
                 results.isEmpty() -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No results found", color = TextSecondary)
+                        Text("No results found", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 else -> {
@@ -159,14 +159,14 @@ fun LyricSearchScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             result.title,
-                                            color = TextPrimary,
+                                            color = MaterialTheme.colorScheme.onBackground,
                                             style = MaterialTheme.typography.bodyMedium,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
                                             result.artist,
-                                            color = TextTertiary,
+                                            color = MaterialTheme.colorScheme.outlineVariant,
                                             style = MaterialTheme.typography.bodySmall,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -177,7 +177,7 @@ fun LyricSearchScreen(
                                         if (preview.isNotBlank()) {
                                             Text(
                                                 preview,
-                                                color = TextSecondary.copy(alpha = 0.7f),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 maxLines = 2,
                                                 overflow = TextOverflow.Ellipsis
@@ -187,7 +187,7 @@ fun LyricSearchScreen(
                                     // Source badge
                                     Text(
                                         "${result.getSourceDisplayName()}$syncBadge$transBadge",
-                                        color = TextTertiary,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
                                         style = MaterialTheme.typography.labelSmall,
                                         modifier = Modifier
                                             .padding(top = 3.dp)
@@ -233,11 +233,11 @@ private fun LyricDetailView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onBack) {
-                Text("< Back", color = TextSecondary)
+                Text("< Back", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(result.title, color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
-                Text(" · ${result.getSourceDisplayName()}", color = TextTertiary, style = MaterialTheme.typography.labelSmall)
+                Text(result.title, color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.bodyLarge)
+                Text(" · ${result.getSourceDisplayName()}", color = MaterialTheme.colorScheme.outlineVariant, style = MaterialTheme.typography.labelSmall)
             }
             if (result.syncedLrc != null && result.plainLrc != null) {
                 TextButton(onClick = { showSynced = !showSynced }) {
@@ -249,7 +249,7 @@ private fun LyricDetailView(
                 }
             }
         }
-        HorizontalDivider(color = TextTertiary.copy(alpha = 0.1f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f))
 
         // Lyrics text
         Box(
@@ -260,7 +260,7 @@ private fun LyricDetailView(
         ) {
             Text(
                 displayText,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.6f
                 )
