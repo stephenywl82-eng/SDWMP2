@@ -39,7 +39,13 @@ data class DacProfile(
     /** Wire format bits for USB ISO OUT. Use 32 for S32_LE sub-slot DACs
      *  (mps%8==0), 24 for S24_3LE (mps%6==0), default 16 otherwise.
      *  Only used when useSystemRoute=false. */
-    val wireBits: Int = 16
+    val wireBits: Int = 16,
+
+    /** True = try Android 14+ BIT_PERFECT API (setPreferredMixerAttributes) before
+     *  falling back to Oboe system-route. Only meaningful when useSystemRoute=true.
+     *  DACs with known firmware quirks (broken SET_CUR, clock issues) can benefit
+     *  from the kernel USB driver's usb_quirks tolerance via this API. */
+    val tryBitPerfectApi: Boolean = false
 ) {
     companion object {
         // ── Known DACs ─────────────────────────────────────────
@@ -51,24 +57,27 @@ data class DacProfile(
 
         /** TTGK Note (pid=201D) — gimped UAC2. Only 48k-family, no Clock Source descriptor.
          *  SET_CUR returns success but chip crystal is 24.576 MHz only.
-         *  Routes to Oboe system-path for broad compatibility. */
+         *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
         val TTGK_NOTE = DacProfile(0x3302, 0x201D, "TTGK Note",
-            lacks44k1Clock = true)
+            lacks44k1Clock = true, tryBitPerfectApi = true)
 
         /** vid=2972 pid=0047 — ALAC-capable DAC with broken Clock Entity.
-         *  SET_CUR always returns Broken pipe (errno=32). System route. */
+         *  SET_CUR always returns Broken pipe (errno=32).
+         *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
         val VID2972_0047 = DacProfile(0x2972, 0x0047, "Unknown DAC (2972:0047)",
-            lacks44k1Clock = true, skipSetCur = true)
+            lacks44k1Clock = true, skipSetCur = true, tryBitPerfectApi = true)
 
         /** 2D13:A001 "USB HiFi Audio" — S32_LE wire, buggy SET_CUR.
          *  Hardware supports 44.1k but SET_CUR locks clock at 384k.
-         *  System route via Oboe for compatibility. */
+         *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
         val HIFI_A001 = DacProfile(0x2D13, 0xA001, "USB HiFi Audio (2D13:A001)",
-            skipSetCur = true)
+            skipSetCur = true, tryBitPerfectApi = true)
 
         /** Realtek USB2.0 Audio (0BDA:4BA6) — standard UAC2 with Clock Source descriptor.
-         *  SET_CUR works, both 44.1k and 48k families. System route. */
-        val REALTEK_4BA6 = DacProfile(0x0BDA, 0x4BA6, "Realtek USB2.0 Audio (0BDA:4BA6)")
+         *  SET_CUR works, both 44.1k and 48k families.
+         *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
+        val REALTEK_4BA6 = DacProfile(0x0BDA, 0x4BA6, "Realtek USB2.0 Audio (0BDA:4BA6)",
+            tryBitPerfectApi = true)
 
         // ── Lookup ─────────────────────────────────────────────
 

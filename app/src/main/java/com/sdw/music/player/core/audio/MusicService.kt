@@ -1297,16 +1297,46 @@ class MusicService : MediaSessionService() {
 
             val dacProfile = DacProfile.find(device.vendorId, device.productId)
 
-            // Path 2: unknown/problem DAC → Oboe system-route
+            // Path 2: unknown/problem DAC → Oboe system-route (with BIT_PERFECT API on Android 14+)
             if (dacProfile.useSystemRoute) {
                 DebugLog.add(TAG, "playSong[$index]: DAC ${dacProfile.name} → Oboe system-route")
-                UsbDacManager.dumpDacInfo(device, getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager)
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                UsbDacManager.dumpDacInfo(device, audioManager)
                 val srcRate = UsbDacManager.getSourceSampleRate(songs[index])
                 val is44k = srcRate in setOf(44100, 88200, 176400, 352800)
                 if (dacProfile.lacks44k1Clock && is44k) {
                     DebugLog.add(TAG, "playSong[$index]: ${dacProfile.name} lacks 44.1k clock, ExoPlayer SRC")
                     playSongFallbackExo(index, songs)
                     return
+                }
+                // [v6.2] Try BIT_PERFECT API (Android 14+) — tells framework to bypass
+                // mixer/SRC/DSP for this USB DAC, using kernel usb_quirks for tolerance
+                if (dacProfile.tryBitPerfectApi && android.os.Build.VERSION.SDK_INT >= 34) {
+                    try {
+                        val usbDevices = audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+                        val usbInfo = usbDevices.find {
+                            it.type == android.media.AudioDeviceInfo.TYPE_USB_HEADSET ||
+                            it.type == android.media.AudioDeviceInfo.TYPE_USB_DEVICE
+                        }
+                        if (usbInfo != null) {
+                            val af = android.media.AudioFormat.Builder()
+                                .setEncoding(android.media.AudioFormat.ENCODING_PCM_16BIT)
+                                .setChannelMask(android.media.AudioFormat.CHANNEL_OUT_STEREO)
+                                .setSampleRate(srcRate.coerceAtLeast(44100))
+                                .build()
+                            val audioAttrs = android.media.AudioAttributes.Builder()
+                                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                                .build()
+                            val attrs = android.media.AudioMixerAttributes.Builder(af).build()
+                            audioManager.setPreferredMixerAttributes(audioAttrs, usbInfo, attrs)
+                            DebugLog.add(TAG, "playSong[$index]: BIT_PERFECT API OK (${srcRate}Hz 16bit)")
+                        } else {
+                            DebugLog.add(TAG, "playSong[$index]: no USB AudioDeviceInfo for BIT_PERFECT, fallback Oboe")
+                        }
+                    } catch (e: Exception) {
+                        DebugLog.add(TAG, "playSong[$index]: BIT_PERFECT API failed: ${e.javaClass.simpleName}, fallback Oboe")
+                    }
                 }
                 // Route to Oboe system-path (no setDeviceId — Android auto-routes to USB)
                 getSharedPreferences("settings", MODE_PRIVATE).edit().putString("audio_output", "Oboe Exclusive").apply()
