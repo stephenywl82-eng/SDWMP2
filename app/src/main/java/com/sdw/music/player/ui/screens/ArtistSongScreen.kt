@@ -51,16 +51,16 @@ fun ArtistSongScreen(
                         Icon(Icons.AutoMirrored.Filled.PlaylistPlay, "Play All", tint = TextSecondary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = DarkBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // Cover Header
             Box(
                 modifier = Modifier.fillMaxWidth().height(200.dp)
-                    .background(Brush.verticalGradient(listOf(DarkBg, DarkCard)))
+                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.surface)))
             ) {
                 if (coverUri.isNotBlank()) {
                     AsyncImage(
@@ -72,7 +72,7 @@ fun ArtistSongScreen(
                 }
                 Box(
                     modifier = Modifier.fillMaxWidth().height(80.dp).align(Alignment.BottomCenter)
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, DarkBg)))
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.background)))
                 )
             }
 

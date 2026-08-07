@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.ui.screens
+package com.sdw.music.player.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*

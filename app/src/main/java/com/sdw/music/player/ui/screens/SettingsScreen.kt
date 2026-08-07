@@ -78,10 +78,10 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = DarkBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         // V3.3.10: 提升 DebugLog 读取到 LazyColumn 外部，避免滚动时重组
         val ktLog = remember { com.sdw.music.player.core.audio.DebugLog.get() }
@@ -117,10 +117,10 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                     .edit().putInt("min_duration", sec).apply()
                                 refreshTrigger++
                             },
-                            label = { Text("${sec}s", color = if (selected) DarkBg else TextPrimary) },
+                            label = { Text("${sec}s", color = if (selected) MaterialTheme.colorScheme.background else TextPrimary) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentPurple,
-                                containerColor = DarkCard
+                                containerColor = MaterialTheme.colorScheme.surface
                             )
                         )
                     }
@@ -155,10 +155,10 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                 refreshTrigger++
                                 android.widget.Toast.makeText(context, "Switched to $mode. Restart playback for best results.", android.widget.Toast.LENGTH_LONG).show()
                             },
-                            label = { Text(mode, color = if (selected) DarkBg else TextPrimary, fontSize = 12.sp) },
+                            label = { Text(mode, color = if (selected) MaterialTheme.colorScheme.background else TextPrimary, fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentPurple,
-                                containerColor = DarkCard
+                                containerColor = MaterialTheme.colorScheme.surface
                             )
                         )
                     }
@@ -186,10 +186,10 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                     .edit().putInt("mode", idx - 1).apply()
                                 refreshTrigger++
                             },
-                            label = { Text(label, color = if (selected) DarkBg else TextPrimary, fontSize = 12.sp) },
+                            label = { Text(label, color = if (selected) MaterialTheme.colorScheme.background else TextPrimary, fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentPurple,
-                                containerColor = DarkCard
+                                containerColor = MaterialTheme.colorScheme.surface
                             )
                         )
                     }
@@ -247,7 +247,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                             checkedThumbColor = Color.White,
                             checkedTrackColor = AccentPurple,
                             uncheckedThumbColor = Color.White,
-                            uncheckedTrackColor = DarkCard
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surface
                         )
                     )
                     Text(
@@ -449,10 +449,10 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                 idlePref.edit().putString("idle_level", level).apply()
                                 refreshTrigger++
                             },
-                            label = { Text(if (selected) level else level.take(4), color = if (selected) DarkBg else TextPrimary, fontSize = 11.sp, maxLines = 1) },
+                            label = { Text(if (selected) level else level.take(4), color = if (selected) MaterialTheme.colorScheme.background else TextPrimary, fontSize = 11.sp, maxLines = 1) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = AccentPurple,
-                                containerColor = DarkCard
+                                containerColor = MaterialTheme.colorScheme.surface
                             ),
                             modifier = Modifier.weight(1f)
                         )
@@ -515,11 +515,11 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                         refreshTrigger++
                                     },
                                     label = { 
-                                        Text(preset.name, color = if (selected) DarkBg else TextPrimary, fontSize = 11.sp, maxLines = 1)
+                                        Text(preset.name, color = if (selected) MaterialTheme.colorScheme.background else TextPrimary, fontSize = 11.sp, maxLines = 1)
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = AccentPurple,
-                                        containerColor = DarkCard
+                                        containerColor = MaterialTheme.colorScheme.surface
                                     ),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -610,7 +610,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 val nativeLogLen = remember(refreshTrigger) { (UsbDacManager.getNativeDebugLog() ?: "").length }
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkCard),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {

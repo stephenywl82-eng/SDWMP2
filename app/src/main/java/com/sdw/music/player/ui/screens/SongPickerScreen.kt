@@ -78,10 +78,10 @@ fun SongPickerScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = DarkBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // Search bar
@@ -99,8 +99,8 @@ fun SongPickerScreen(
                     focusedBorderColor = AccentPurple,
                     unfocusedBorderColor = TextTertiary.copy(alpha = 0.3f),
                     cursorColor = AccentPurple,
-                    focusedContainerColor = DarkCard,
-                    unfocusedContainerColor = DarkCard
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
                 ),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
@@ -147,8 +147,8 @@ fun SongPickerScreen(
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
                                     isSelected -> AccentPurple.copy(alpha = 0.15f)
-                                    isAlreadyIn -> DarkCard.copy(alpha = 0.5f)
-                                    else -> DarkCard
+                                    isAlreadyIn -> MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                                    else -> MaterialTheme.colorScheme.surface
                                 }
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -188,7 +188,7 @@ fun SongPickerScreen(
                                     modifier = Modifier
                                         .size(44.dp)
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(DarkSurface),
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     SubcomposeAsyncImage(
@@ -273,7 +273,7 @@ fun SongPickerScreen(
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            containerColor = DarkCard
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }

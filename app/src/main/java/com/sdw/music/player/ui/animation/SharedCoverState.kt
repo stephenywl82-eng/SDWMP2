@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.ui.animation
+package com.sdw.music.player.ui.animation
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

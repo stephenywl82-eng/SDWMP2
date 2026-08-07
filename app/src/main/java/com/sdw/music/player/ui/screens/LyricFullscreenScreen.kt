@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.ui.screens
+package com.sdw.music.player.ui.screens
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
@@ -221,7 +221,7 @@ fun LyricFullscreenScreen(
                     checkedThumbColor = accent,
                     checkedTrackColor = accent.copy(alpha = 0.3f),
                     uncheckedThumbColor = TextTertiary,
-                    uncheckedTrackColor = DarkSurface
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
                 modifier = Modifier.height(22.dp).padding(horizontal = 2.dp)
             )
@@ -275,7 +275,7 @@ fun LyricFullscreenScreen(
     if (showSourceSheet) {
         ModalBottomSheet(
             onDismissRequest = { showSourceSheet = false },
-            containerColor = DarkSurface,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
             tonalElevation = 0.dp
         ) {
             Spacer(Modifier.height(8.dp))
@@ -321,7 +321,7 @@ fun LyricFullscreenScreen(
             onDismissRequest = {
                 if (!isSaving) showEditDialog = false
             },
-            containerColor = DarkSurface,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Edit Lyrics", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
@@ -357,8 +357,8 @@ fun LyricFullscreenScreen(
                             focusedBorderColor = accent,
                             unfocusedBorderColor = TextTertiary.copy(alpha = 0.3f),
                             cursorColor = accent,
-                            focusedContainerColor = DarkBg,
-                            unfocusedContainerColor = DarkBg
+                            focusedContainerColor = MaterialTheme.colorScheme.background,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.background
                         ),
                         maxLines = 20
                     )
@@ -433,12 +433,12 @@ fun LyricFullscreenScreen(
                     if (isSaving) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            color = DarkBg,
+                            color = MaterialTheme.colorScheme.background,
                             strokeWidth = 2.dp
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text("Save", color = DarkBg)
+                    Text("Save", color = MaterialTheme.colorScheme.background)
                 }
             },
             dismissButton = {

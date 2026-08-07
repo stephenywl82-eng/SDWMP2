@@ -84,7 +84,7 @@ fun PlaylistDetailScreen(
                         Icon(Icons.Default.Add, "Add songs", tint = Color(0xFF8E6FD0))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         floatingActionButton = {
@@ -96,7 +96,7 @@ fun PlaylistDetailScreen(
                 Icon(Icons.Default.Add, "Add songs")
             }
         },
-        containerColor = DarkBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         if (songs.isEmpty()) {
             Box(
@@ -160,7 +160,7 @@ fun PlaylistDetailScreen(
                         ) {
                             // Album art
                             Box(
-                                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)).background(DarkSurface),
+                                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
                                 SubcomposeAsyncImage(
@@ -250,7 +250,7 @@ fun PlaylistDetailScreen(
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            containerColor = DarkCard
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }

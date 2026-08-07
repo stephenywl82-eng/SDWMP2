@@ -262,7 +262,7 @@ fun PlayerProgress(
                 colors = SliderDefaults.colors(
                     thumbColor = accentColor,
                     activeTrackColor = accentColor,
-                    inactiveTrackColor = DarkSurface
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                 ),
                 modifier = Modifier.fillMaxWidth().height(20.dp)
             )
@@ -312,7 +312,7 @@ fun PlayerControlBar(
             onClick = onPlayPause,
             modifier = Modifier.size(playButtonSize),
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = accentColor, contentColor = DarkBg
+                containerColor = accentColor, contentColor = MaterialTheme.colorScheme.background
             )
         ) {
             Icon(

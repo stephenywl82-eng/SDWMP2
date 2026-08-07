@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.ui.viewmodel
+package com.sdw.music.player.ui.viewmodel
 
 import android.app.Application
 import android.content.Context

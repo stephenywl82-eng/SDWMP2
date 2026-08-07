@@ -45,8 +45,11 @@ fun SDWMusicTheme(
     val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val context = LocalContext.current
         try {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        } catch (_: Exception) {
+            val dyn = if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            android.util.Log.d("SDWTheme", "Dynamic color OK: primary=${dyn.primary}")
+            dyn
+        } catch (e: Exception) {
+            android.util.Log.w("SDWTheme", "Dynamic color FAILED, fallback: ${e.message}")
             SDWDarkColorScheme
         }
     } else {
@@ -57,7 +60,10 @@ fun SDWMusicTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

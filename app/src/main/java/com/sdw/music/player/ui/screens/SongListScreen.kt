@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.ui.screens
+package com.sdw.music.player.ui.screens
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState

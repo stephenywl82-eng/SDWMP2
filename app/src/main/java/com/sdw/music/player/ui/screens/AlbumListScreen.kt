@@ -84,10 +84,10 @@ fun AlbumListScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = TextPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = DarkBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Row(Modifier.fillMaxSize().padding(padding)) {
             LazyVerticalGrid(
@@ -150,7 +150,7 @@ private fun AlbumGridItem(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp)).background(DarkCard)
+            .clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
     ) {
         Box(

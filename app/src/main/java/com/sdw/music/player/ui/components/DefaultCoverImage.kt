@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.ui.components
+package com.sdw.music.player.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

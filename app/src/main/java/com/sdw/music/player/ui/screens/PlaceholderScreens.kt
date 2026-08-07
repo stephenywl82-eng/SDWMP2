@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player.ui.screens
+package com.sdw.music.player.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -89,10 +89,10 @@ fun FolderListScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = DarkBg,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = {}
     ) { padding ->
         if (folders.isEmpty()) {
@@ -126,7 +126,7 @@ fun FolderListScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 4.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = DarkCard),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Row(
@@ -141,7 +141,7 @@ fun FolderListScreen(
                         ) {
                             if (folderAlbumArt.isNotBlank()) {
                                 Box(
-                                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)).background(DarkSurface),
+                                    modifier = Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     coil.compose.AsyncImage(
@@ -235,7 +235,7 @@ fun PlaylistListScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = TextPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         floatingActionButton = {
@@ -250,7 +250,7 @@ fun PlaylistListScreen(
                 Icon(Icons.Default.Add, "New Playlist")
             }
         },
-        containerColor = DarkBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         if (playlists.isEmpty()) {
             Box(
@@ -296,7 +296,7 @@ fun PlaylistListScreen(
                                 }
                             ),
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = DarkCard),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Row(
@@ -308,7 +308,7 @@ fun PlaylistListScreen(
                                     modifier = Modifier
                                         .size(48.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(DarkSurface),
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     coil.compose.AsyncImage(
@@ -400,7 +400,7 @@ fun PlaylistListScreen(
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            containerColor = DarkCard
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -431,7 +431,7 @@ fun PlaylistListScreen(
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            containerColor = DarkCard
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }
@@ -477,10 +477,10 @@ private fun FolderSongsView(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
-        containerColor = DarkBg
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         if (displayedSongs.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
