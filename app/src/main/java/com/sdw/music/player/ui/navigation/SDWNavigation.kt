@@ -99,18 +99,8 @@ fun SDWNavHost(
         ) {
             composable(
                 Screen.SongList.route,
-                exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it / 4 },
-                        animationSpec = tween(250)
-                    ) + fadeOut(tween(200))
-                },
-                popEnterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { -it / 4 },
-                        animationSpec = tween(250)
-                    ) + fadeIn(tween(200))
-                }
+                exitTransition = { fadeOut(tween(150)) },
+                popEnterTransition = { fadeIn(tween(200)) }
             ) {
                 // Root back: minimize only when SongList is current route
                 // (prevent intercepting back during navigation transitions)
@@ -171,7 +161,9 @@ fun SDWNavHost(
                         vm.handleIntent(PlayerIntent.SetRepeatMode(nextMode))
                     },
                     onToggleFavorite = { vm.handleIntent(PlayerIntent.ToggleFavorite) },
-                    onToggleEqualizer = { navController.navigate(Screen.Equalizer.route) },
+                    onToggleEqualizer = {
+                        navController.navigate(Screen.Equalizer.route)
+                    },
                     onShare = {
                         try {
                             val filePath = state.currentSongFilePath
@@ -207,30 +199,10 @@ fun SDWNavHost(
 
             composable(
                 Screen.Player.route,
-                enterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { it / 4 },
-                        animationSpec = tween(300)
-                    ) + fadeIn(tween(250))
-                },
-                exitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { it / 4 },
-                        animationSpec = tween(250)
-                    ) + fadeOut(tween(200))
-                },
-                popEnterTransition = {
-                    slideInHorizontally(
-                        initialOffsetX = { -it / 4 },
-                        animationSpec = tween(300)
-                    ) + fadeIn(tween(250))
-                },
-                popExitTransition = {
-                    slideOutHorizontally(
-                        targetOffsetX = { -it / 4 },
-                        animationSpec = tween(250)
-                    ) + fadeOut(tween(200))
-                }
+                enterTransition = { fadeIn(tween(200)) },
+                exitTransition = { fadeOut(tween(150)) },
+                popEnterTransition = { fadeIn(tween(200)) },
+                popExitTransition = { fadeOut(tween(150)) }
             ) {
                 val context = androidx.compose.ui.platform.LocalContext.current
 

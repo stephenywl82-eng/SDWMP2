@@ -97,7 +97,7 @@ fun LyricSearchScreen(
                                 }
                             }
                         ) {
-                            Text("Search", color = Color(0xFF8E6FD0))
+                            Text("Search", color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 },
@@ -106,9 +106,9 @@ fun LyricSearchScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    focusedBorderColor = Color(0xFF8E6FD0),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    cursorColor = Color(0xFF8E6FD0)
+                    cursorColor = MaterialTheme.colorScheme.primary
                 ),
                 shape = RoundedCornerShape(12.dp)
             )
@@ -116,7 +116,7 @@ fun LyricSearchScreen(
             when {
                 isLoading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Color(0xFF8E6FD0))
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 selectedResult != null -> {
@@ -243,7 +243,7 @@ private fun LyricDetailView(
                 TextButton(onClick = { showSynced = !showSynced }) {
                     Text(
                         if (showSynced) "Plain" else "Synced",
-                        color = Color(0xFF8E6FD0),
+                        color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelMedium
                     )
                 }

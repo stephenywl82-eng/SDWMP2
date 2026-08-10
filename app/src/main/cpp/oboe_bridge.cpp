@@ -1153,7 +1153,7 @@ static void ndkDecodeLoop() {
         bool hadWork = false;
 
         // Feed input
-        if (!inputEos) {
+        if (!inputEos && g_decoderCodec != nullptr) {
             ssize_t inputIndex = AMediaCodec_dequeueInputBuffer(g_decoderCodec, 5000);
             if (inputIndex >= 0) {
                 hadWork = true;
@@ -1177,6 +1177,7 @@ static void ndkDecodeLoop() {
         }
 
         // Drain output
+        if (!g_decoderCodec) continue;  // safety: codec was deleted by stop/open
         AMediaCodecBufferInfo info;
         ssize_t outputIndex = AMediaCodec_dequeueOutputBuffer(g_decoderCodec, &info, 5000);
         if (outputIndex >= 0) {
@@ -1351,13 +1352,18 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpen(JNIEnv *env, jobject thiz,
     g_decoderStopRequested.store(true);
     g_decoderPaused.store(false);
     g_decoderCv.notify_all();
+    // Stop codec FIRST to unblock pending dequeue calls, then join thread
+    if (g_decoderCodec) {
+        AMediaCodec_stop(g_decoderCodec);
+    }
     if (g_decoderThread.joinable()) g_decoderThread.join();
     std::lock_guard<std::mutex> lock(g_streamMutex);
 
     if (g_decoderCodec) {
-        AMediaCodec_stop(g_decoderCodec);
         AMediaCodec_delete(g_decoderCodec);
         g_decoderCodec = nullptr;
+        // MediaCodec looper destruction is async — let it release mActivityNotify
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     if (g_decoderExtractor) {
         AMediaExtractor_delete(g_decoderExtractor);
@@ -1656,6 +1662,10 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpenFd(JNIEnv *env, jobject thi
     g_decoderStopRequested.store(true);
     g_decoderPaused.store(false);
     g_decoderCv.notify_all();
+    // Stop codec FIRST to unblock pending dequeue calls, then join thread
+    if (g_decoderCodec) {
+        AMediaCodec_stop(g_decoderCodec);
+    }
     if (g_decoderThread.joinable()) g_decoderThread.join();
     std::lock_guard<std::mutex> lock(g_streamMutex);
     
@@ -1666,9 +1676,10 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpenFd(JNIEnv *env, jobject thi
     g_clipSampleCount.store(0);
 
     if (g_decoderCodec) {
-        AMediaCodec_stop(g_decoderCodec);
         AMediaCodec_delete(g_decoderCodec);
         g_decoderCodec = nullptr;
+        // MediaCodec looper destruction is async — let it release mActivityNotify
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     if (g_decoderExtractor) {
         AMediaExtractor_delete(g_decoderExtractor);
@@ -2018,6 +2029,10 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeStop(JNIEnv *env, jobject thiz)
     g_decoderStopRequested.store(true);
     g_decoderPaused.store(false);
     g_decoderCv.notify_all();
+    // Stop codec FIRST to unblock pending dequeueInputBuffer/OutputBuffer, then join
+    if (g_decoderCodec) {
+        AMediaCodec_stop(g_decoderCodec);
+    }
     if (g_decoderThread.joinable()) g_decoderThread.join();
     std::lock_guard<std::mutex> lock(g_streamMutex);
     if (g_outputStream) {
@@ -2027,9 +2042,10 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeStop(JNIEnv *env, jobject thiz)
     }
     g_isPlaying.store(false);
     if (g_decoderCodec) {
-        AMediaCodec_stop(g_decoderCodec);
         AMediaCodec_delete(g_decoderCodec);
         g_decoderCodec = nullptr;
+        // MediaCodec looper destruction is async — let it release mActivityNotify
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     if (g_decoderExtractor) {
         AMediaExtractor_delete(g_decoderExtractor);

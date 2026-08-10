@@ -195,9 +195,9 @@ class MusicService : MediaSessionService() {
 
     private fun refreshOboeModeCache() {
         val mode = getSharedPreferences("settings", MODE_PRIVATE)
-            .getString("audio_output", "Oboe Exclusive") ?: "Oboe Exclusive"
+            .getString("audio_output", "AAudio (Direct)") ?: "AAudio (Direct)"
         val loaded = OboeDirectPlayer.nativeLibLoaded
-        cachedOboeMode = (mode == "Oboe Exclusive" || mode == "Oboe") && loaded
+        cachedOboeMode = (mode == "Oboe Exclusive" || mode == "Oboe" || mode == "AAudio (Direct)") && loaded
         oboeModeCacheValid = true
     }
 
@@ -537,6 +537,7 @@ class MusicService : MediaSessionService() {
 
         /** ����(/) */
         @Volatile private var stoppedByIdlePolicy = false
+        @Volatile private var manualPause = false
 
         private fun notifyPlayStateChanged(isPlaying: Boolean) {
             // [v7.113] update last known state for widget query (handles Oboe JNI lag)
@@ -554,7 +555,7 @@ class MusicService : MediaSessionService() {
             // [v7.121] delay stop foreground when paused; cancel if resumed
             val inst = instance ?: return
             inst.stopDelayRunnable?.let { inst.handler.removeCallbacks(it) }
-            if (!isPlaying) {
+            if (!isPlaying && !manualPause) {
                 val r = Runnable {
                     val i = instance ?: return@Runnable
                     if (!i.isPlaying()) {
@@ -565,7 +566,7 @@ class MusicService : MediaSessionService() {
                     }
                 }
                 inst.stopDelayRunnable = r
-                val idleMs = when (inst.getSharedPreferences("sdw_music_prefs", MODE_PRIVATE).getString("idle_level", "Rare")) {
+                val idleMs = when (inst.getSharedPreferences("sdw_music_prefs", MODE_PRIVATE).getString("idle_level", "Frequent")) {
                     "Working Set" -> 1_800_000L  // 30 min
                     "Frequent" -> 300_000L       // 5 min
                     "Rare" -> 3_000L             // 3 sec
@@ -787,7 +788,7 @@ class MusicService : MediaSessionService() {
 
         // 
         val audioOutputMode = getSharedPreferences("settings", MODE_PRIVATE)
-            .getString("audio_output", "Oboe Exclusive") ?: "Oboe Exclusive"
+            .getString("audio_output", "AAudio (Direct)") ?: "AAudio (Direct)"
 
         // 
         val loadControl = when (audioOutputMode) {
@@ -858,6 +859,7 @@ class MusicService : MediaSessionService() {
             }
             override fun pause() {
                 try {
+                    manualPause = true
                     if (usbDacController != null) {
                         usbDacController?.pause()
                         notifyPlayStateChanged(false)
@@ -865,9 +867,8 @@ class MusicService : MediaSessionService() {
                         Log.d(TAG, "ForwardingPlayer.pause �� USB DAC")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
                         oboePausePosMs = oboeDirectPlayer?.getCurrentPositionMs() ?: 0L
-                        oboeDirectPlayer?.stop()
+                        oboeDirectPlayer?.pause()
                         oboePlayWhenReady = false
-                        exoPlayer?.playWhenReady = false
                         notifyPlayStateChanged(false)
                         updateNotification()
                     } else {
@@ -952,12 +953,12 @@ class MusicService : MediaSessionService() {
             override fun setPlayWhenReady(playWhenReady: Boolean) {
                 if (usbDacController != null) {
                     if (playWhenReady) usbDacController?.resume() else usbDacController?.pause()
+                    notifyPlayStateChanged(playWhenReady)
+                    updateNotification()
                     return
                 }
                 if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    if (playWhenReady) oboeDirectPlayer?.resume() else { oboePausePosMs = oboeDirectPlayer?.getCurrentPositionMs() ?: 0L; oboeDirectPlayer?.stop() }
-                    oboePlayWhenReady = playWhenReady
-                    // exoPlayer.playWhenReady intentionally NOT synced — Oboe handles audio directly
+                    if (playWhenReady) this@MusicService.resume() else this@MusicService.pause()
                     return
                 }
                 super.setPlayWhenReady(playWhenReady)
@@ -1454,104 +1455,11 @@ class MusicService : MediaSessionService() {
         }
 
         // 
-        val oboeMode = isOboeDirectMode()
-        Log.d(TAG, "playSong: checking Oboe mode, isOboeDirectMode=$oboeMode, oboeFailureCount=$oboeFailureCount")
-        oboeFlowTrace = if (oboeMode) "0?? Oboe?? (failures=$oboeFailureCount)" else "0?? ExoPlayer?? (audio_output=${getSharedPreferences("settings", MODE_PRIVATE).getString("audio_output", "?")}, libLoaded=${OboeDirectPlayer.nativeLibLoaded}, failures=$oboeFailureCount)"
-        if (oboeMode) {
-            playSongOboeDirect(index, songs)
-            // notification refresh is deferred to handler.post after replaceMediaItem in Oboe success handler
-            // 
-            notifySongChanged(songs[index])
-            return  // 
-                    // replaceMediaItemcurrentSong
-        }
-
-        val song = songs[index]
-        Log.d(TAG, "playSong: switching to ${song.title} (id=${song.id})")
-
-        // 
-        // 1:Playlists ??  seekTo ,1��?
-        // 2:Playlists(?��?Folders/��?)?? ��?
-        mediaSession?.player?.let { player ->
-            val existingPlaylistSize = player.mediaItemCount
-            val isSamePlaylist = existingPlaylistSize == songs.size
-
-            if (isSamePlaylist && player.playbackState != Player.STATE_IDLE) {
-                // 1����?: seekTo, MediaItem
-                //  clearMediaItems() + setMediaItems ��? ExoPlayer 
-                Log.d(TAG, "playSong: same playlist, seeking to index=$index")
-                player.seekTo(index, 0)
-                player.playWhenReady = true  // 
-                currentSong = song
-                currentIndex = index
-                notifySongChanged(song)
-                updateNotification()
-
-                // 
-                handler.postDelayed({
-                    tryInitEqualizerFallback()
-                }, 300)
-            } else {
-                // 2??Playlists?��: MediaItem ?��?
-                val mediaItems = songs.map { s ->
-                    val artworkUri = if (s.albumArtUri.isNotEmpty()) {
-                        android.net.Uri.parse(s.albumArtUri)
-                    } else null
-                    val displayArtist = if (s.artist.isNullOrBlank() || s.artist == "Unknown Artist") {
-                        "Moto Music"
-                    } else { s.artist }
-                    val displayAlbum = if (s.album.isNullOrBlank() || s.album == "Unknown Album") {
-                        playlistSource
-                    } else { s.album }
-
-                    MediaItem.Builder()
-                        .setUri(android.net.Uri.parse(s.path))
-                        .setMimeType(getMimeType(s.format))  // 
-                        .setMediaMetadata(
-                            MediaMetadata.Builder()
-                                .setTitle(s.title)
-                                .setArtist(displayArtist)
-                                .setAlbumTitle(displayAlbum)
-                                .setArtworkUri(artworkUri)
-                                .setExtras(android.os.Bundle().apply {
-                                    putString("MEDIA_ID_CUSTOM", s.id.toString())
-                                })
-                                .build()
-                        )
-                        .build()
-                }
-                player.clearMediaItems()
-                player.setMediaItems(mediaItems, index, 0L)
-                player.prepare()
-                player.playWhenReady = true
-                currentSong = song
-                currentIndex = index
-                notifySongChanged(song)
-                updateNotification()
-                Log.d(TAG, "playSong: new playlist set (${songs.size} songs), playing ${song.title}")
-
-                // 
-                handler.postDelayed({
-                    tryInitEqualizerFallback()
-                }, 300)
-            }
-
-            // Reset mute state when starting new song
-            volumeGuard.resetMuteState()
-
-            //  Visualizer FFT
-            handler.postDelayed({
-                if (fftCallback != null && !visualizerManager.isReady()) { visualizerManager.setup() }
-            }, 500)
-        }
+        // Always Oboe/AAudio Direct - no ExoPlayer fallback
+        playSongOboeDirect(index, songs)
+        notifySongChanged(songs[index])
     }
 
-    /**
-     * ??Steven  song.id ,
-     *
-     * �� servicePlaylist  ID ,
-     * ����
-     */
     fun playSongById(songId: Long, allSongs: List<Song>) {
         val songs = servicePlaylist.ifEmpty { allSongs }
 
@@ -1969,15 +1877,15 @@ class MusicService : MediaSessionService() {
 
     fun pause() {
         try {
+            manualPause = true
             Log.d(TAG, "pause() called, usbDacController=${usbDacController != null}")
             if (usbDacController != null) {
                 usbDacController?.pause()
                 notifyPlayStateChanged(false)
             } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
                 oboePausePosMs = oboeDirectPlayer?.getCurrentPositionMs() ?: 0L
-                oboeDirectPlayer?.stop()
+                oboeDirectPlayer?.pause()
                 oboePlayWhenReady = false
-                exoPlayer?.playWhenReady = false
                 notifyPlayStateChanged(false)
                 mediaSession?.player?.pause()
                 // ExoPlayer ?? onIsPlayingChanged  UI
@@ -1993,6 +1901,7 @@ class MusicService : MediaSessionService() {
 
     fun resume() {
         try {
+            manualPause = false
             requestAudioFocusIfNeeded(this)
             if (usbDacController != null) {
                 usbDacController?.resume()
@@ -2341,6 +2250,24 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             // ��V3.2.8��ɾ���ֶ� addAction��Android 13+ ϵͳý�忨Ƭ�Զ��� MediaSession
             // ���ɰ�ť���ֶ� action �������½��ظ���ʾ����/��һ����
 
+        // [V10] Shuffle + Close notification actions (shown in collapsed view)
+        val shufflePendingIntent = PendingIntent.getService(
+            this, 4, Intent(this, MusicService::class.java).apply { action = "com.sdw.music.player.ACTION_SHUFFLE" }, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val closePendingIntent = PendingIntent.getService(
+            this, 5, Intent(this, MusicService::class.java).apply { action = "ACTION_CLOSE" }, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        notificationBuilder.addAction(
+            if (isShuffleMode) R.drawable.ic_shuffle_on else R.drawable.ic_shuffle,
+            if (isShuffleMode) "Shuffle ON" else "Shuffle",
+            shufflePendingIntent
+        )
+        notificationBuilder.addAction(
+            android.R.drawable.ic_menu_close_clear_cancel,
+            "Close",
+            closePendingIntent
+        )
+
         @Suppress("DEPRECATION")
         notificationBuilder.setStyle(
                 MediaStyle()
@@ -2515,6 +2442,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             }
             override fun pause() {
                 try {
+                    manualPause = true
                     if (usbDacController != null) {
                         usbDacController?.pause()
                         notifyPlayStateChanged(false)  // [V4.0.2] trigger idle timer for standby policy
@@ -2522,9 +2450,8 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                         Log.d(TAG, "ForwardingPlayer(new).pause �� USB DAC")
                     } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
                         oboePausePosMs = oboeDirectPlayer?.getCurrentPositionMs() ?: 0L
-                        oboeDirectPlayer?.stop()
+                        oboeDirectPlayer?.pause()
                         oboePlayWhenReady = false
-                        exoPlayer?.playWhenReady = false
                         notifyPlayStateChanged(false)
                         updateNotification()
                         super.pause()
@@ -2608,12 +2535,12 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             override fun setPlayWhenReady(playWhenReady: Boolean) {
                 if (usbDacController != null) {
                     if (playWhenReady) usbDacController?.resume() else usbDacController?.pause()
+                    notifyPlayStateChanged(playWhenReady)
+                    updateNotification()
                     return
                 }
                 if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    if (playWhenReady) oboeDirectPlayer?.resume() else { oboePausePosMs = oboeDirectPlayer?.getCurrentPositionMs() ?: 0L; oboeDirectPlayer?.stop() }
-                    oboePlayWhenReady = playWhenReady
-                    // exoPlayer.playWhenReady intentionally NOT synced — Oboe handles audio directly
+                    if (playWhenReady) this@MusicService.resume() else this@MusicService.pause()
                     return
                 }
                 super.setPlayWhenReady(playWhenReady)
@@ -2988,7 +2915,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             }
             if (mappedLevel != null) {
                 val prefs = getSharedPreferences("sdw_music_prefs", MODE_PRIVATE)
-                val current = prefs.getString("idle_level", "Rare") ?: "Rare"
+                val current = prefs.getString("idle_level", "Frequent") ?: "Frequent"
                 if (current != mappedLevel) {
                     prefs.edit().putString("idle_level", mappedLevel).apply()
                     Log.d(TAG, "Auto-set idle_level to $mappedLevel (system bucket=$bucket)")

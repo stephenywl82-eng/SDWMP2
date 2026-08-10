@@ -1,6 +1,7 @@
 package com.sdw.music.player.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -61,7 +62,7 @@ fun DefaultCoverImage(
     contentScale: ContentScale = ContentScale.Crop,
     overlayAlpha: Float = 0.25f
 ) {
-    val tintColor = rememberCoverColor(songTitle, songArtist)
+    val tintColor = MaterialTheme.colorScheme.primary
 
     Box(modifier = modifier) {
         // Dark background so lines are legible against light overlays
@@ -69,7 +70,7 @@ fun DefaultCoverImage(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(shape)
-                .background(Color(0xFF1A1A1A))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
         )
         // Logo in black lines
         Image(

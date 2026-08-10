@@ -13,18 +13,10 @@ NDKDecoder::~NDKDecoder() {
 }
 
 bool NDKDecoder::open(const char* filePath) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    // Stop any running decode thread first (joins thread, safely deletes codec)
+    stop();
 
-    // Clean up previous state
-    if (codec_) {
-        AMediaCodec_stop(codec_);
-        AMediaCodec_delete(codec_);
-        codec_ = nullptr;
-    }
-    if (extractor_) {
-        AMediaExtractor_delete(extractor_);
-        extractor_ = nullptr;
-    }
+    std::lock_guard<std::mutex> lock(mutex_);
 
     eos_.store(false);
     currentPositionUs_.store(0);

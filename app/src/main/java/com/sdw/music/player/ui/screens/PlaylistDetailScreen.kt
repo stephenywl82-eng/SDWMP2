@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,9 +26,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
 import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.sdw.music.player.Playlist
 import com.sdw.music.player.PlaylistManager
 import com.sdw.music.player.ui.components.DefaultCoverImage
@@ -81,7 +81,7 @@ fun PlaylistDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = onAddSongs) {
-                        Icon(Icons.Default.Add, "Add songs", tint = Color(0xFF8E6FD0))
+                        Icon(Icons.Default.Add, "Add songs", tint = MaterialTheme.colorScheme.primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -90,7 +90,7 @@ fun PlaylistDetailScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddSongs,
-                containerColor = Color(0xFF8E6FD0),
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White
             ) {
                 Icon(Icons.Default.Add, "Add songs")
@@ -128,11 +128,11 @@ fun PlaylistDetailScreen(
                         Icon(
                             Icons.Default.PlayArrow,
                             "Play all",
-                            tint = Color(0xFF8E6FD0),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Play all (${songs.size})", color = Color(0xFF8E6FD0), style = MaterialTheme.typography.bodyLarge)
+                        Text("Play all (${songs.size})", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyLarge)
                     }
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
@@ -163,23 +163,25 @@ fun PlaylistDetailScreen(
                                 modifier = Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
-                                SubcomposeAsyncImage(
+                                val imgPainter = rememberAsyncImagePainter(
                                     model = song.albumArtUri,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
-                                ) {
-                                    val imgState = painter.state
-                                    if (imgState is AsyncImagePainter.State.Loading || imgState is AsyncImagePainter.State.Error) {
-                                        DefaultCoverImage(
-                                            songTitle = song.title,
-                                            songArtist = song.artist,
-                                            modifier = Modifier.fillMaxSize(),
-                                            shape = RoundedCornerShape(6.dp)
-                                        )
-                                    } else {
-                                        SubcomposeAsyncImageContent()
-                                    }
+                                )
+                                val imgState = imgPainter.state
+                                if (imgState is AsyncImagePainter.State.Loading || imgState is AsyncImagePainter.State.Error) {
+                                    DefaultCoverImage(
+                                        songTitle = song.title,
+                                        songArtist = song.artist,
+                                        modifier = Modifier.fillMaxSize(),
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
+                                } else {
+                                    Image(
+                                        painter = imgPainter,
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
                                 }
                             }
 

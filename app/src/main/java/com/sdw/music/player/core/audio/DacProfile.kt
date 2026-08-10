@@ -56,28 +56,28 @@ data class DacProfile(
             useSystemRoute = false)
 
         /** TTGK Note (pid=201D) — gimped UAC2. Only 48k-family, no Clock Source descriptor.
-         *  SET_CUR returns success but chip crystal is 24.576 MHz only.
-         *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
+         *  SET_CUR returns code 4 (not success) but chip crystal is 24.576 MHz and
+         *  clock source still auto-syncs — Salt Player confirmed working via endpoint
+         *  fallback with clockVerified=false.  Hand-rolled USB Host Exclusive. */
         val TTGK_NOTE = DacProfile(0x3302, 0x201D, "TTGK Note",
-            lacks44k1Clock = true, tryBitPerfectApi = true)
+            useSystemRoute = false, lacks44k1Clock = true, skipSetCur = true)
 
         /** vid=2972 pid=0047 — ALAC-capable DAC with broken Clock Entity.
          *  SET_CUR always returns Broken pipe (errno=32).
          *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
         val VID2972_0047 = DacProfile(0x2972, 0x0047, "Unknown DAC (2972:0047)",
-            lacks44k1Clock = true, skipSetCur = true, tryBitPerfectApi = true)
+            useSystemRoute = false, lacks44k1Clock = true, skipSetCur = true)
 
         /** 2D13:A001 "USB HiFi Audio" — S32_LE wire, buggy SET_CUR.
          *  Hardware supports 44.1k but SET_CUR locks clock at 384k.
-         *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
+         *  Hand-rolled USB Host Exclusive with skipSetCur = alt-switch implicit lock. */
         val HIFI_A001 = DacProfile(0x2D13, 0xA001, "USB HiFi Audio (2D13:A001)",
-            skipSetCur = true, tryBitPerfectApi = true)
+            useSystemRoute = false, skipSetCur = true, wireBits = 32)
 
-        /** Realtek USB2.0 Audio (0BDA:4BA6) — standard UAC2 with Clock Source descriptor.
-         *  SET_CUR works, both 44.1k and 48k families.
-         *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
+        /** Realtek USB2.0 Audio (0BDA:4BA6) — UAC1 standard, 3 alt settings (mps 248/372/496).
+         *  48kHz-family only. Hand-rolled USB Host Exclusive with transport-level fallback. */
         val REALTEK_4BA6 = DacProfile(0x0BDA, 0x4BA6, "Realtek USB2.0 Audio (0BDA:4BA6)",
-            tryBitPerfectApi = true)
+            useSystemRoute = false, lacks44k1Clock = true)
 
         // ── Lookup ─────────────────────────────────────────────
 

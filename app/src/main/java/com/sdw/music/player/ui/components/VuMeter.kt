@@ -15,9 +15,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 enum class VuMeterStyle(val label: String) {
-    SPECTRUM("CDJ Spectrum"),
     ANALOG_NEEDLE("Analog"),
-    NEON_BAR("Neon Bar"),
     MIXER("Mixer")
 }
 
@@ -59,46 +57,19 @@ private fun jittered(v: Float, barIndex: Int, totalBars: Int, frameSeed: Long): 
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ① CDJ SPECTRUM
-// ═══════════════════════════════════════════════════════════════════
-@Composable
-private fun VuSpectrum(sub: Float, bass: Float, mid: Float, high: Float,
-                       isActive: Boolean, modifier: Modifier) {
-    val smooth = remember { Array(24) { Smooth(0.35f) } }
-    val idleInf = rememberInfiniteTransition(label = "vus")
-    val idle by idleInf.animateFloat(0.06f, 0.22f, infiniteRepeatable(tween(1800)), label = "vus")
-    val frame = remember { longArrayOf(0L) }
-
-    Canvas(modifier = modifier.fillMaxWidth().height(40.dp)) {
-        frame[0]++
-        val w = size.width; val h = size.height
-        val gap = 2.5.dp.toPx(); val barW = (w - gap * 23) / 24f
-        val maxH = h * 0.40f; val cy = h / 2f; val cr = (barW * 0.4f).coerceAtMost(3.dp.toPx())
-        var band = 0
-        for (i in 0 until 24) {
-            if (i == 6) band = 1 else if (i == 14) band = 2 else if (i == 20) band = 3
-            val raw = when (band) { 0 -> sub; 1 -> bass; 2 -> mid; else -> high }
-            val target = if (isActive) jittered(raw, i, 24, frame[0]) else idle
-            val v = smooth[i].update(target)
-            val x = i * (barW + gap); val c = barColor(v)
-            val uh = (v * maxH).coerceAtLeast(1.5f)
-            drawRoundRect(c, Offset(x, cy - uh), Size(barW, uh), CornerRadius(cr, cr))
-            drawRoundRect(c.copy(alpha = 0.75f), Offset(x, cy), Size(barW, uh * 0.9f), CornerRadius(cr, cr))
-        }
-        drawLine(Color.White.copy(alpha = 0.07f), Offset(0f, cy), Offset(w, cy), 0.5.dp.toPx())
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
 // ② ANALOG NEEDLES — rotated 180°, gap at bottom, arc sweeps upward
 // Pointer sits at bottom, empty zone at foot avoids progress bar overlap
 @Composable
 private fun VuAnalogNeedles(sub: Float, bass: Float, mid: Float, high: Float,
-                            isActive: Boolean, modifier: Modifier) {
+                            isActive: Boolean, modifier: Modifier, accentColor: Color) {
     val smooth = remember { Smooth(0.3f) }
     val lowAvg = smooth.update((sub + bass) * 0.5f)
     val highAvg = smooth.update((mid + high) * 0.5f)
-    val warm = Color(0xFFFFA726)
+    val warm = accentColor
+
+    // Theme-derived bezel colors from accent
+    val bezelOuter = accentColor.copy(alpha = 0.08f)
+    val bezelInner = accentColor.copy(alpha = 0.04f)
 
     @Composable
     fun drawMeter(level: Float, label: String, modifier: Modifier) {
@@ -110,12 +81,12 @@ private fun VuAnalogNeedles(sub: Float, bass: Float, mid: Float, high: Float,
         Canvas(modifier = modifier) {
             val w = size.width; val h = size.height
             // Full-face bezel
-            drawRoundRect(Color(0xFF111118), Offset.Zero, Size(w, h), CornerRadius(8.dp.toPx()))
-            drawRoundRect(Color(0xFF0A0A0F), Offset(2.dp.toPx(), 2.dp.toPx()),
+            drawRoundRect(bezelOuter, Offset.Zero, Size(w, h), CornerRadius(8.dp.toPx()))
+            drawRoundRect(bezelInner, Offset(2.dp.toPx(), 2.dp.toPx()),
                 Size(w - 4.dp.toPx(), h - 4.dp.toPx()), CornerRadius(6.dp.toPx()))
             // Pivot at upper area, gap at bottom
             val cx = w / 2f
-            val cy = h * 0.62f
+            val cy = h * 0.58f
             val rOuter = minOf(w * 0.38f, h * 0.40f)
             val rInner = rOuter * 0.72f
             val rLabel = rOuter * 1.18f
@@ -167,43 +138,6 @@ private fun VuAnalogNeedles(sub: Float, bass: Float, mid: Float, high: Float,
         horizontalArrangement = Arrangement.SpaceEvenly) {
         drawMeter(lowAvg, "LOW", Modifier.weight(1f).fillMaxHeight().padding(horizontal = 4.dp))
         drawMeter(highAvg, "HIGH", Modifier.weight(1f).fillMaxHeight().padding(horizontal = 4.dp))
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// ③ NEON BAR
-@Composable
-private fun VuNeonBar(sub: Float, bass: Float, mid: Float, high: Float,
-                      isActive: Boolean, modifier: Modifier) {
-    val smooth = remember { Array(28) { Smooth(0.3f) } }
-    val idleInf = rememberInfiniteTransition(label = "vun")
-    val idle by idleInf.animateFloat(0.06f, 0.20f, infiniteRepeatable(tween(1700)), label = "vun")
-    val frame = remember { longArrayOf(0L) }
-    Canvas(modifier = modifier.fillMaxWidth().height(14.dp)) {
-        frame[0]++
-        val w = size.width; val h = size.height
-        val segW = w / 28f
-        var band = 0
-        for (i in 0 until 28) {
-            if (i == 7) band = 1 else if (i == 17) band = 2 else if (i == 23) band = 3
-            val raw = when (band) { 0 -> sub; 1 -> bass; 2 -> mid; else -> high }
-            val target = if (isActive) jittered(raw, i, 28, frame[0]) else idle * 0.15f
-            val v = smooth[i].update(target)
-            val c = Color(
-                red   = (v * 2.2f).coerceIn(0f, 1f),
-                green = (0.65f - v * 0.5f).coerceIn(0f, 1f),
-                blue  = (0.92f - v * 0.7f).coerceIn(0f, 1f),
-                alpha = (0.35f + v * 0.65f).coerceIn(0f, 1f)
-            )
-            val segH = (h * 0.3f + v * h * 0.7f).coerceAtLeast(1.5f)
-            drawRoundRect(c, Offset(i * segW, (h - segH) / 2f),
-                          Size(segW - 1.dp.toPx(), segH), CornerRadius(1.5.dp.toPx()))
-        }
-        val gh = 3.dp.toPx()
-        drawLine(Brush.horizontalGradient(listOf(
-            Color(0x0000E5FF), Color(0x8800E5FF), Color(0xFFE040FB),
-            Color(0x8800E5FF), Color(0x0000E5FF)
-        )), Offset(0f, h / 2f - gh / 2f), Offset(w, h / 2f - gh / 2f), gh)
     }
 }
 
@@ -295,13 +229,11 @@ fun VuMeter(
     sub: Float = 0f, bass: Float = 0f, mid: Float = 0f, high: Float = 0f, rms: Float = 0f,
     isActive: Boolean,
     modifier: Modifier = Modifier,
-    style: VuMeterStyle = VuMeterStyle.SPECTRUM,
+    style: VuMeterStyle = VuMeterStyle.MIXER,
     accentColor: Color = Color(0xFFFFA726)
 ) {
     when (style) {
-        VuMeterStyle.SPECTRUM      -> VuSpectrum(sub, bass, mid, high, isActive, modifier)
-        VuMeterStyle.ANALOG_NEEDLE -> VuAnalogNeedles(sub, bass, mid, high, isActive, modifier)
-        VuMeterStyle.NEON_BAR      -> VuNeonBar(sub, bass, mid, high, isActive, modifier)
+        VuMeterStyle.ANALOG_NEEDLE -> VuAnalogNeedles(sub, bass, mid, high, isActive, modifier, accentColor)
         VuMeterStyle.MIXER         -> VuMixer(sub, bass, mid, high, isActive, accentColor, modifier)
     }
 }

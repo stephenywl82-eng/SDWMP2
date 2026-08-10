@@ -65,7 +65,7 @@ data class PlayerState(
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
     val dspMode: Int = -1,
     val showEqSheet: Boolean = false,
-    val accentColor: Long = 0xFF8E6FD0,
+    val accentColor: Long = 0L,  // 0 = no cover color, PlayerScreen falls back to system primary
     val coverColors: IntArray = intArrayOf(),  // 5色 for Edge灯
     val songCount: Int = 0,
     val songList: List<Song> = emptyList(),

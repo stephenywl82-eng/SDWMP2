@@ -220,8 +220,8 @@ fun LyricFullscreenScreen(
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = accent,
                     checkedTrackColor = accent.copy(alpha = 0.3f),
-                    uncheckedThumbColor = MaterialTheme.colorScheme.outlineVariant,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    uncheckedThumbColor = Color.White.copy(alpha = 0.6f),
+                    uncheckedTrackColor = Color.White.copy(alpha = 0.15f)
                 ),
                 modifier = Modifier.height(22.dp).padding(horizontal = 2.dp)
             )

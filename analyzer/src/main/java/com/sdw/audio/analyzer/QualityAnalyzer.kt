@@ -244,23 +244,23 @@ class QualityAnalyzer {
         flatness: Float, info: AudioFileInfo, pcm: AudioDecoder.PcmResult
     ): List<String> {
         val tags = mutableListOf<String>()
-        if (info.isLossless) tags.add("无损")
+        if (info.isLossless) tags.add("Lossless")
         if (pcm.codecName == "FLAC" && pcm.bitDepth >= 24) tags.add("24bit Hi-Res")
         if (pcm.sampleRate >= 96000) tags.add("${pcm.sampleRate / 1000}kHz Hi-Res")
-        if (cutoffHz >= 20000f) tags.add("全频段")
-        else if (cutoffHz in 16000f..19999f) tags.add("高频充足")
-        else if (cutoffHz > 0f && cutoffHz < 14000f) tags.add("高频截断(<14kHz)")
-        if (dynamicDb >= 15f) tags.add("高动态范围")
-        else if (dynamicDb < 6f) tags.add("动态压缩")
-        if (clippedRatio > 0.05f) tags.add("严重削波")
-        else if (clippedRatio > 0.01f) tags.add("轻微削波")
-        if (flatness > 0.7f) tags.add("频谱平坦(疑似MP3)")
-        if (pcm.codecName == "MP3") tags.add("MP3编码")
-        if (pcm.codecName == "AAC") tags.add("AAC编码")
+        if (cutoffHz >= 20000f) tags.add("Full Spectrum")
+        else if (cutoffHz in 16000f..19999f) tags.add("Good HF")
+        else if (cutoffHz > 0f && cutoffHz < 14000f) tags.add("HF Cutoff (<14kHz)")
+        if (dynamicDb >= 15f) tags.add("High Dynamic")
+        else if (dynamicDb < 6f) tags.add("Compressed")
+        if (clippedRatio > 0.05f) tags.add("Heavy Clipping")
+        else if (clippedRatio > 0.01f) tags.add("Light Clipping")
+        if (flatness > 0.7f) tags.add("Flat Spectrum (Mp3?)")
+        if (pcm.codecName == "MP3") tags.add("MP3 Encoded")
+        if (pcm.codecName == "AAC") tags.add("AAC Encoded")
         // Composite fake-lossless detection (multi-signal, avoids false positives)
         val ext = info.filePath.substringAfterLast('.', "").lowercase()
         if (detectFakeLossless(cutoffHz, flatness, pcm.codecName, pcm.sampleRate, ext)) {
-            tags.add(0, "⚠️ 疑似假无损") // prepend so it shows first
+            tags.add(0, "⚠️ Suspect Fake Lossless") // prepend so it shows first
         }
         return tags
     }

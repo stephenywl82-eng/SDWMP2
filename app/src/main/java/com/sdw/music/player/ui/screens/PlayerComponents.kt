@@ -37,8 +37,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.foundation.Image
@@ -47,6 +45,7 @@ import com.sdw.music.player.ui.animation.CoverPosition
 import com.sdw.music.player.ui.animation.SharedCoverState
 import com.sdw.music.player.ui.components.DefaultCoverImage
 import com.sdw.music.player.ui.theme.*
+import kotlinx.coroutines.delay
 import kotlin.math.exp
 
 // ============================================================================
@@ -147,36 +146,35 @@ fun PlayerCoverArt(
                 DefaultCoverImage(songTitle, songArtist, Modifier.size(sizeDp))
             }
         } else {
-            SubcomposeAsyncImage(
-                model = artUri,
-                contentDescription = "Album Art",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(sizeDp)
-                    .clip(CircleShape)
-                    .then(
-                        if (onCoverPositioned != null) {
-                            Modifier.onGloballyPositioned { coords ->
-                                onCoverPositioned(
-                                    Offset(coords.positionInWindow().x, coords.positionInWindow().y),
-                                    Size(coords.size.width.toFloat(), coords.size.height.toFloat())
-                                )
-                            }
-                        } else Modifier
-                    )
-                    .then(if (isPlaying) Modifier.rotate(rotation) else Modifier)
-                    .graphicsLayer { alpha = animatedAlpha },
-                loading = {
-                    Box(modifier = Modifier.size(sizeDp), contentAlignment = Alignment.Center) {
-                        DefaultCoverImage(songTitle, songArtist, Modifier.size(sizeDp))
-                    }
-                },
-                error = {
-                    Box(modifier = Modifier.size(sizeDp), contentAlignment = Alignment.Center) {
-                        DefaultCoverImage(songTitle, songArtist, Modifier.size(sizeDp))
-                    }
-                }
-            )
+            // Stack: DefaultCoverImage behind, actual cover on top.
+            // If image fails to load, default shows through.
+            Box(modifier = Modifier.size(sizeDp), contentAlignment = Alignment.Center) {
+                DefaultCoverImage(songTitle, songArtist, Modifier.size(sizeDp))
+                val coverPainter = rememberAsyncImagePainter(
+                    model = artUri,
+                    contentScale = ContentScale.Crop
+                )
+                Image(
+                    painter = coverPainter,
+                    contentDescription = "Album Art",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(sizeDp)
+                        .clip(CircleShape)
+                        .then(
+                            if (onCoverPositioned != null) {
+                                Modifier.onGloballyPositioned { coords ->
+                                    onCoverPositioned(
+                                        Offset(coords.positionInWindow().x, coords.positionInWindow().y),
+                                        Size(coords.size.width.toFloat(), coords.size.height.toFloat())
+                                    )
+                                }
+                            } else Modifier
+                        )
+                        .then(if (isPlaying) Modifier.rotate(rotation) else Modifier)
+                        .graphicsLayer { alpha = animatedAlpha }
+                )
+            }
         }
     }
 }
@@ -204,14 +202,14 @@ fun PlayerSongInfo(
         if (format.isNotEmpty()) {
             Surface(
                 modifier = Modifier.padding(start = 8.dp),
-                color = AccentBlue.copy(alpha = 0.15f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(4.dp)
             ) {
                 Text(
                     format.uppercase(),
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = AccentBlue
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -254,11 +252,28 @@ fun PlayerProgress(
     onSeekTo: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var sliderValue by remember { mutableFloatStateOf(progressFraction) }
+    var isDragging by remember { mutableStateOf(false) }
+
+    // Sync external progress into slider when not dragging
+    LaunchedEffect(progressFraction) {
+        if (!isDragging) {
+            sliderValue = progressFraction.coerceIn(0f, 1f)
+        }
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         if (durationMs > 0) {
             Slider(
-                value = progressFraction.coerceIn(0f, 1f),
-                onValueChange = onSeekTo,
+                value = sliderValue,
+                onValueChange = {
+                    isDragging = true
+                    sliderValue = it
+                },
+                onValueChangeFinished = {
+                    onSeekTo(sliderValue)
+                    isDragging = false
+                },
                 colors = SliderDefaults.colors(
                     thumbColor = accentColor,
                     activeTrackColor = accentColor,
@@ -346,6 +361,7 @@ fun PlayerBottomActions(
     onShare: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // EQ always active - Oboe native DSP supports full EQ
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceEvenly
@@ -550,7 +566,7 @@ fun QueueSheet(
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val bgColor = Color(0xFF0A0A0A)
+    val bgColor = MaterialTheme.colorScheme.surface
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

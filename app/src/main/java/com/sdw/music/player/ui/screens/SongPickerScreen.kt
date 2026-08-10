@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,8 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
+import coil.compose.rememberAsyncImagePainter
 import com.sdw.music.player.Song
 import com.sdw.music.player.SongRepository
 import com.sdw.music.player.ui.components.DefaultCoverImage
@@ -74,7 +74,7 @@ fun SongPickerScreen(
                 actions = {
                     if (selectedIds.isNotEmpty()) {
                         IconButton(onClick = { showConfirm = true }) {
-                            Icon(Icons.Default.Check, "Add", tint = AccentPurple)
+                            Icon(Icons.Default.Check, "Add", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 },
@@ -96,9 +96,9 @@ fun SongPickerScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    focusedBorderColor = AccentPurple,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    cursorColor = AccentPurple,
+                    cursorColor = MaterialTheme.colorScheme.primary,
                     focusedContainerColor = MaterialTheme.colorScheme.surface,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surface
                 ),
@@ -146,7 +146,7 @@ fun SongPickerScreen(
                             shape = RoundedCornerShape(8.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = when {
-                                    isSelected -> AccentPurple.copy(alpha = 0.15f)
+                                    isSelected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                                     isAlreadyIn -> MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                                     else -> MaterialTheme.colorScheme.surface
                                 }
@@ -164,7 +164,7 @@ fun SongPickerScreen(
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(
                                             when {
-                                                isSelected -> AccentPurple
+                                                isSelected -> MaterialTheme.colorScheme.primary
                                                 isAlreadyIn -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                                                 else -> Color.Transparent
                                             }
@@ -191,25 +191,27 @@ fun SongPickerScreen(
                                         .background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    SubcomposeAsyncImage(
+                                    val imgPainter = rememberAsyncImagePainter(
                                         model = song.albumArtUri,
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop
+                                    )
+                                    val imgState = imgPainter.state
+                                    if (imgState is AsyncImagePainter.State.Loading ||
+                                        imgState is AsyncImagePainter.State.Error
                                     ) {
-                                        val imgState = painter.state
-                                        if (imgState is AsyncImagePainter.State.Loading ||
-                                            imgState is AsyncImagePainter.State.Error
-                                        ) {
-                                            DefaultCoverImage(
-                                                songTitle = song.title,
-                                                songArtist = song.artist,
-                                                modifier = Modifier.fillMaxSize(),
-                                                shape = RoundedCornerShape(6.dp)
-                                            )
-                                        } else {
-                                            SubcomposeAsyncImageContent()
-                                        }
+                                        DefaultCoverImage(
+                                            songTitle = song.title,
+                                            songArtist = song.artist,
+                                            modifier = Modifier.fillMaxSize(),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                    } else {
+                                        Image(
+                                            painter = imgPainter,
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
                                     }
                                 }
 
@@ -265,7 +267,7 @@ fun SongPickerScreen(
                         onSongsAdded()
                     }
                 ) {
-                    Text("Add", color = AccentPurple)
+                    Text("Add", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {

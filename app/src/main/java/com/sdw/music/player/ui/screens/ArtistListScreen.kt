@@ -113,7 +113,7 @@ fun ArtistListScreen(
                     if (isHeader) {
                         Text(
                             text = data as String,
-                            color = AccentBlue,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp)
@@ -169,6 +169,13 @@ private fun ArtistItem(
             modifier = Modifier.size(52.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
+            // DefaultCoverImage underneath, actual cover on top
+            DefaultCoverImage(
+                songTitle = artistName,
+                songArtist = "",
+                modifier = Modifier.fillMaxSize(),
+                shape = CircleShape
+            )
             if (coverUri.isNotBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -176,13 +183,6 @@ private fun ArtistItem(
                     contentDescription = artistName,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
-                )
-            } else {
-                DefaultCoverImage(
-                    songTitle = artistName,
-                    songArtist = "",
-                    modifier = Modifier.fillMaxSize(),
-                    shape = CircleShape
                 )
             }
         }

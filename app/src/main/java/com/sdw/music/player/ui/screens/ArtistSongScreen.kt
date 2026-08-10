@@ -108,7 +108,7 @@ private fun ArtistSongItem(
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isPlaying) Purple60.copy(alpha = 0.2f) else Color.Transparent)
+            .background(if (isPlaying) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -128,13 +128,13 @@ private fun ArtistSongItem(
             )
         }
         Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(song.title, style = MaterialTheme.typography.bodyLarge, color = if (isPlaying) AccentBlue else MaterialTheme.colorScheme.onBackground,
+            Text(song.title, style = MaterialTheme.typography.bodyLarge, color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(song.album, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (isPlaying) {
-            Icon(Icons.AutoMirrored.Filled.PlaylistPlay, "Playing", tint = AccentBlue, modifier = Modifier.size(20.dp))
+            Icon(Icons.AutoMirrored.Filled.PlaylistPlay, "Playing", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         }
     }
 }

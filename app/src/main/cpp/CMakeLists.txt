@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.22.1)
 project("oboe_bridge")
 
-# Oboe via prefab
-find_package(oboe REQUIRED CONFIG)
+# Prebuilt liboboe.so from jniLibs (already in APK)
+add_library(oboe SHARED IMPORTED)
+set_target_properties(oboe PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/../jniLibs/arm64-v8a/liboboe.so"
+)
 
 add_library(oboe_bridge SHARED
     oboe_bridge.cpp
@@ -12,11 +15,12 @@ add_library(oboe_bridge SHARED
 )
 
 target_include_directories(oboe_bridge PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/oboe"
 )
 
 target_link_libraries(oboe_bridge
-    oboe::oboe
+    oboe
     log
     android
     mediandk

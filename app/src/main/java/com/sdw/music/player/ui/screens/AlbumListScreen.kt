@@ -134,7 +134,7 @@ fun AlbumListScreen(
 private fun SectionHeader(letter: String) {
     Text(
         text = letter,
-        color = AccentBlue,
+        color = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.Bold,
         fontSize = 13.sp,
         modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 2.dp)
@@ -157,19 +157,19 @@ private fun AlbumGridItem(
             modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                 .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
         ) {
+            // DefaultCoverImage underneath, actual cover on top
+            DefaultCoverImage(
+                songTitle = albumName,
+                songArtist = "",
+                modifier = Modifier.fillMaxSize(),
+                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+            )
             if (coverUri.isNotBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(coverUri).size(480).crossfade(true).build(),
                     contentDescription = albumName,
                     modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop
-                )
-            } else {
-                DefaultCoverImage(
-                    songTitle = albumName,
-                    songArtist = "",
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
                 )
             }
             Box(

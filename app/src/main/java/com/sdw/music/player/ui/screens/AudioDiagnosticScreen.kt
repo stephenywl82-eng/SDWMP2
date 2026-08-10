@@ -221,7 +221,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     label = "Source Rate",
                     value = if (sourceRate > 0) "${sourceRate / 1000.0} kHz" else "—",
                     sublabel = "源文件采样率",
-                    accent = AccentPurple
+                    accent = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -260,7 +260,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     label = "Device Native",
                     value = if (deviceNativeRate > 0) "${deviceNativeRate / 1000.0} kHz" else "—",
                     sublabel = "AudioManager PROPERTY_OUTPUT_SAMPLE_RATE · 硬件原生采样率",
-                    accent = AccentBlue
+                    accent = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -288,8 +288,8 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                 }
                 val devAccent = when (devInfo?.type) {
                     AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE -> AccentGreen
-                    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> Color(0xFF42A5F5)
-                    else -> AccentBlue
+                    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.primary
                 }
                 DiagnosticRow(
                     icon = devIcon,
@@ -319,9 +319,9 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Settings, null, tint = AccentPurple, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text("DAC Capabilities", color = AccentPurple, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                Text("DAC Capabilities", color = MaterialTheme.colorScheme.primary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                             }
                             Spacer(Modifier.height(6.dp))
                             CapRow("Sample Rates", rates)
@@ -402,7 +402,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                     isUsbDacMode -> AccentGreen
                     isExclusiveLive == true -> AccentGreen
                     isExclusiveLive == null -> MaterialTheme.colorScheme.onSurfaceVariant
-                    isOboeMode -> AccentBlue
+                    isOboeMode -> MaterialTheme.colorScheme.primary
                     else -> Color(0xFFFF9800)
                 }
                 DiagnosticRow(
@@ -454,7 +454,7 @@ fun AudioDiagnosticScreen(onNavigateBack: () -> Unit) {
                                     "GAIN" -> Icons.Default.CheckCircle to AccentGreen
                                     "LOSS" -> Icons.Default.Cancel to AccentRed
                                     "LOSS_TRANSIENT" -> Icons.Default.Warning to Color(0xFFFF9800)
-                                    "LOSS_TRANSIENT_CAN_DUCK" -> Icons.Default.Remove to AccentBlue
+                                    "LOSS_TRANSIENT_CAN_DUCK" -> Icons.Default.Remove to MaterialTheme.colorScheme.primary
                                     else -> Icons.Default.Info to MaterialTheme.colorScheme.onSurfaceVariant
                                 }
                                 Row(
@@ -630,7 +630,7 @@ private data class FocusEvent(val time: String, val event: String)
 private fun SectionTitle(title: String) {
     Text(
         title,
-        color = AccentPurple,
+        color = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.Bold,
         fontSize = 14.sp,
         modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)

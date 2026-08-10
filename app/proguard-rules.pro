@@ -75,6 +75,26 @@
 }
 -dontwarn androidx.compose.**
 
+# === Material3 dynamic color — keep entire chain so R8 doesn't dead-code-eliminate ===
+-keep class com.sdw.music.player.ui.theme.SDWMusicThemeKt {
+    *** SDWMusicTheme(...);
+}
+-keep class com.sdw.music.player.ui.theme.SDWDarkColorSchemeKt {
+    *** SDWDarkColorScheme(...);
+}
+-keep class androidx.compose.material3.ColorScheme {
+    *;
+}
+-keepclassmembers class androidx.compose.material3.ColorSchemeKt {
+    public static *** dynamicDarkColorScheme(...);
+    public static *** dynamicLightColorScheme(...);
+}
+
+# === Coil (image loading) ===
+-keep class coil.** { *; }
+-keep class coil.compose.** { *; }
+-dontwarn coil.**
+
 # === Coroutines ===
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
@@ -116,11 +136,9 @@
 # === Startup / Application ===
 -keep class com.sdw.music.player.SDWApp { *; }
 
-# === Remove logging ===
+# === Remove logging (keep w for runtime traces) ===
 -assumenosideeffects class android.util.Log {
-    public static int d(...);
     public static int v(...);
-    public static int i(...);
 }
 
 # AudioQualityAnalyzer

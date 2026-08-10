@@ -59,12 +59,6 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
     var usbAvailable by remember { mutableStateOf(false) }
     var usbDacName by remember { mutableStateOf("") }
     var usbActive by remember { mutableStateOf(false) }
-    var audioOutput by remember(refreshTrigger) {
-        mutableStateOf(
-            context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-                .getString("audio_output", "Oboe Exclusive") ?: "Oboe Exclusive"
-        )
-    }
     val eqPresetId by remember(refreshTrigger) {
         mutableStateOf(EqualizerManager.getCurrentPresetId(context))
     }
@@ -119,7 +113,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                             },
                             label = { Text("${sec}s", color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AccentPurple,
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 containerColor = MaterialTheme.colorScheme.surface
                             )
                         )
@@ -130,43 +124,8 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
 
             item { SettingsDivider() }
 
-            // === Audio Output ===
             item {
-                SettingsSectionTitle("Audio Output")
-            }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Speaker,
-                    title = "Output Mode",
-                    subtitle = "Current: " + audioOutput
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    listOf("AudioTrack", "OpenSL ES", "AAudio", "Oboe Exclusive").forEach { mode ->
-                        val selected = audioOutput == mode
-                        FilterChip(
-                            selected = selected,
-                            onClick = {
-                                audioOutput = mode
-                                context.getSharedPreferences("settings", android.content.Context.MODE_PRIVATE)
-                                    .edit().putString("audio_output", mode).apply()
-                                refreshTrigger++
-                                android.widget.Toast.makeText(context, "Switched to $mode. Restart playback for best results.", android.widget.Toast.LENGTH_LONG).show()
-                            },
-                            label = { Text(mode, color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground, fontSize = 12.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AccentPurple,
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        )
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-            item {
-                val dspLabels = listOf("Close", "Steven Special", "🐱 Cat Mode")
+                val dspLabels = listOf("Close", "Steven Special")
                 SettingsItem(
                     icon = Icons.Default.GraphicEq,
                     title = "DSP Mode",
@@ -188,7 +147,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                             },
                             label = { Text(label, color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground, fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AccentPurple,
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 containerColor = MaterialTheme.colorScheme.surface
                             )
                         )
@@ -245,7 +204,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
-                            checkedTrackColor = AccentPurple,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
                             uncheckedThumbColor = Color.White,
                             uncheckedTrackColor = MaterialTheme.colorScheme.surface
                         )
@@ -292,7 +251,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 if (vuEnabled) {
                     Spacer(Modifier.height(4.dp))
                     val vuStylePref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
-                    val currentStyleIdx = vuStylePref.getInt("vu_meter_style", 3)
+                    val currentStyleIdx = vuStylePref.getInt("vu_meter_style", 1)
                     val styleNames = com.sdw.music.player.ui.components.VuMeterStyle.entries.map { it.label }
                     var selectedStyle by remember(refreshTrigger) { mutableIntStateOf(currentStyleIdx) }
 
@@ -315,8 +274,8 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                 },
                                 label = { Text(name, fontSize = 11.sp, maxLines = 1) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = AccentPurple.copy(alpha = 0.25f),
-                                    selectedLabelColor = AccentPurple
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                    selectedLabelColor = MaterialTheme.colorScheme.primary
                                 ),
                                 modifier = Modifier.height(32.dp)
                             )
@@ -357,7 +316,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 SettingsSwitchItem(
                     icon = Icons.Default.Palette,
                     title = "Cover Color Background",
-                    subtitle = if (coverColorBg) "On 路 Player background follows album art"
+                    subtitle = if (coverColorBg) "On · Player background follows album art"
                     else "Off",
                     checked = coverColorBg,
                     onCheckedChange = { enabled ->
@@ -451,7 +410,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                             },
                             label = { Text(if (selected) level else level.take(4), color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground, fontSize = 11.sp, maxLines = 1) },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AccentPurple,
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 containerColor = MaterialTheme.colorScheme.surface
                             ),
                             modifier = Modifier.weight(1f)
@@ -518,7 +477,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                                         Text(preset.name, color = if (selected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground, fontSize = 11.sp, maxLines = 1)
                                     },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = AccentPurple,
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
                                         containerColor = MaterialTheme.colorScheme.surface
                                     ),
                                     modifier = Modifier.weight(1f)
@@ -550,7 +509,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                     SettingsItem(
                         icon = Icons.Default.GraphicEq,
                         title = "Audio Quality Analysis",
-                        subtitle = "批量扫描音频文件，评估频谱质量与真假无损",
+                        subtitle = "Scan audio files to evaluate spectrum quality & detect fake lossless",
                         onClick = onNavigateToAudioQuality
                     )
                 }
@@ -566,7 +525,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                     val scrollState = rememberScrollState()
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D0D0D)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Column(modifier = Modifier.heightIn(max = 240.dp)) {
@@ -586,12 +545,12 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                              "\nStream: ${if (UsbDacManager.isStreaming()) "ON" else "OFF"}" +
                              "\nUnderruns: ${UsbDacManager.getUnderrunCount()}"
                             ).also { clipboardManager.setText(AnnotatedString(it)) }
-                        }) { Text("Copy", color = Color(0xFF00BFFF), fontSize = 11.sp) }
+                        }) { Text("Copy", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp) }
                         TextButton(onClick = { com.sdw.music.player.core.audio.DebugLog.clear(); refreshTrigger++ }) {
                             Text("Clear", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                         }
                         TextButton(onClick = { refreshTrigger++ }) {
-                            Text("Refresh", color = AccentPurple, fontSize = 11.sp)
+                            Text("Refresh", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp)
                         }
                     }
                 }
@@ -615,7 +574,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            InfoChip("Stream", if (streaming) "ON" else "OFF", if (streaming) AccentPurple else MaterialTheme.colorScheme.onSurfaceVariant)
+                            InfoChip("Stream", if (streaming) "ON" else "OFF", if (streaming) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                             InfoChip("Underrun", "$underruns", if (underruns > 0) Color(0xFFFF6B6B) else Color(0xFF00FF88))
                             InfoChip("Native Log", "${nativeLogLen}B", MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -639,7 +598,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "Moto Music",
-                    subtitle = "v6.0 | Developed by Stephen Yu"
+                    subtitle = "v7.0 | Developed by Stephen Yu"
                 )
             }
             item {
@@ -653,7 +612,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
 private fun SettingsSectionTitle(title: String) {
     Text(
         title,
-        color = AccentPurple,
+        color = MaterialTheme.colorScheme.primary,
         style = MaterialTheme.typography.labelSmall,
         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
     )
@@ -706,8 +665,8 @@ private fun SettingsSwitchItem(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = AccentPurple,
-                checkedTrackColor = AccentPurple.copy(alpha = 0.5f)
+                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
             )
         )
     }

@@ -6,6 +6,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +43,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import coil.compose.rememberAsyncImagePainter
 import coil.compose.AsyncImagePainter
 import androidx.compose.ui.res.painterResource
 import com.sdw.music.player.ui.animation.SharedCoverState
@@ -235,9 +238,9 @@ fun SongListScreen(
                             .padding(horizontal = 12.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        SmartTile("All", "${songs.size}", Icons.Default.MusicNote, Purple60, isSelected = filterMode == "all" || (filterMode != "hires" && filterMode != "recent" && filterMode != "favorites"), onClick = { filterMode = "all"; searchQuery = "" })
-                        SmartTile("Hi-Res", "$hiresCount", Icons.Default.HighQuality, AccentBlue, isSelected = filterMode == "hires", onClick = { filterMode = "hires"; searchQuery = "" })
-                        SmartTile("Recent", "$recentCount", Icons.Default.Schedule, Gold80, isSelected = filterMode == "recent", onClick = { filterMode = "recent" })
+                        SmartTile("All", "${songs.size}", Icons.Default.MusicNote, MaterialTheme.colorScheme.primary, isSelected = filterMode == "all" || (filterMode != "hires" && filterMode != "recent" && filterMode != "favorites"), onClick = { filterMode = "all"; searchQuery = "" })
+                        SmartTile("Hi-Res", "$hiresCount", Icons.Default.HighQuality, MaterialTheme.colorScheme.primary, isSelected = filterMode == "hires", onClick = { filterMode = "hires"; searchQuery = "" })
+                        SmartTile("Recent", "$recentCount", Icons.Default.Schedule, MaterialTheme.colorScheme.secondary, isSelected = filterMode == "recent", onClick = { filterMode = "recent" })
                         SmartTile("Favorites", "$favoriteCount", Icons.Default.Favorite, AccentRed, isSelected = filterMode == "favorites", onClick = { filterMode = "favorites" })
                     }
                 }
@@ -352,9 +355,9 @@ fun SongListScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    SmartTile("All", "${songs.size}", Icons.Default.MusicNote, Purple60, isSelected = filterMode == "all" || (filterMode != "hires" && filterMode != "recent" && filterMode != "favorites"), onClick = { filterMode = "all"; searchQuery = "" })
-                    SmartTile("Hi-Res", "$hiresCount", Icons.Default.HighQuality, AccentBlue, isSelected = filterMode == "hires", onClick = { filterMode = "hires"; searchQuery = "" })
-                    SmartTile("Recent", "$recentCount", Icons.Default.Schedule, Gold80, isSelected = filterMode == "recent", onClick = { filterMode = "recent" }) // TODO: genre filter not available
+                    SmartTile("All", "${songs.size}", Icons.Default.MusicNote, MaterialTheme.colorScheme.primary, isSelected = filterMode == "all" || (filterMode != "hires" && filterMode != "recent" && filterMode != "favorites"), onClick = { filterMode = "all"; searchQuery = "" })
+                    SmartTile("Hi-Res", "$hiresCount", Icons.Default.HighQuality, MaterialTheme.colorScheme.primary, isSelected = filterMode == "hires", onClick = { filterMode = "hires"; searchQuery = "" })
+                    SmartTile("Recent", "$recentCount", Icons.Default.Schedule, MaterialTheme.colorScheme.secondary, isSelected = filterMode == "recent", onClick = { filterMode = "recent" }) // TODO: genre filter not available
                     SmartTile("Favorites", "$favoriteCount", Icons.Default.Favorite, AccentRed, isSelected = filterMode == "favorites", onClick = { filterMode = "favorites" })
                 }
             }
@@ -367,8 +370,8 @@ fun SongListScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    color = activeColor,
-                    trackColor = activeColor.copy(alpha = 0.2f)
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                 )
                 Text(
                     "Scanning media library... ${(scanProgress * 100).toInt()}%",
@@ -428,7 +431,7 @@ fun SongListScreen(
                                 color = MaterialTheme.colorScheme.background,
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp)
                             ) {
-                                Text(letter.toString(), style = MaterialTheme.typography.labelMedium, color = activeColor, modifier = Modifier.padding(vertical = 4.dp))
+                                Text(letter.toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 4.dp))
                             }
                         }
                         items(songsInGroup, key = { it.id }) { song ->
@@ -513,6 +516,8 @@ fun SongListScreen(
             MiniPlayer(
                 song = currentPlayingSong,
                 isPlaying = isPlaying,
+                positionMs = positionMs,
+                durationMs = durationMs,
                 accentColor = activeColor,
                 coverVisible = miniCoverVisible,
                 onClick = onNavigateToPlayer,
@@ -572,7 +577,7 @@ private fun TabletSongListContent(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp)
                     ) {
-                        Text(letter.toString(), style = MaterialTheme.typography.labelMedium, color = activeColor, modifier = Modifier.padding(vertical = 4.dp))
+                        Text(letter.toString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 4.dp))
                     }
                 }
                 items(songsInGroup, key = { it.id }) { song ->
@@ -688,8 +693,8 @@ fun SongItem(
     onClick: (Int) -> Unit,
     onLongClick: (Int) -> Unit
 ) {
-    val textColor = if (isPlaying) accentColor else MaterialTheme.colorScheme.onSurface
-    val subColor = if (isPlaying) accentColor.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val textColor = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val subColor = if (isPlaying) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
     
     Row(
         modifier = Modifier
@@ -701,23 +706,19 @@ fun SongItem(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Cover art
-        SubcomposeAsyncImage(
-            model = song.albumArtUri,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp).clip(CircleShape),
-            contentScale = ContentScale.Crop
-        ) {
-            val imgState = painter.state
-            if (imgState is AsyncImagePainter.State.Loading || imgState is AsyncImagePainter.State.Error) {
-                DefaultCoverImage(
-                    songTitle = song.title,
-                    songArtist = song.artist,
-                    modifier = Modifier.size(48.dp)
-                )
-            } else {
-                SubcomposeAsyncImageContent()
-            }
+        // Cover art — DefaultCoverImage underneath, actual cover on top
+        Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            DefaultCoverImage(song.title, song.artist, Modifier.size(48.dp), CircleShape)
+            val coverPainter = rememberAsyncImagePainter(
+                model = song.albumArtUri,
+                contentScale = ContentScale.Crop
+            )
+            Image(
+                painter = coverPainter,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp).clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
         }
         
         Spacer(Modifier.width(12.dp))
@@ -756,6 +757,8 @@ fun SongItem(
 fun MiniPlayer(
     song: Song?,
     isPlaying: Boolean,
+    positionMs: Long,
+    durationMs: Long,
     accentColor: Color,
     coverVisible: Boolean = true,
     onClick: () -> Unit,
@@ -768,86 +771,111 @@ fun MiniPlayer(
     val isPressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "miniPlayerPress"
     )
     
-    Row(
+    val hasDuration = durationMs > 0
+    val remainingMs = if (hasDuration) (durationMs - positionMs).coerceIn(0L, durationMs) else 0L
+    val remainingText = if (hasDuration) {
+        val totalSec = remainingMs / 1000
+        val min = totalSec / 60
+        val sec = totalSec % 60
+        "-$min:${sec.toString().padStart(2, '0')}"
+    } else ""
+    val progressFraction = if (hasDuration) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+    
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
             .background(MaterialTheme.colorScheme.surface)
             .clickable(interactionSource = interactionSource, indication = null) { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .graphicsLayer { scaleX = pressScale; scaleY = pressScale }
     ) {
-        // Small cover
-        Box(modifier = Modifier
-            .size(40.dp)
-            .graphicsLayer {
-                alpha = if (coverVisible) 1f else 0f
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            SubcomposeAsyncImage(
-                model = song.albumArtUri,
-                contentDescription = null,
+            // Small cover — centered in row, DefaultCoverImage underneath
+            Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .onGloballyPositioned { coords ->
-                        val pos = coords.positionInWindow()
-                        val sz = coords.size
-                        onCoverPositioned?.invoke(
-                            androidx.compose.ui.geometry.Offset(pos.x, pos.y),
-                            androidx.compose.ui.geometry.Size(sz.width.toFloat(), sz.height.toFloat())
-                        )
-                    },
-                contentScale = ContentScale.Crop
+                    .graphicsLayer { alpha = if (coverVisible) 1f else 0f },
+                contentAlignment = Alignment.Center
             ) {
-                val imgState = painter.state
-                if (imgState is AsyncImagePainter.State.Loading || imgState is AsyncImagePainter.State.Error) {
-                    DefaultCoverImage(
-                        songTitle = song.title,
-                        songArtist = song.artist,
-                        modifier = Modifier.size(40.dp),
-                        shape = RoundedCornerShape(4.dp)
-                    )
-                } else {
-                    SubcomposeAsyncImageContent()
-                }
+                DefaultCoverImage(song.title, song.artist, Modifier.size(40.dp), RoundedCornerShape(4.dp))
+                val painter = rememberAsyncImagePainter(
+                    model = song.albumArtUri,
+                    contentScale = ContentScale.Crop
+                )
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .onGloballyPositioned { coords ->
+                            val pos = coords.positionInWindow()
+                            val sz = coords.size
+                            onCoverPositioned?.invoke(
+                                Offset(pos.x, pos.y),
+                                Size(sz.width.toFloat(), sz.height.toFloat())
+                            )
+                        },
+                    contentScale = ContentScale.Crop
+                )
             }
+            
+            Spacer(Modifier.width(12.dp))
+            
+            // Title + Artist
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            Spacer(Modifier.width(8.dp))
+            
+            // Remaining time countdown
+            Text(
+                text = remainingText,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         
-        Spacer(Modifier.width(12.dp))
-        
-        // Title + Artist
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+        // Progress bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(2.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progressFraction)
+                    .fillMaxHeight()
+                    .background(accentColor)
             )
         }
         
-        // Play/Pause icon
-        Icon(
-            imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            contentDescription = null,
-            tint = accentColor,
-            modifier = Modifier.size(24.dp)
-        )
+        Spacer(Modifier.height(6.dp))
     }
 }
 
@@ -894,14 +922,13 @@ private fun TabletPlayerDetailPanel(
                     .size(160.dp)
                     .clip(RoundedCornerShape(12.dp))
             ) {
+                // DefaultCoverImage underneath, actual cover on top
+                DefaultCoverImage(song.title, song.artist, Modifier.fillMaxSize(), RoundedCornerShape(12.dp))
                 AsyncImage(
                     model = song.albumArtUri,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    // Don't show placeholder — let Coil handle cache + transition
-                    placeholder = null,
-                    error = painterResource(id = android.R.drawable.ic_menu_gallery)
+                    contentScale = ContentScale.Crop
                 )
             }
         }

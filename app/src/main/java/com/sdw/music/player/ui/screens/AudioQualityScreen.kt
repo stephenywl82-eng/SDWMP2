@@ -262,7 +262,7 @@ fun AudioQualityScreen(
                     if (uiState.phase == "scanning") {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp).padding(end = 12.dp),
-                            strokeWidth = 2.dp, color = Purple60
+                            strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
@@ -290,8 +290,8 @@ fun AudioQualityScreen(
                     onClick = { scope.launch { if (uiState.phase != "scanning") doScan() } },
                     enabled = uiState.phase != "scanning",
                     colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = Purple60.copy(alpha = 0.15f),
-                        contentColor = Purple60
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        contentColor = MaterialTheme.colorScheme.primary
                     ),
                     modifier = Modifier.height(36.dp)
                 ) {
@@ -315,21 +315,21 @@ fun AudioQualityScreen(
                         onClick = { uiState = uiState.copy(filterLabel = if (uiState.filterLabel == "Excellent") null else "Excellent") },
                         label = { Text("Excellent $exc", fontSize = 12.sp) },
                         modifier = Modifier.height(28.dp),
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Purple60.copy(alpha = 0.2f))
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                     )
                     FilterChip(
                         selected = uiState.filterLabel == "Good",
                         onClick = { uiState = uiState.copy(filterLabel = if (uiState.filterLabel == "Good") null else "Good") },
                         label = { Text("Good $good", fontSize = 12.sp) },
                         modifier = Modifier.height(28.dp),
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = AccentBlue.copy(alpha = 0.2f))
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                     )
                     FilterChip(
                         selected = uiState.filterLabel == "Fair",
                         onClick = { uiState = uiState.copy(filterLabel = if (uiState.filterLabel == "Fair") null else "Fair") },
                         label = { Text("Fair $fair", fontSize = 12.sp) },
                         modifier = Modifier.height(28.dp),
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Gold80.copy(alpha = 0.2f))
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
                     )
                     FilterChip(
                         selected = uiState.filterLabel == "Poor",
@@ -406,8 +406,8 @@ private fun ReportCard(
     val context = LocalContext.current
     val scoreColor = when {
         report.qualityScore >= 82f -> Color(0xFF4CAF50)
-        report.qualityScore >= 65f -> AccentBlue
-        report.qualityScore >= 40f -> Gold80
+        report.qualityScore >= 65f -> MaterialTheme.colorScheme.primary
+        report.qualityScore >= 40f -> MaterialTheme.colorScheme.secondary
         else -> AccentRed
     }
 
@@ -453,7 +453,7 @@ private fun ReportCard(
                         onClick = { onPlaySong(matched) },
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(Icons.Default.PlayArrow, "Play", tint = Purple60, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.PlayArrow, "Play", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     }
                 }
             }
@@ -474,11 +474,11 @@ private fun ReportCard(
                     for (tag in report.suspectedSourceVariant) {
                         val c = when {
                             tag.contains("fake", ignoreCase = true) || tag.contains("lossy", ignoreCase = true) -> AccentRed
-                            tag.contains("Lossless", ignoreCase = true) || tag.contains("Hi-Res", ignoreCase = true) -> Purple60
+                            tag.contains("Lossless", ignoreCase = true) || tag.contains("Hi-Res", ignoreCase = true) -> MaterialTheme.colorScheme.primary
                             tag.contains("Full", ignoreCase = true) || tag.contains("High Cutoff", ignoreCase = true) -> Color(0xFF4CAF50)
-                            tag.contains("Compressed", ignoreCase = true) || tag.contains("Clip", ignoreCase = true) || tag.contains("MP3", ignoreCase = true) -> Gold80
-                            tag.contains("Spectrally Flat", ignoreCase = true) -> Gold80
-                            else -> AccentBlue
+                            tag.contains("Compressed", ignoreCase = true) || tag.contains("Clip", ignoreCase = true) || tag.contains("MP3", ignoreCase = true) -> MaterialTheme.colorScheme.secondary
+                            tag.contains("Spectrally Flat", ignoreCase = true) -> MaterialTheme.colorScheme.secondary
+                            else -> MaterialTheme.colorScheme.primary
                         }
                         Surface(color = c.copy(alpha = 0.12f), shape = RoundedCornerShape(4.dp)) {
                             Text(tag, Modifier.padding(horizontal = 6.dp, vertical = 2.dp), fontSize = 10.sp, color = c)

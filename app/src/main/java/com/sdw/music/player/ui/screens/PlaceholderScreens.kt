@@ -59,7 +59,7 @@ fun FolderListScreen(
         com.sdw.music.player.SongRepository.getFolders()
     }
     var selectedFolder by remember { mutableStateOf<com.sdw.music.player.Folder?>(null) }
-    val accentPurple = Color(0xFF8E6FD0)
+    val accentPurple = MaterialTheme.colorScheme.primary
 
     // If a folder is selected, show its songs
     if (selectedFolder != null) {
@@ -244,7 +244,7 @@ fun PlaylistListScreen(
                     newPlaylistName = ""
                     showCreateDialog = true
                 },
-                containerColor = Color(0xFF8E6FD0),
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White
             ) {
                 Icon(Icons.Default.Add, "New Playlist")
@@ -376,7 +376,7 @@ fun PlaylistListScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = MaterialTheme.colorScheme.onBackground,
                         unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                        focusedBorderColor = Color(0xFF8E6FD0),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                     )
                 )
@@ -392,7 +392,7 @@ fun PlaylistListScreen(
                     },
                     enabled = newPlaylistName.isNotBlank()
                 ) {
-                    Text("Create", color = Color(0xFF8E6FD0))
+                    Text("Create", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
@@ -473,7 +473,7 @@ private fun FolderSongsView(
                 actions = {
                     if (songs.isNotEmpty()) {
                         IconButton(onClick = { onPlaySongs(songs) }) {
-                            Icon(Icons.Default.PlayArrow, "Play All", tint = Color(0xFF8E6FD0))
+                            Icon(Icons.Default.PlayArrow, "Play All", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                 },
@@ -498,7 +498,7 @@ private fun FolderSongsView(
                         song = song,
                         index = index,
                         isPlaying = false,
-                        accentColor = Color(0xFF8E6FD0),
+                        accentColor = MaterialTheme.colorScheme.primary,
                         onClick = { onPlaySongs(listOf(song)) },
                         onLongClick = { }
                     )

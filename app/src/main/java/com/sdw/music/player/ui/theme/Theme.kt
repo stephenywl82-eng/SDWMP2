@@ -9,20 +9,21 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val SDWDarkColorScheme = darkColorScheme(
-    primary = Purple60,
-    onPrimary = TextPrimary,
-    primaryContainer = Purple20,
-    onPrimaryContainer = Purple80,
+    primary = AccentBlue,
+    onPrimary = DarkBg,
+    primaryContainer = Color(0xFF1A3A5C),
+    onPrimaryContainer = Color(0xFFB3D4FC),
     secondary = Gold80,
     onSecondary = DarkBg,
     secondaryContainer = Gold60,
-    tertiary = Purple80,
+    tertiary = Color(0xFF5C8ABF),
     background = DarkBg,
     onBackground = TextPrimary,
     surface = DarkCard,

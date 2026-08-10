@@ -9,6 +9,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -35,9 +36,6 @@ private val THUMB_RADIUS = 8.dp
 private val WAVE_AMPLITUDE = 3.dp
 private val WAVE_FREQUENCY = 0.04f
 private val TRACK_COLOR = Color(0x33FFFFFF)
-private val PROGRESS_COLOR = Color(0x8E6FD0)
-private val WAVE_COLOR = Color(0xB388FF)
-private val THUMB_COLOR = Color(0x8E6FD0)
 private val THUMB_RING_COLOR = Color.White
 
 @Composable
@@ -52,6 +50,9 @@ fun WaveSeekBar(
     onSeek: (Int) -> Unit = {},
     onSeekEnd: (Int) -> Unit = {}
 ) {
+    val progressColor = MaterialTheme.colorScheme.primary
+    val waveColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+    val thumbColor = MaterialTheme.colorScheme.primary
     val density = LocalDensity.current
     val trackH = with(density) { TRACK_HEIGHT.toPx() }
     val thumbR = with(density) { THUMB_RADIUS.toPx() }
@@ -121,8 +122,8 @@ fun WaveSeekBar(
             drawPath(
                 path = path,
                 brush = Brush.linearGradient(
-                    0f to PROGRESS_COLOR,
-                    1f to WAVE_COLOR,
+                    0f to progressColor,
+                    1f to waveColor,
                     start = Offset(left, 0f),
                     end = Offset(right, 0f)
                 )
@@ -130,6 +131,6 @@ fun WaveSeekBar(
         }
 
         drawCircle(color = THUMB_RING_COLOR, radius = thumbR + 2f, center = Offset(thumbX, centerY))
-        drawCircle(color = THUMB_COLOR, radius = thumbR, center = Offset(thumbX, centerY))
+        drawCircle(color = thumbColor, radius = thumbR, center = Offset(thumbX, centerY))
     }
 }

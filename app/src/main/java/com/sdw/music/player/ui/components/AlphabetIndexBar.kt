@@ -15,7 +15,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sdw.music.player.ui.theme.AccentBlue
+
 import com.sdw.music.player.ui.theme.TextSecondary
 import com.sdw.music.player.ui.theme.TextPrimary
 
@@ -47,7 +47,7 @@ fun AlphabetIndexBar(
                 modifier = Modifier
                     .size(20.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(if (isActive) AccentBlue.copy(alpha = 0.3f) else Color.Transparent)
+                    .background(if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent)
                     .pointerInput(letter) {
                         detectTapGestures { onLetterTapped(letter) }
                     },
@@ -57,7 +57,7 @@ fun AlphabetIndexBar(
                     text = letter,
                     fontSize = 10.sp,
                     fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isActive) AccentBlue else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

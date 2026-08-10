@@ -444,7 +444,8 @@ class PlayerConnection(private val context: Context) {
             _currentPositionMs.value = positionMs
             return
         }
-        controller?.seekTo(positionMs)
+        // bypass MediaController (may be null or disconnected) — go straight to ExoPlayer
+        MusicService.instance?.seekTo(positionMs)
         _currentPositionMs.value = positionMs
     }
 
@@ -549,9 +550,8 @@ class PlayerConnection(private val context: Context) {
             android.util.Log.d("PlayerConnection",
                 "restoreFromSavedState: song=${song.title}, pos=$savedPos, wasPlaying=$wasPlaying")
             // 鍙湪纭疄闇€瑕佹仮澶嶆挱鏀炬椂鎵嶈皟鐢?play()
-            if (wasPlaying) {
-                ctrl.play()
-            }
+            // [v10] No auto-play on app restart
+            // if (wasPlaying) { ctrl.play(); }
         } catch (e: Exception) {
             android.util.Log.e("PlayerConnection", "restoreFromSavedState failed", e)
         }

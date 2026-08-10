@@ -28,9 +28,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
 import coil.compose.AsyncImagePainter
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
+import coil.compose.rememberAsyncImagePainter
 import com.sdw.music.player.ui.components.DefaultCoverImage
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -191,18 +191,20 @@ fun SharedCoverOverlay(
                 )
         ) {
             if (albumArtUri.isNotEmpty()) {
-                SubcomposeAsyncImage(
+                val overlayPainter = rememberAsyncImagePainter(
                     model = albumArtUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
-                ) {
-                    val imgState = painter.state
-                    if (imgState is AsyncImagePainter.State.Loading || imgState is AsyncImagePainter.State.Error) {
-                        defaultCover(Modifier.fillMaxSize())
-                    } else {
-                        SubcomposeAsyncImageContent()
-                    }
+                )
+                val imgState = overlayPainter.state
+                if (imgState is AsyncImagePainter.State.Loading || imgState is AsyncImagePainter.State.Error) {
+                    defaultCover(Modifier.fillMaxSize())
+                } else {
+                    Image(
+                        painter = overlayPainter,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             } else {
                 defaultCover(Modifier.fillMaxSize())

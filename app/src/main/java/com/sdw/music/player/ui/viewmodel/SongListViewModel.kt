@@ -19,7 +19,7 @@ data class SongListState(
     val isSearching: Boolean = false,
     val isLoading: Boolean = true,
     val currentPlayingIndex: Int = -1,
-    val accentColor: Long = 0xFF8E6FD0,
+    val accentColor: Long = 0L,  // 0 = no cover color, falls back to system primary
     val songCount: Int = 0,
     val folders: List<Folder> = emptyList(),
     val favoriteCount: Int = 0

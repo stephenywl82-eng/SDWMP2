@@ -98,7 +98,6 @@ private fun Float.toLog(): Float {
     return v.coerceIn(0f, 1f)
 }
 
-
 @Composable
 fun PlayerScreen(
     state: PlayerState,
@@ -125,8 +124,10 @@ fun PlayerScreen(
     onDismiss: (() -> Unit)? = null,
     audioSessionId: Int = 0,
 ) {
+    val coverUri = state.currentSongAlbumArt
+    val hasCoverColor = state.accentColor != 0L && coverUri != null && coverUri.isNotEmpty()
     val accentColor by animateColorAsState(
-        targetValue = Color(state.accentColor),
+        targetValue = if (hasCoverColor) Color(state.accentColor) else MaterialTheme.colorScheme.primary,
         animationSpec = tween(600, easing = FastOutSlowInEasing),
         label = "accentColor"
     )
@@ -213,7 +214,9 @@ fun PlayerScreen(
     LaunchedEffect(Unit) {
         while (true) {
             try {
-                eqEnabled = EqualizerManager.isEnabled() && EqualizerManager.isInitialized()
+                // Native DSP EQ state (AAudio Direct, no ExoPlayer)
+                val svc = com.sdw.music.player.MusicService.instance
+                eqEnabled = svc?.isDspEqEnabled() == true || EqualizerManager.isEnabled()
                 eqPresetName = if (eqEnabled) EqualizerManager.getCurrentPresetName() else null
             } catch (_: Exception) { eqPresetName = null }
             kotlinx.coroutines.delay(500)
@@ -284,8 +287,7 @@ fun PlayerScreen(
             emaHigh.value = emaHigh.value * 0.85f + hv * 0.15f
             // bandLevelsState updated exclusively by Oboe poll loop below
         }
-        // Poll real band levels from Oboe LP-diff analysis
-        // Raw band values are tiny (0.001~0.05); apply log10 mapping for visual range
+        // Poll real band levels from Oboe LP-diff analysis (or FFT callback fallback for ExoPlayer)
         while (true) {
             try {
                 val oboe = MusicService.instance?.getOboePlayer()
@@ -296,6 +298,14 @@ fun PlayerScreen(
                         mid = oboe.getBandMid(),
                         high = oboe.getBandHigh(),
                         rms = oboe.getRmsLevel()
+                    )
+                } else if (emaSub.value > 0.0001f || emaBass.value > 0.0001f ||
+                           emaMid.value > 0.0001f || emaHigh.value > 0.0001f) {
+                    // ExoPlayer mode: use FFT callback EMA values (Visualizer API)
+                    val rms = (emaSub.value * 0.3f + emaBass.value * 0.4f + emaMid.value * 0.2f + emaHigh.value * 0.1f)
+                    bandLevelsState.value = BandLevels(
+                        sub = emaSub.value, bass = emaBass.value,
+                        mid = emaMid.value, high = emaHigh.value, rms = rms
                     )
                 }
             } catch (_: Exception) { }
@@ -1001,7 +1011,7 @@ private fun PortraitLayout(
 
         // VU Meter
         if (vuEnabled) {
-                VuMeter(sub = bandLevels.sub, bass = bandLevels.bass, mid = bandLevels.mid, high = bandLevels.high, rms = bandLevels.rms, isActive = isPlaying, style = VuMeterStyle.entries[vuStyleIdx], accentColor = accentColor, modifier = Modifier.padding(horizontal = infoPadding))
+                VuMeter(sub = bandLevels.sub, bass = bandLevels.bass, mid = bandLevels.mid, high = bandLevels.high, rms = bandLevels.rms, isActive = isPlaying, style = VuMeterStyle.entries[vuStyleIdx.coerceIn(0, VuMeterStyle.entries.lastIndex)], accentColor = accentColor, modifier = Modifier.padding(horizontal = infoPadding))
             Spacer(Modifier.height(6.dp))
         }
 
@@ -1044,7 +1054,7 @@ private fun PortraitLayout(
             onToggleEqualizer = onToggleEqualizer,
             onToggleFavorite = onToggleFavorite,
             onShare = onShare,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = hPadding)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = hPadding)
         )
 
         MotorolaWatermark(accentColor = accentColor)
