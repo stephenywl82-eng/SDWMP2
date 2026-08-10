@@ -13,6 +13,7 @@ sealed class Screen(val route: String) {
         fun createRoute(playlistId: Long) = "playlistDetail/$playlistId"
     }
     data object Equalizer : Screen("equalizer")
+    data object Mseb : Screen("mseb")
     data object LyricSearch : Screen("lyricSearch/{songId}/{songTitle}/{songArtist}") {
         fun createRoute(songId: Long, title: String, artist: String) =
             "lyricSearch/$songId/$title/$artist"

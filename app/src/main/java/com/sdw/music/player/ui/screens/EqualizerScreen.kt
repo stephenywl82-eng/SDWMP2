@@ -23,13 +23,14 @@ import com.sdw.music.player.core.audio.AutoEqPresetManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EqualizerScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToMseb: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val isOboeMode = EqualizerManager.isOboeMode(context)
 
     if (isOboeMode) {
-        OboeEqFullScreen(onBack)
+        OboeEqFullScreen(onBack, onNavigateToMseb)
     } else {
         EqualizerPresetsScreen(onBack)
     }
@@ -38,7 +39,7 @@ fun EqualizerScreen(
 // ================ Oboe 独占模式：DSP + Equalizer预设合并 ================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun OboeEqFullScreen(onBack: () -> Unit) {
+private fun OboeEqFullScreen(onBack: () -> Unit, onNavigateToMseb: () -> Unit) {
     val context = LocalContext.current
     val dspPrefs = context.getSharedPreferences("dsp_mode", android.content.Context.MODE_PRIVATE)
     val eqPrefs = context.getSharedPreferences("dsp_eq", android.content.Context.MODE_PRIVATE)
@@ -98,6 +99,18 @@ private fun OboeEqFullScreen(onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // === MSEB 入口 ===
+            item {
+                OutlinedButton(
+                    onClick = onNavigateToMseb,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text("MSEB Psychoacoustic EQ", style = MaterialTheme.typography.titleSmall)
+                }
+            }
+
             // === DSP Mode选择器 ===
             item {
                 Text(

@@ -163,26 +163,21 @@ fun PlaylistDetailScreen(
                                 modifier = Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val imgPainter = rememberAsyncImagePainter(
-                                    model = song.albumArtUri,
+                                DefaultCoverImage(
+                                    songTitle = song.title,
+                                    songArtist = song.artist,
+                                    modifier = Modifier.fillMaxSize(),
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                                Image(
+                                    painter = rememberAsyncImagePainter(
+                                        model = song.albumArtUri,
+                                        contentScale = ContentScale.Crop
+                                    ),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
-                                val imgState = imgPainter.state
-                                if (imgState is AsyncImagePainter.State.Loading || imgState is AsyncImagePainter.State.Error) {
-                                    DefaultCoverImage(
-                                        songTitle = song.title,
-                                        songArtist = song.artist,
-                                        modifier = Modifier.fillMaxSize(),
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
-                                } else {
-                                    Image(
-                                        painter = imgPainter,
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
                             }
 
                             Spacer(Modifier.width(12.dp))

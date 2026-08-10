@@ -393,7 +393,13 @@ fun SDWNavHost(
                 )
             }
             composable(Screen.Equalizer.route) {
-                EqualizerScreen(onBack = { navController.popBackStack() })
+                EqualizerScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToMseb = { navController.navigate(Screen.Mseb.route) }
+                )
+            }
+            composable(Screen.Mseb.route) {
+                MsebScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.AudioDiagnostic.route) {
                 AudioDiagnosticScreen(onNavigateBack = { navController.popBackStack() })

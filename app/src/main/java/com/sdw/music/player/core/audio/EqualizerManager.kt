@@ -36,9 +36,9 @@ object EqualizerManager {
     /** 检查当前是否为 Oboe 独占模式（EQ Unavailable，应使用 DSP） */
     fun isOboeMode(context: Context): Boolean {
         val mode = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-            .getString("audio_output", "Oboe Exclusive") ?: "Oboe Exclusive"
+            .getString("audio_output", "AAudio (Direct)") ?: "AAudio (Direct)"
         // Must match MusicService.isOboeDirectMode(): native lib load failure → AudioTrack → Android EQ available
-        return (mode == "Oboe Exclusive" || mode == "Oboe独占") && OboeDirectPlayer.nativeLibLoaded
+        return (mode == "AAudio (Direct)" || mode == "Oboe Exclusive" || mode == "Oboe独占") && OboeDirectPlayer.nativeLibLoaded
     }
 
     /** EQ 预设定义 */
@@ -430,7 +430,8 @@ object EqualizerManager {
         } else {
             _enabled.value = enabled
             // 【V7.80】Oboe 模式: Settings _enabled 为 false 时清除预设
-            if (isOboeMode(context) && presetId == "flat") {
+            // Skip reset if MSEB is active — MSEB manages 5-band EQ independently
+            if (isOboeMode(context) && presetId == "flat" && !MsebCalculator.isEnabled(context)) {
                 MusicService.instance?.oboeDirectPlayer?.resetDspEq5Band()
             }
         }

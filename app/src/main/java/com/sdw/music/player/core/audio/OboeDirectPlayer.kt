@@ -88,10 +88,18 @@ class OboeDirectPlayer(private val context: Context) {
     private external fun nativeGetTotalSamples(): Float
     private external fun nativeResetClipStats()
     private external fun nativeGetRmsLevel(): Float  // 【V7.xx】实时RMS振幅 0~1，节拍可视化
-    private external fun nativeGetBandSub(): Float     // 20-60Hz sub
-    private external fun nativeGetBandBass(): Float    // 60-250Hz bass
-    private external fun nativeGetBandMid(): Float     // 250-2000Hz mid
-    private external fun nativeGetBandHigh(): Float    // 2000-20000Hz high
+    private external fun nativeGetBandSub(): Float     // 0-60Hz (compat)
+    private external fun nativeGetBandBass(): Float    // 60-250Hz (compat)
+    private external fun nativeGetBandMid(): Float     // 250-2000Hz (compat)
+    private external fun nativeGetBandHigh(): Float    // 2000-20000Hz (compat)
+    private external fun nativeGetBand0(): Float       // 0-60Hz
+    private external fun nativeGetBand1(): Float       // 60-120Hz
+    private external fun nativeGetBand2(): Float       // 120-250Hz
+    private external fun nativeGetBand3(): Float       // 250-500Hz
+    private external fun nativeGetBand4(): Float       // 500-2000Hz
+    private external fun nativeGetBand5(): Float       // 2000-6000Hz
+    private external fun nativeGetBand6(): Float       // 6000-12000Hz
+    private external fun nativeGetBand7(): Float       // 12000-20000Hz
     private external fun nativeSetSilenceTest(enabled: Boolean)  // 【V7.08】静音测试
     private external fun nativeSetSineTest(enabled: Boolean)         // 【V7.09】正弦波自检
     private external fun nativeIsSineTestRunning(): Boolean          // 【V7.24】
@@ -103,6 +111,7 @@ class OboeDirectPlayer(private val context: Context) {
     // 【V7.80】5段图形Equalizer预设 JNI
     private external fun nativeSetDspEq5Band(gainsDb: FloatArray, freqsHz: FloatArray?)
     private external fun nativeResetDspEq5Band()
+    private external fun nativeSetMsebActive(active: Boolean)  // 【V7.200】MSEB激活保护标志
     // 【V7.86】AutoEQ 10-band JNI
     private external fun nativeSetAutoEq10Band(gainsDb: FloatArray, freqsHz: FloatArray, qValues: FloatArray, filterTypes: IntArray, preampDb: Float)
     private external fun nativeResetAutoEq()
@@ -441,6 +450,20 @@ class OboeDirectPlayer(private val context: Context) {
     fun getBandBass(): Float = try { nativeGetBandBass() } catch (_: Exception) { 0f }
     fun getBandMid(): Float = try { nativeGetBandMid() } catch (_: Exception) { 0f }
     fun getBandHigh(): Float = try { nativeGetBandHigh() } catch (_: Exception) { 0f }
+    // 8-band raw FFT
+    fun getBand0(): Float = try { nativeGetBand0() } catch (_: Exception) { 0f }
+    fun getBand1(): Float = try { nativeGetBand1() } catch (_: Exception) { 0f }
+    fun getBand2(): Float = try { nativeGetBand2() } catch (_: Exception) { 0f }
+    fun getBand3(): Float = try { nativeGetBand3() } catch (_: Exception) { 0f }
+    fun getBand4(): Float = try { nativeGetBand4() } catch (_: Exception) { 0f }
+    fun getBand5(): Float = try { nativeGetBand5() } catch (_: Exception) { 0f }
+    fun getBand6(): Float = try { nativeGetBand6() } catch (_: Exception) { 0f }
+    fun getBand7(): Float = try { nativeGetBand7() } catch (_: Exception) { 0f }
+    /** All 8 bands as FloatArray for FFT display */
+    fun getBands8(): FloatArray = try {
+        floatArrayOf(nativeGetBand0(), nativeGetBand1(), nativeGetBand2(), nativeGetBand3(),
+                     nativeGetBand4(), nativeGetBand5(), nativeGetBand6(), nativeGetBand7())
+    } catch (_: Exception) { FloatArray(8) }
 
     /** 重置峰值统计（切歌时调用） */
     fun resetClipStats() {
@@ -553,6 +576,13 @@ class OboeDirectPlayer(private val context: Context) {
         try {
             nativeResetDspEq5Band()
             Log.i(TAG, "DSP 5-band EQ preset cleared")
+        } catch (_: Exception) {}
+    }
+
+    // 【V7.200】MSEB activation guard — C++ will refuse to overwrite 5-band EQ when MSEB is active
+    fun setMsebActive(active: Boolean) {
+        try {
+            nativeSetMsebActive(active)
         } catch (_: Exception) {}
     }
 

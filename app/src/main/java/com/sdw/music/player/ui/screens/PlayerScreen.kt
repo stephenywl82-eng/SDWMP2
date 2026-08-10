@@ -170,7 +170,7 @@ fun PlayerScreen(
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
     val isCompact = screenWidthDp < 400
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val isFoldable = screenWidthDp >= 580 && (screenWidthDp.toFloat() / screenHeightDp.toFloat()) in 0.7f..1.4f
+    val isFoldable = screenWidthDp >= 420 && (screenWidthDp.toFloat() / screenHeightDp.toFloat()) in 0.7f..1.4f
 
     val artSize = if (isLandscape) (screenHeightDp * 0.68f).dp.coerceAtMost(260.dp)
                   else (screenWidthDp * 0.55f).dp.coerceAtMost(240.dp)
@@ -216,8 +216,14 @@ fun PlayerScreen(
             try {
                 // Native DSP EQ state (AAudio Direct, no ExoPlayer)
                 val svc = com.sdw.music.player.MusicService.instance
-                eqEnabled = svc?.isDspEqEnabled() == true || EqualizerManager.isEnabled()
-                eqPresetName = if (eqEnabled) EqualizerManager.getCurrentPresetName() else null
+                // 【V7.200】MSEB active → show "MSEB" instead of EqualizerManager preset name
+                val msebActive = com.sdw.music.player.MsebCalculator.isEnabled(context)
+                eqEnabled = svc?.isDspEqEnabled() == true || EqualizerManager.isEnabled() || msebActive
+                eqPresetName = when {
+                    msebActive -> "MSEB"
+                    eqEnabled -> EqualizerManager.getCurrentPresetName()
+                    else -> null
+                }
             } catch (_: Exception) { eqPresetName = null }
             kotlinx.coroutines.delay(500)
         }

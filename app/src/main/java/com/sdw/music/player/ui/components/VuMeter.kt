@@ -86,7 +86,7 @@ private fun VuAnalogNeedles(sub: Float, bass: Float, mid: Float, high: Float,
                 Size(w - 4.dp.toPx(), h - 4.dp.toPx()), CornerRadius(6.dp.toPx()))
             // Pivot at upper area, gap at bottom
             val cx = w / 2f
-            val cy = h * 0.58f
+            val cy = h * 0.56f
             val rOuter = minOf(w * 0.38f, h * 0.40f)
             val rInner = rOuter * 0.72f
             val rLabel = rOuter * 1.18f

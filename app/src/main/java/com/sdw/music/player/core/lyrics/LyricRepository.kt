@@ -363,8 +363,19 @@ class LyricRepository private constructor(
         for (ext in extensions) {
             val file = File("$basePath.$ext")
             if (file.exists()) {
-                localFileIndex[actualPath] = file  // 更新索引
+                localFileIndex[actualPath] = file
                 return readLyricsFile(file, song)
+            }
+        }
+        
+        // 3. Fallback directory — saveLyricsDirectly writes here when song dir is read-only (Android 10+ scoped storage)
+        val fallbackDir = File(context.getExternalFilesDir(null), "lyrics")
+        if (fallbackDir.isDirectory) {
+            val safeName = "${song.title}_${song.artist}.lrc".replace(Regex("[^a-zA-Z0-9_.-]"), "_")
+            val fallbackFile = File(fallbackDir, safeName)
+            if (fallbackFile.exists()) {
+                localFileIndex[actualPath] = fallbackFile
+                return readLyricsFile(fallbackFile, song)
             }
         }
         
@@ -475,7 +486,20 @@ class LyricRepository private constructor(
                 targetFile = File(fallbackDir, "${song.title}_${song.artist}.lrc".replace(Regex("[^a-zA-Z0-9_.-]"), "_"))
             }
 
-            targetFile.writeText(lyrics, Charsets.UTF_8)
+            try {
+                targetFile.writeText(lyrics, Charsets.UTF_8)
+            } catch (perm: Exception) {
+                // Android 10+ scoped storage: canWrite() may return true but writeText still gets EACCES
+                val fallbackDir = File(context.getExternalFilesDir(null), "lyrics").apply { mkdirs() }
+                val safeName = "${song.title}_${song.artist}.lrc".replace(Regex("[^a-zA-Z0-9_.-]"), "_")
+                val fallbackFile = File(fallbackDir, safeName)
+                fallbackFile.writeText(lyrics, Charsets.UTF_8)
+                Log.w(TAG, "💾 Lyrics write to co-located path denied, saved to fallback: ${fallbackFile.name}")
+                localFileIndex[fallbackFile.absolutePath] = fallbackFile
+                val cacheKey = "${song.title}_${song.artist}_${song.duration}"
+                synchronized(cacheLock) { lyricsCache.remove(cacheKey) }
+                return@withContext fallbackFile.absolutePath
+            }
             localFileIndex[targetFile.absolutePath] = targetFile
             val cacheKey = "${song.title}_${song.artist}_${song.duration}"
             synchronized(cacheLock) { lyricsCache.remove(cacheKey) }

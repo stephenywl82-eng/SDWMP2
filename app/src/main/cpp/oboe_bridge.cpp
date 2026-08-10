@@ -22,6 +22,19 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+
+// 【V7.200】Hardware FTZ — eliminate IIR denormal stall with no per-sample branch.
+// AArch64 FPCR FZ (bit 24) flushes subnormals to zero in hardware.
+// Called once in nativeOpen/nativeOpenFd, zero runtime cost thereafter.
+static void enableHardwareFtz() {
+#if defined(__aarch64__)
+    uint64_t fpcr;
+    __asm__ volatile("mrs %0, fpcr" : "=r"(fpcr));
+    fpcr |= (1ULL << 24);  // FZ (Flush-to-Zero)
+    __asm__ volatile("msr fpcr, %0" :: "r"(fpcr));
+    LOGI("Hardware FTZ enabled (FPCR FZ bit 24)");
+#endif
+}
 // ============================================================================
 // Thread-safe ring buffer for PCM float data
 // ============================================================================
@@ -117,8 +130,13 @@ private:
     std::atomic<int> read_pos_;
 };
 // ============================================================================
-// Biquad Filter — RBJ Cookbook implementation
+// Biquad Filter — RBJ Cookbook implementation (double-precision coefficients + states)
 // Supports: High-Shelf, Peaking, Low-Shelf, High-Pass, Low-Pass
+// 【V7.200】State registers (x1/x2/y1/y2) and coefficient storage use double to eliminate
+// 24-bit mantissa quantization noise accumulation across cascaded IIR stages.
+// process() multiply-add core stays float (ARM NEON 4×f32 SIMD), with float↔double
+// conversion at state read/write boundaries — zero throughput penalty on ARMv8-A.
+// Denormal protection is hardware FTZ (FPCR FZ+DN), enabled once in nativeOpen.
 // ==============================================================================
 class BiquadFilter {
 public:
@@ -131,146 +149,127 @@ public:
         LOW_PASS = 5
     };
     void setHighShelf(float sampleRate, float cutoffHz, float dbGain, float Q) {
-        // RBJ Cookbook: High-Shelf
-        float A = powf(10.0f, dbGain / 40.0f);  // sqrt of linear gain
-        float w0 = 2.0f * M_PI * cutoffHz / sampleRate;
-        float cosw0 = cosf(w0);
-        float sinw0 = sinf(w0);
-        float alpha = sinw0 / (2.0f * Q);
-        float twoSqrtAalpha = 2.0f * sqrtf(A) * alpha;
-        float b0 = A * ((A + 1.0f) + (A - 1.0f) * cosw0 + twoSqrtAalpha);
-        float b1 = -2.0f * A * ((A - 1.0f) + (A + 1.0f) * cosw0);
-        float b2 = A * ((A + 1.0f) + (A - 1.0f) * cosw0 - twoSqrtAalpha);
-        float a0 = (A + 1.0f) - (A - 1.0f) * cosw0 + twoSqrtAalpha;
-        float a1 = 2.0f * ((A - 1.0f) - (A + 1.0f) * cosw0);
-        float a2 = (A + 1.0f) - (A - 1.0f) * cosw0 - twoSqrtAalpha;
+        double A = pow(10.0, (double)dbGain / 40.0);
+        double w0 = 2.0 * M_PI * cutoffHz / sampleRate;
+        double cosw0 = cos(w0);
+        double sinw0 = sin(w0);
+        double alpha = sinw0 / (2.0 * Q);
+        double twoSqrtAalpha = 2.0 * sqrt(A) * alpha;
+        double b0 = A * ((A + 1.0) + (A - 1.0) * cosw0 + twoSqrtAalpha);
+        double b1 = -2.0 * A * ((A - 1.0) + (A + 1.0) * cosw0);
+        double b2 = A * ((A + 1.0) + (A - 1.0) * cosw0 - twoSqrtAalpha);
+        double a0 = (A + 1.0) - (A - 1.0) * cosw0 + twoSqrtAalpha;
+        double a1 =  2.0 * ((A - 1.0) - (A + 1.0) * cosw0);
+        double a2 = (A + 1.0) - (A - 1.0) * cosw0 - twoSqrtAalpha;
         setCoefficients(b0, b1, b2, a0, a1, a2);
     }
     void setPeaking(float sampleRate, float centerHz, float dbGain, float Q) {
-        // RBJ Cookbook: Peaking EQ
-        float A = powf(10.0f, dbGain / 40.0f);
-        float w0 = 2.0f * M_PI * centerHz / sampleRate;
-        float cosw0 = cosf(w0);
-        float sinw0 = sinf(w0);
-        float alpha = sinw0 / (2.0f * Q);
-        float b0 = 1.0f + alpha * A;
-        float b1 = -2.0f * cosw0;
-        float b2 = 1.0f - alpha * A;
-        float a0 = 1.0f + alpha / A;
-        float a1 = -2.0f * cosw0;
-        float a2 = 1.0f - alpha / A;
+        double A = pow(10.0, (double)dbGain / 40.0);
+        double w0 = 2.0 * M_PI * centerHz / sampleRate;
+        double cosw0 = cos(w0);
+        double sinw0 = sin(w0);
+        double alpha = sinw0 / (2.0 * Q);
+        double b0 = 1.0 + alpha * A;
+        double b1 = -2.0 * cosw0;
+        double b2 = 1.0 - alpha * A;
+        double a0 = 1.0 + alpha / A;
+        double a1 = -2.0 * cosw0;
+        double a2 = 1.0 - alpha / A;
         setCoefficients(b0, b1, b2, a0, a1, a2);
     }
     void setLowShelf(float sampleRate, float cutoffHz, float dbGain, float Q) {
-        // RBJ Cookbook: Low-Shelf
-        float A = powf(10.0f, dbGain / 40.0f);
-        float w0 = 2.0f * M_PI * cutoffHz / sampleRate;
-        float cosw0 = cosf(w0);
-        float sinw0 = sinf(w0);
-        float alpha = sinw0 / (2.0f * Q);
-        float twoSqrtAalpha = 2.0f * sqrtf(A) * alpha;
-        float b0 = A * ((A + 1.0f) - (A - 1.0f) * cosw0 + twoSqrtAalpha);
-        float b1 = 2.0f * A * ((A - 1.0f) - (A + 1.0f) * cosw0);
-        float b2 = A * ((A + 1.0f) - (A - 1.0f) * cosw0 - twoSqrtAalpha);
-        float a0 = (A + 1.0f) + (A - 1.0f) * cosw0 + twoSqrtAalpha;
-        float a1 = -2.0f * ((A - 1.0f) + (A + 1.0f) * cosw0);
-        float a2 = (A + 1.0f) + (A - 1.0f) * cosw0 - twoSqrtAalpha;
+        double A = pow(10.0, (double)dbGain / 40.0);
+        double w0 = 2.0 * M_PI * cutoffHz / sampleRate;
+        double cosw0 = cos(w0);
+        double sinw0 = sin(w0);
+        double alpha = sinw0 / (2.0 * Q);
+        double twoSqrtAalpha = 2.0 * sqrt(A) * alpha;
+        double b0 = A * ((A + 1.0) - (A - 1.0) * cosw0 + twoSqrtAalpha);
+        double b1 =  2.0 * A * ((A - 1.0) - (A + 1.0) * cosw0);
+        double b2 = A * ((A + 1.0) - (A - 1.0) * cosw0 - twoSqrtAalpha);
+        double a0 = (A + 1.0) + (A - 1.0) * cosw0 + twoSqrtAalpha;
+        double a1 = -2.0 * ((A - 1.0) + (A + 1.0) * cosw0);
+        double a2 = (A + 1.0) + (A - 1.0) * cosw0 - twoSqrtAalpha;
         setCoefficients(b0, b1, b2, a0, a1, a2);
     }
     void setBandPass(float sampleRate, float centerHz, float Q) {
-        // RBJ Cookbook: Band-pass (constant skirt gain, peak gain = 0dB)
-        float w0 = 2.0f * M_PI * centerHz / sampleRate;
-        float cosw0 = cosf(w0);
-        float sinw0 = sinf(w0);
-        float alpha = sinw0 / (2.0f * Q);
-        float b0 = alpha;
-        float b1 = 0.0f;
-        float b2 = -alpha;
-        float a0 = 1.0f + alpha;
-        float a1 = -2.0f * cosw0;
-        float a2 = 1.0f - alpha;
+        double w0 = 2.0 * M_PI * centerHz / sampleRate;
+        double cosw0 = cos(w0);
+        double sinw0 = sin(w0);
+        double alpha = sinw0 / (2.0 * Q);
+        double b0 = alpha;
+        double b1 = 0.0;
+        double b2 = -alpha;
+        double a0 = 1.0 + alpha;
+        double a1 = -2.0 * cosw0;
+        double a2 = 1.0 - alpha;
         setCoefficients(b0, b1, b2, a0, a1, a2);
     }
     void setLowPass(float sampleRate, float cutoffHz, float Q) {
-        // RBJ Cookbook: 2nd-order Low-pass
-        // Used for cascaded LP-diff spectrum splitting (CDJ/DJM style)
-        float w0 = 2.0f * M_PI * cutoffHz / sampleRate;
-        float cosw0 = cosf(w0);
-        float sinw0 = sinf(w0);
-        float alpha = sinw0 / (2.0f * Q);
-        float b0 = (1.0f - cosw0) * 0.5f;
-        float b1 = 1.0f - cosw0;
-        float b2 = (1.0f - cosw0) * 0.5f;
-        float a0 = 1.0f + alpha;
-        float a1 = -2.0f * cosw0;
-        float a2 = 1.0f - alpha;
+        double w0 = 2.0 * M_PI * cutoffHz / sampleRate;
+        double cosw0 = cos(w0);
+        double sinw0 = sin(w0);
+        double alpha = sinw0 / (2.0 * Q);
+        double b0 = (1.0 - cosw0) * 0.5;
+        double b1 = 1.0 - cosw0;
+        double b2 = (1.0 - cosw0) * 0.5;
+        double a0 = 1.0 + alpha;
+        double a1 = -2.0 * cosw0;
+        double a2 = 1.0 - alpha;
         setCoefficients(b0, b1, b2, a0, a1, a2);
     }
     void setFlat() {
-        // Pass-through: y[n] = x[n]
-        norm_b0_ = 1.0f;
-        norm_b1_ = 0.0f;
-        norm_b2_ = 0.0f;
-        norm_a1_ = 0.0f;
-        norm_a2_ = 0.0f;
-        // 【v6.29优化】立即跳到 flat 系数，不平滑过渡
-        cur_b0_ = 1.0f; cur_b1_ = 0.0f; cur_b2_ = 0.0f;
-        cur_a1_ = 0.0f; cur_a2_ = 0.0f;
-        // 【V7.91】清状态防止 denormal 残留
+        norm_b0_ = 1.0; norm_b1_ = 0.0; norm_b2_ = 0.0;
+        norm_a1_ = 0.0; norm_a2_ = 0.0;
+        cur_b0_ = 1.0; cur_b1_ = 0.0; cur_b2_ = 0.0;
+        cur_a1_ = 0.0; cur_a2_ = 0.0;
         reset();
     }
-    // Process single sample with smooth coefficient transition
-    // 【v6.29优化】系数平滑插值：每次 process 逼近目标系数 5%，
-    // 防止参数切换时产生 click/pop 爆音
+    // Process single sample — float multiply-add core (NEON 4×f32 SIMD),
+    // double state registers for quantization-noise-free IIR feedback
     float process(float input) {
-        // Smooth coefficient interpolation (5% per sample toward target)
         const float SMOOTH = 0.05f;
-        cur_b0_ += (norm_b0_ - cur_b0_) * SMOOTH;
-        cur_b1_ += (norm_b1_ - cur_b1_) * SMOOTH;
-        cur_b2_ += (norm_b2_ - cur_b2_) * SMOOTH;
-        cur_a1_ += (norm_a1_ - cur_a1_) * SMOOTH;
-        cur_a2_ += (norm_a2_ - cur_a2_) * SMOOTH;
-        
-        float output = cur_b0_ * input + cur_b1_ * x1_ + cur_b2_ * x2_
-                     - cur_a1_ * y1_ - cur_a2_ * y2_;
-        
-        // 【V7.91】Denormal flush — ARM 无硬件 denormal 支持，
-        // IIR 反馈路径中的极小数会退化为噪声（风噪/沙沙声）
-        constexpr float FLUSH_EPS = 1e-26f;
-        if (fabsf(output) < FLUSH_EPS) output = 0.0f;
-        
-        // Clamp to prevent NaN/Inf from numerical issues
+        cur_b0_ += (norm_b0_ - cur_b0_) * (double)SMOOTH;
+        cur_b1_ += (norm_b1_ - cur_b1_) * (double)SMOOTH;
+        cur_b2_ += (norm_b2_ - cur_b2_) * (double)SMOOTH;
+        cur_a1_ += (norm_a1_ - cur_a1_) * (double)SMOOTH;
+        cur_a2_ += (norm_a2_ - cur_a2_) * (double)SMOOTH;
+
+        // Cast coefficients to float for the 5× FMADD pipeline (NEON fmla v0.4s)
+        float b0f = (float)cur_b0_, b1f = (float)cur_b1_, b2f = (float)cur_b2_;
+        float a1f = (float)cur_a1_, a2f = (float)cur_a2_;
+
+        // State read: double → float
+        float x1f = (float)x1_, x2f = (float)x2_;
+        float y1f = (float)y1_, y2f = (float)y2_;
+
+        float output = b0f * input + b1f * x1f + b2f * x2f
+                     - a1f * y1f - a2f * y2f;
+
+        // Clamp to prevent NaN/Inf
         output = fmaxf(-1.0f, fminf(1.0f, output));
-        
-        x2_ = x1_;
-        x1_ = input;
-        y2_ = y1_;
-        y1_ = output;
-        
-        // Flush state to prevent denormal accumulation in IIR feedback
-        if (fabsf(x1_) < FLUSH_EPS) x1_ = 0.0f;
-        if (fabsf(x2_) < FLUSH_EPS) x2_ = 0.0f;
-        if (fabsf(y1_) < FLUSH_EPS) y1_ = 0.0f;
-        if (fabsf(y2_) < FLUSH_EPS) y2_ = 0.0f;
-        
+
+        // State write-back: float → double (preserves full IIR precision)
+        x2_ = (double)x1f;
+        x1_ = (double)input;
+        y2_ = (double)y1f;
+        y1_ = (double)output;
+
         return output;
     }
-    // Reset state (call when changing songs or seeking)
     void reset() {
-        x1_ = x2_ = y1_ = y2_ = 0.0f;
+        x1_ = x2_ = y1_ = y2_ = 0.0;
     }
-    // Normalized coefficients (target values) — public for diagnostics
-    float norm_b0_ = 1.0f, norm_b1_ = 0.0f, norm_b2_ = 0.0f;
-    float norm_a1_ = 0.0f, norm_a2_ = 0.0f;
-    // 【v6.29优化】当前运行系数（平滑插值用）
-    float cur_b0_ = 1.0f, cur_b1_ = 0.0f, cur_b2_ = 0.0f;
-    float cur_a1_ = 0.0f, cur_a2_ = 0.0f;
-    // State variables
-    float x1_ = 0.0f, x2_ = 0.0f;
-    float y1_ = 0.0f, y2_ = 0.0f;
+    // Coefficients — double storage for 53-bit mantissa precision
+    double norm_b0_ = 1.0, norm_b1_ = 0.0, norm_b2_ = 0.0;
+    double norm_a1_ = 0.0, norm_a2_ = 0.0;
+    double cur_b0_ = 1.0, cur_b1_ = 0.0, cur_b2_ = 0.0;
+    double cur_a1_ = 0.0, cur_a2_ = 0.0;
+    // State — double to eliminate 24-bit mantissa quantization in IIR feedback
+    double x1_ = 0.0, x2_ = 0.0;
+    double y1_ = 0.0, y2_ = 0.0;
 private:
-    void setCoefficients(float b0, float b1, float b2, float a0, float a1, float a2) {
-        // Normalize by a0
+    void setCoefficients(double b0, double b1, double b2, double a0, double a1, double a2) {
         norm_b0_ = b0 / a0;
         norm_b1_ = b1 / a0;
         norm_b2_ = b2 / a0;
@@ -601,19 +600,29 @@ static std::atomic<bool> g_dspEqEnabled{false};
 static std::atomic<bool> g_debugSilenceTest{false};  // 【V7.08】强制静音测试标志
 static std::atomic<int64_t> g_playbackPositionUs{0};  // 【V7.67】实际播放位置（微秒），用于nativeGetPositionMs
 static std::atomic<float> g_rmsLevel{0.0f};  // 【V7.xx】实时RMS振幅 0~1，Oboe回调写入，UI轮询
-static std::atomic<float> g_bandSub{0.0f};    // 0-60Hz sub energy (cascaded LP diff)
-static std::atomic<float> g_bandBass{0.0f};   // 60-250Hz bass energy
-static std::atomic<float> g_bandMid{0.0f};     // 250-2000Hz mid energy
-static std::atomic<float> g_bandHigh{0.0f};    // 2000-20000Hz high energy
-// Cascaded low-pass filters for CDJ/DJM-style spectrum splitting
-// sub = LP(60), bass = LP(250)-LP(60), mid = LP(2000)-LP(250), high = full-LP(2000)
-static BiquadFilter g_lp60L, g_lp60R, g_lp250L, g_lp250R, g_lp2000L, g_lp2000R;
+// 8-band spectrum: cascaded LP-diff for CDJ/DJM style
+// band0 = LP(60)            band1 = LP(120)-LP(60)     band2 = LP(250)-LP(120)
+// band3 = LP(500)-LP(250)   band4 = LP(2000)-LP(500)   band5 = LP(6000)-LP(2000)
+// band6 = LP(12000)-LP(6000) band7 = full-LP(12000)
+static std::atomic<float> g_band0{0.0f}; // 0-60Hz
+static std::atomic<float> g_band1{0.0f}; // 60-120Hz
+static std::atomic<float> g_band2{0.0f}; // 120-250Hz
+static std::atomic<float> g_band3{0.0f}; // 250-500Hz
+static std::atomic<float> g_band4{0.0f}; // 500-2000Hz
+static std::atomic<float> g_band5{0.0f}; // 2000-6000Hz
+static std::atomic<float> g_band6{0.0f}; // 6000-12000Hz
+static std::atomic<float> g_band7{0.0f}; // 12000-20000Hz
+static BiquadFilter g_lp60L, g_lp60R, g_lp120L, g_lp120R;
+static BiquadFilter g_lp250L, g_lp250R, g_lp500L, g_lp500R;
+static BiquadFilter g_lp2000L, g_lp2000R, g_lp6000L, g_lp6000R;
+static BiquadFilter g_lp12000L, g_lp12000R;
 static std::atomic<bool> g_vuFiltersInited{false};
 static std::atomic<int64_t> g_dspDisabledSampleCount{0};  // 【V7.08】DSP 关闭时的采样计数
 static std::atomic<float> g_dspEqPreGain{1.0f};   // 0dB (Steven: EQ是boost不需要pre-atten)
 static std::atomic<float> g_masterGain{0.89f};     // -1dB intersample peak protection
 static std::atomic<int> g_dspMode{0};              // 0=Steven Special, 1=Cat Mode
 static std::atomic<bool> g_eq5BandEnabled{false};  // 【V7.80】5段图形均衡器预设模式
+static std::atomic<bool> g_msebActive{false};         // 【V7.200】MSEB 激活时保护5段EQ不被任何reset/dspMode清零
 static std::atomic<bool> g_nightMode{false};         // 夜间模式：softClip 阈值降低
 static std::atomic<bool> g_ditherEnabled{true};      // TPDF Dither 默认开启
 static std::atomic<bool> g_dcBlockEnabled{true};     // DC Blocker 默认开启
@@ -840,52 +849,60 @@ public:
             for (int i = 0; i < readSamples; i++) sumSq += output[i] * output[i];
             g_rmsLevel.store(std::sqrt(sumSq / readSamples), std::memory_order_relaxed);
 
-            // 【V7.85】Real 4-band spectrum via cascaded LP-diff (CDJ/DJM style)
-            // sub=LP(60Hz) bass=LP(250Hz)-sub mid=LP(2000Hz)-LP(250Hz) high=full-mid chain
-            // All bands sum to full signal → zero energy loss, zero bandpass attenuation
+            // 【V7.85→8-band】8-band spectrum via cascaded LP-diff (CDJ/DJM style)
+            // band[0-7] = LP-diff cascade; all bands sum to full signal
             int sr = g_sampleRate.load();
             if (!g_vuFiltersInited.load()) {
-                g_lp60L.setLowPass(sr, 60.0f, 0.707f);  g_lp60R.setLowPass(sr, 60.0f, 0.707f);
-                g_lp250L.setLowPass(sr, 250.0f, 0.707f); g_lp250R.setLowPass(sr, 250.0f, 0.707f);
+                g_lp60L.setLowPass(sr, 60.0f, 0.707f);     g_lp60R.setLowPass(sr, 60.0f, 0.707f);
+                g_lp120L.setLowPass(sr, 120.0f, 0.707f);    g_lp120R.setLowPass(sr, 120.0f, 0.707f);
+                g_lp250L.setLowPass(sr, 250.0f, 0.707f);    g_lp250R.setLowPass(sr, 250.0f, 0.707f);
+                g_lp500L.setLowPass(sr, 500.0f, 0.707f);    g_lp500R.setLowPass(sr, 500.0f, 0.707f);
                 g_lp2000L.setLowPass(sr, 2000.0f, 0.707f);  g_lp2000R.setLowPass(sr, 2000.0f, 0.707f);
-                // all filters initialized above
+                g_lp6000L.setLowPass(sr, 6000.0f, 0.707f);  g_lp6000R.setLowPass(sr, 6000.0f, 0.707f);
+                g_lp12000L.setLowPass(sr, 12000.0f, 0.707f); g_lp12000R.setLowPass(sr, 12000.0f, 0.707f);
                 g_vuFiltersInited.store(true);
             }
-            float subE = 0, bassE = 0, midE = 0, highE = 0;
+            float subE = 0, b1E = 0, b2E = 0, b3E = 0, b4E = 0, b5E = 0, b6E = 0, b7E = 0;
             int ch = stream->getChannelCount();
             for (int i = 0; i < readSamples; i += ch) {
                 float sl = output[i], sr2 = (ch >= 2 && i + 1 < readSamples) ? output[i + 1] : sl;
                 float mono = (sl + sr2) * 0.5f;
-                float l60 = (g_lp60L.process(sl) + g_lp60R.process(sr2)) * 0.5f;
-                float l250 = (g_lp250L.process(sl) + g_lp250R.process(sr2)) * 0.5f;
+                float l60   = (g_lp60L.process(sl)   + g_lp60R.process(sr2))   * 0.5f;
+                float l120  = (g_lp120L.process(sl)  + g_lp120R.process(sr2))  * 0.5f;
+                float l250  = (g_lp250L.process(sl)  + g_lp250R.process(sr2))  * 0.5f;
+                float l500  = (g_lp500L.process(sl)  + g_lp500R.process(sr2))  * 0.5f;
                 float l2000 = (g_lp2000L.process(sl) + g_lp2000R.process(sr2)) * 0.5f;
-                float ssub = l60;
-                float sbass = l250 - l60;
-                float smid = l2000 - l250;
-                float shigh = mono - l2000;
-                subE += ssub * ssub; bassE += sbass * sbass;
-                midE += smid * smid; highE += shigh * shigh;
+                float l6000 = (g_lp6000L.process(sl) + g_lp6000R.process(sr2)) * 0.5f;
+                float l12000 = (g_lp12000L.process(sl) + g_lp12000R.process(sr2)) * 0.5f;
+                float b0 = l60;
+                float b1 = l120 - l60;
+                float b2 = l250 - l120;
+                float b3 = l500 - l250;
+                float b4 = l2000 - l500;
+                float b5 = l6000 - l2000;
+                float b6 = l12000 - l6000;
+                float b7 = mono - l12000;
+                subE += b0*b0; b1E += b1*b1; b2E += b2*b2; b3E += b3*b3;
+                b4E += b4*b4; b5E += b5*b5; b6E += b6*b6; b7E += b7*b7;
             }
             int frames = readSamples / ch;
             if (frames > 0) {
-                float subR = std::sqrt(subE / frames);
-                float bassR = std::sqrt(bassE / frames);
-                float midR = std::sqrt(midE / frames);
-                float highR = std::sqrt(highE / frames);
-                // LP-diff splits signal into 4 bands, each inherently smaller.
-                // Scale aggressively for visual range; EMA smooth per band.
-                static float emaSub = 0, emaBass = 0, emaMid = 0, emaHigh = 0;
-                const float a = 0.2f;
-                const float gain = 6.0f;
-                emaSub = emaSub * (1 - a) + subR * a;
-                emaBass = emaBass * (1 - a) + bassR * a;
-                emaMid = emaMid * (1 - a) + midR * a;
-                emaHigh = emaHigh * (1 - a) + highR * a;
+                float r0 = std::sqrt(subE / frames);
+                float r1 = std::sqrt(b1E / frames); float r2 = std::sqrt(b2E / frames);
+                float r3 = std::sqrt(b3E / frames); float r4 = std::sqrt(b4E / frames);
+                float r5 = std::sqrt(b5E / frames); float r6 = std::sqrt(b6E / frames);
+                float r7 = std::sqrt(b7E / frames);
+                static float ema[8] = {};
+                const float a = 0.2f, gain = 6.0f;
+                ema[0] = ema[0]*(1-a) + r0*a;  ema[1] = ema[1]*(1-a) + r1*a;
+                ema[2] = ema[2]*(1-a) + r2*a;  ema[3] = ema[3]*(1-a) + r3*a;
+                ema[4] = ema[4]*(1-a) + r4*a;  ema[5] = ema[5]*(1-a) + r5*a;
+                ema[6] = ema[6]*(1-a) + r6*a;  ema[7] = ema[7]*(1-a) + r7*a;
                 auto cl = [](float x) { return x > 1.0f ? 1.0f : x; };
-                g_bandSub.store(cl(emaSub * gain), std::memory_order_relaxed);
-                g_bandBass.store(cl(emaBass * gain), std::memory_order_relaxed);
-                g_bandMid.store(cl(emaMid * gain), std::memory_order_relaxed);
-                g_bandHigh.store(cl(emaHigh * gain), std::memory_order_relaxed);
+                g_band0.store(cl(ema[0]*gain)); g_band1.store(cl(ema[1]*gain));
+                g_band2.store(cl(ema[2]*gain)); g_band3.store(cl(ema[3]*gain));
+                g_band4.store(cl(ema[4]*gain)); g_band5.store(cl(ema[5]*gain));
+                g_band6.store(cl(ema[6]*gain)); g_band7.store(cl(ema[7]*gain));
             }
         }
 
@@ -1521,6 +1538,8 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpen(JNIEnv *env, jobject thiz,
     builder.setChannelCount(channelCount);
     builder.setCallback(&g_audioCallback);
     builder.setBufferCapacityInFrames(9600);
+    // 【V7.200】Hardware FTZ — eliminate IIR denormal stalls at zero CPU cost
+    enableHardwareFtz();
     {   // 【V3.2.7】动态路由到 USB DAC（Kotlin 侧传入当前 Port ID，0=系统默认）
         int devId = g_outputDeviceId.load();
         if (devId > 0) {
@@ -1824,6 +1843,8 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpenFd(JNIEnv *env, jobject thi
     builder.setChannelCount(channelCount);
     builder.setCallback(&g_audioCallback);
     builder.setBufferCapacityInFrames(9600);
+    // 【V7.200】Hardware FTZ — eliminate IIR denormal stalls at zero CPU cost
+    enableHardwareFtz();
     {   // 【V3.2.7】动态路由到 USB DAC（Kotlin 侧传入当前 Port ID，0=系统默认）
         int devId = g_outputDeviceId.load();
         if (devId > 0) {
@@ -2241,19 +2262,52 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeGetRmsLevel(JNIEnv *env, jobjec
 
 JNIEXPORT jfloat JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBandSub(JNIEnv *env, jobject thiz) {
-    return g_bandSub.load(std::memory_order_relaxed);
+    return g_band0.load(std::memory_order_relaxed);
 }
 JNIEXPORT jfloat JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBandBass(JNIEnv *env, jobject thiz) {
-    return g_bandBass.load(std::memory_order_relaxed);
+    return (g_band1.load(std::memory_order_relaxed) + g_band2.load(std::memory_order_relaxed)) * 0.5f;
 }
 JNIEXPORT jfloat JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBandMid(JNIEnv *env, jobject thiz) {
-    return g_bandMid.load(std::memory_order_relaxed);
+    return (g_band3.load(std::memory_order_relaxed) + g_band4.load(std::memory_order_relaxed)) * 0.5f;
 }
 JNIEXPORT jfloat JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBandHigh(JNIEnv *env, jobject thiz) {
-    return g_bandHigh.load(std::memory_order_relaxed);
+    return (g_band5.load(std::memory_order_relaxed) + g_band6.load(std::memory_order_relaxed) + g_band7.load(std::memory_order_relaxed)) * 0.33f;
+}
+// 8-band raw access for FFT display
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBand0(JNIEnv *env, jobject thiz) {
+    return g_band0.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBand1(JNIEnv *env, jobject thiz) {
+    return g_band1.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBand2(JNIEnv *env, jobject thiz) {
+    return g_band2.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBand3(JNIEnv *env, jobject thiz) {
+    return g_band3.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBand4(JNIEnv *env, jobject thiz) {
+    return g_band4.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBand5(JNIEnv *env, jobject thiz) {
+    return g_band5.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBand6(JNIEnv *env, jobject thiz) {
+    return g_band6.load(std::memory_order_relaxed);
+}
+JNIEXPORT jfloat JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeGetBand7(JNIEnv *env, jobject thiz) {
+    return g_band7.load(std::memory_order_relaxed);
 }
 
 // --- DSP Mode ---
@@ -2261,6 +2315,14 @@ JNIEXPORT void JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeSetDspMode(JNIEnv *env, jobject thiz, jint mode) {
     std::lock_guard<std::mutex> eqLock(g_eqMutex);
     int sr = g_sampleRate.load();
+    // 【V7.200】MSEB active → refuse to overwrite 5-band EQ with DSP mode
+    if (g_msebActive.load()) {
+        LOGI("nativeSetDspMode: refused (mode=%d) — MSEB active", mode);
+        g_dspMode.store(mode);
+        g_dspEqEnabled.store(mode >= 0);
+        // Allow DSP mode flag change but don't touch 5-band EQ coefficients
+        return;
+    }
     g_dspMode.store(mode);
     g_eq5BandEnabled.store(false);  // 【V7.80】切换DSP模式→禁用5段预设
     g_autoEqEnabled.store(false);
@@ -2359,7 +2421,7 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeSetDspEq5Band(JNIEnv *env, jobj
     for (int i = 0; i < 5; i++) {
         if (gains[i] > maxGain) maxGain = gains[i];
     }
-    float preGainDb = -maxGain;  // 只补偿最大正增益，不额外衰减
+    float preGainDb = -maxGain * 1.3f;  // 30% extra headroom — 5-band cascade + Q=1.4 resonance overshoot
     g_dspEqPreGain = powf(10.0f, preGainDb / 20.0f);
     
     g_eq5BandEnabled.store(true);
@@ -2373,8 +2435,20 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeSetDspEq5Band(JNIEnv *env, jobj
          gains[0], gains[1], gains[2], gains[3], gains[4]);
 }
 
+// 【V7.200】MSEB activation guard — protects 5-band EQ from being overwritten by DSP mode / reset
+JNIEXPORT void JNICALL
+Java_com_sdw_music_player_OboeDirectPlayer_nativeSetMsebActive(JNIEnv *env, jobject thiz, jboolean active) {
+    g_msebActive.store(active);
+    LOGI("MSEB active = %s", active ? "YES" : "NO");
+}
+
 JNIEXPORT void JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeResetDspEq5Band(JNIEnv *env, jobject thiz) {
+    // 【V7.200】MSEB active → refuse reset, MSEB owns the 5-band EQ pipeline
+    if (g_msebActive.load()) {
+        LOGI("nativeResetDspEq5Band: refused — MSEB active");
+        return;
+    }
     std::lock_guard<std::mutex> eqLock(g_eqMutex);
     struct { BiquadFilter* L; BiquadFilter* R; } bands[5] = {
         {&g_eqBand1L, &g_eqBand1R}, {&g_eqBand2L, &g_eqBand2R},

@@ -1,4 +1,4 @@
-package com.sdw.music.player
+﻿package com.sdw.music.player
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -1123,7 +1123,7 @@ class MusicService : MediaSessionService() {
         val settingsPrefs = getSharedPreferences("settings", MODE_PRIVATE)
         settingsPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPrefs, key ->
             if (key == "audio_output") {
-                val newMode = sharedPrefs.getString("audio_output", "Oboe\u72ec\u5360") ?: "Oboe\u72ec\u5360"
+                val newMode = sharedPrefs.getString("audio_output", "AAudio (Direct)") ?: "AAudio (Direct)"
                 handler.post { reconfigureAudioOutput(newMode) }
             }
             if (key == "usb_exclusive") {
@@ -1340,7 +1340,7 @@ class MusicService : MediaSessionService() {
                     }
                 }
                 // Route to Oboe system-path (no setDeviceId — Android auto-routes to USB)
-                getSharedPreferences("settings", MODE_PRIVATE).edit().putString("audio_output", "Oboe Exclusive").apply()
+                getSharedPreferences("settings", MODE_PRIVATE).edit().putString("audio_output", "AAudio (Direct)").apply()
                 refreshOboeModeCache()
                 playSongOboeDirect(index, songs)
                 notifySongChanged(songs[index])
@@ -1616,6 +1616,19 @@ class MusicService : MediaSessionService() {
                 setDspMode(savedDspMode)
                 Log.i(TAG, "DSP mode restored: ${when (savedDspMode) { -1 -> "OFF"; 1 -> "CAT_MODE"; else -> "STEVEN_SPECIAL" }}")
                 EqualizerManager.restoreSettings(this@MusicService)
+
+                // Restore MSEB if active (new OboeDirectPlayer resets native Biquad to zero)
+                if (MsebCalculator.isEnabled(this@MusicService)) {
+                    val msebParams = MsebCalculator.load(this@MusicService)
+                    if (!msebParams.isFlat) {
+                        oboeDirectPlayer?.setDspEnabled(true)
+                        oboeDirectPlayer?.setDspEq5Band(
+                            MsebCalculator.calculateGains(msebParams),
+                            MsebCalculator.BAND_FREQS
+                        )
+                        dspEqEnabled = true
+                    }
+                }
 
                 // [V8.1] Always sync ExoPlayer playlist so ForwardingPlayer.getCurrentMediaItem()
                 // returns correct metadata (system notification / lock screen / car / Wear OS).
@@ -2620,7 +2633,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
         // Oboe DSP ?? OboeDirectPlayer Android Equalizer
         // 
         //            ?? onAudioSessionIdChanged  init
-        val newOboeMode = mode == "Oboe Exclusive" || mode == "Oboe"
+        val newOboeMode = mode == "AAudio (Direct)" || mode == "Oboe Exclusive" || mode == "Oboe"
         EqualizerManager.release()  //  Android Equalizer
         if (!newOboeMode) {
             Log.d(TAG, "reconfigureAudioOutput: non-Oboe mode ($mode), trying init with sessionId=${newPlayer.audioSessionId}")
@@ -2657,7 +2670,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
                         // Oboe route: do NOT set media items on ExoPlayer.
             // setMediaItems internally calls prepare() which starts MediaCodec;
             // in Oboe Direct mode we skip it to avoid parallel decoding CPU burn.
-            val targetOboe = mode == "Oboe Exclusive" || mode == "Oboe"
+            val targetOboe = mode == "AAudio (Direct)" || mode == "Oboe Exclusive" || mode == "Oboe"
             if (targetOboe && wasPlaying && currentMediaIndex in savedPlaylist.indices) {
                 // Oboe mode: skip setMediaItems, route directly to OboeDirect
                 newPlayer.volume = 0f
@@ -2689,7 +2702,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
 
         // 
         //  isPrepared  true  getCurrentPosition/getDuration ��??
-        if (mode != "Oboe Exclusive" && mode != "Oboe" && oboeDirectPlayer != null) {
+        if (mode != "AAudio (Direct)" && mode != "Oboe Exclusive" && mode != "Oboe" && oboeDirectPlayer != null) {
             oboeDirectPlayer?.stop()
             oboeDirectPlayer = null
             Log.d(TAG, "reconfigureAudioOutput: oboeDirectPlayer stopped & released (switching to $mode)")
