@@ -598,7 +598,7 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 SettingsItem(
                     icon = Icons.Default.Info,
                     title = "Moto Music",
-                    subtitle = "v7.0 | Developed by Stephen Yu"
+                    subtitle = "v7.2 | Developed by Stephen Yu"
                 )
             }
             item {
