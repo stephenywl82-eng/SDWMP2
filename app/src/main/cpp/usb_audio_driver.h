@@ -87,6 +87,8 @@ public:
     void stop();
     void stopThreadOnly();
     void resetRingBuffer();  // 銆怴3.2.7銆戞殏鍋滃悗鎭㈠鏃舵竻绌?ring buffer锛岄伩鍏嶆棫鏁版嵁韪╄笍瀵艰嚧鍣煶
+    void forceReset();            // emergency: close fd to cancel stuck URBs (recovery from wedge)
+    int64_t lastUrbCompletionTimeMs() const { return lastUrbCompletionTimeMs_.load(); }
     int pushPcm(const float* data, int frameCount);
     int getRingFillFrames();  // 銆怴3.2.7銆慐OS 鎺掔┖鐢?
     int clockRate_ = 0;       // 銆怴3.2.7銆慏AC 鏃堕挓褰撳墠 SET_CUR 閫熺巼
@@ -106,7 +108,7 @@ public:
     int  getSampleRate() const  { return sampleRate_; }
     int  getBitsPerSample() const { return bitsPerSample_; }
     int  getUnderrunCount() const { return underrunCount_.load(std::memory_order_acquire); }
-    void setVolume(float v)      { volume_ = v; }
+    void setVolume(float v)      { volume_ = v; if (hardwareVolumeReady_) setHardwareVolume(v); }
     float getVolume() const      { return volume_; }
     const char* getDacName() const   { return dacName_.c_str(); }
     const char* getDetailedInfo() const { return detailedInfo_.c_str(); }
@@ -182,6 +184,8 @@ private:
     std::atomic<int> writePos_{0};
     std::atomic<int> readPos_{0};
 
+    std::atomic<int64_t> lastUrbCompletionTimeMs_{0};  // wall-clock ms of last REAPURB success
+    std::atomic<int32_t> wedgeCount_{0};                // forceReset trigger count
     std::thread streamThread_;
     std::thread feedbackThread_;
 
@@ -193,4 +197,16 @@ private:
     std::vector<DacAltCandidate> altCandidates_;
     std::vector<ClockRange> clockRanges_;
     int  acIface_ = 0;     // AudioControl interface number (for clock control transfers)
+    // Feature Unit hardware volume
+    int  featureUnitId_ = 0;
+    int  featureUnitChannels_ = 2;
+    int  featureUnitControlSize_ = 2;
+    float featureUnitMinDb_ = -127.0f;
+    float featureUnitMaxDb_ = 0.0f;
+    float featureUnitResDb_ = 1.0f;
+    bool hardwareVolumeReady_ = false;
+    void parseFeatureUnit();
+    bool setHardwareVolume(float pct);
+
+
 };

@@ -347,6 +347,26 @@ fun SettingsScreen(onNavigateBack: () -> Unit, onNavigateToAudioDiagnostic: (() 
                 )
                 Spacer(Modifier.height(8.dp))
             }
+            item { SettingsDivider() }
+            // === Auto-Play ===
+            item {
+                val autoPlayPref = context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
+                var autoPlayEnabled by remember(refreshTrigger) {
+                    mutableStateOf(autoPlayPref.getBoolean("auto_play_on_launch", false))
+                }
+                SettingsSwitchItem(
+                    icon = Icons.Default.PlayArrow,
+                    title = "Auto-Play on Launch",
+                    subtitle = if (autoPlayEnabled) "Resume playback when app opens" else "Start paused",
+                    checked = autoPlayEnabled,
+                    onCheckedChange = { enabled ->
+                        autoPlayEnabled = enabled
+                        autoPlayPref.edit().putBoolean("auto_play_on_launch", enabled).apply()
+                        refreshTrigger++
+                    }
+                )
+                Spacer(Modifier.height(8.dp))
+            }
             // === Widget ===
             item {
                 SettingsSectionTitle("Widget")

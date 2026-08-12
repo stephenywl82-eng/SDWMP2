@@ -1,170 +1,673 @@
-> Task :analyzer:checkKotlinGradlePluginConfigurationErrors
+﻿> Task :analyzer:checkKotlinGradlePluginConfigurationErrors
 > Task :analyzer:preBuild UP-TO-DATE
-> Task :analyzer:preReleaseBuild UP-TO-DATE
-> Task :analyzer:generateReleaseResValues UP-TO-DATE
-> Task :analyzer:generateReleaseResources UP-TO-DATE
-> Task :analyzer:packageReleaseResources UP-TO-DATE
-> Task :analyzer:parseReleaseLocalResources UP-TO-DATE
-> Task :analyzer:generateReleaseRFile UP-TO-DATE
-> Task :analyzer:compileReleaseKotlin UP-TO-DATE
-> Task :analyzer:javaPreCompileRelease UP-TO-DATE
-> Task :analyzer:compileReleaseJavaWithJavac NO-SOURCE
-> Task :analyzer:bundleLibCompileToJarRelease UP-TO-DATE
+> Task :analyzer:preDebugBuild UP-TO-DATE
+> Task :analyzer:generateDebugResValues UP-TO-DATE
+> Task :analyzer:generateDebugResources UP-TO-DATE
+> Task :analyzer:packageDebugResources UP-TO-DATE
+> Task :analyzer:parseDebugLocalResources UP-TO-DATE
+> Task :analyzer:generateDebugRFile UP-TO-DATE
+> Task :analyzer:compileDebugKotlin UP-TO-DATE
+> Task :analyzer:javaPreCompileDebug UP-TO-DATE
+> Task :analyzer:compileDebugJavaWithJavac NO-SOURCE
+> Task :analyzer:bundleLibCompileToJarDebug UP-TO-DATE
 > Task :app:checkKotlinGradlePluginConfigurationErrors
-> Task :analyzer:writeReleaseAarMetadata UP-TO-DATE
+> Task :analyzer:compileDebugLibraryResources UP-TO-DATE
+> Task :analyzer:writeDebugAarMetadata UP-TO-DATE
 > Task :app:preBuild UP-TO-DATE
-> Task :app:preReleaseBuild UP-TO-DATE
-> Task :app:generateReleaseResValues
-> Task :app:mapReleaseSourceSetPaths
-> Task :app:generateReleaseResources
-> Task :app:checkReleaseAarMetadata
-> Task :app:packageReleaseResources
-> Task :app:createReleaseCompatibleScreenManifests
-> Task :analyzer:extractDeepLinksRelease UP-TO-DATE
-> Task :analyzer:processReleaseManifest UP-TO-DATE
-> Task :app:extractDeepLinksRelease
-> Task :app:processReleaseMainManifest
-> Task :app:processReleaseManifest
-> Task :app:processReleaseManifestForPackage
-> Task :app:parseReleaseLocalResources
-> Task :app:mergeReleaseResources
-> Task :app:processReleaseResources
-> Task :app:kaptGenerateStubsReleaseKotlin
-> Task :app:kaptReleaseKotlin
-> Task :app:compileReleaseKotlin
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:9:29 'Allocation' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:10:29 'Element' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:11:29 'RenderScript' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:12:29 'ScriptIntrinsicBlur' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:15:42 'SimpleTarget<Z : Any!>' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:49:28 'SimpleTarget<Z : Any!>' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:97:18 'RenderScript' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:97:31 'create(Context!): RenderScript!' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:98:21 'Allocation' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:98:32 'createFromBitmap(RenderScript!, Bitmap!): Allocation!' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:99:22 'Allocation' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:99:33 'createTyped(RenderScript!, Type!): Allocation!' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:99:55 'getter for type: Type!' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:100:22 'ScriptIntrinsicBlur' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:100:42 'create(RenderScript!, Element!): ScriptIntrinsicBlur!' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:100:53 'Element' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:100:61 'U8_4(RenderScript!): Element!' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:101:16 'setRadius(Float): Unit' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:102:16 'setInput(Allocation!): Unit' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:103:16 'forEach(Allocation!): Unit' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:104:16 'copyTo(Bitmap!): Unit' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:105:12 'destroy(): Unit' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:130:13 Variable 'x' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:131:13 Variable 'y' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:132:13 Variable 'i' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:142:14 Name shadowed: i
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:162:14 Name shadowed: y
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:166:13 The value 'r1' assigned to 'var rbs: Int defined in com.sdw.music.player.BlurUtils.blurStack' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:167:18 Name shadowed: i
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:189:18 Name shadowed: x
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:238:14 Name shadowed: x
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:243:18 Name shadowed: i
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/BlurUtils.kt:266:18 Name shadowed: y
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/CrashHandler.kt:84:29 Unnecessary safe call on a non-null receiver of type Array<(out) StackTraceElement!>!
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/CrashHandler.kt:93:29 Unnecessary safe call on a non-null receiver of type Array<(out) StackTraceElement!>!
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/MemoryManager.kt:99:54 'getBitmap(ContentResolver!, Uri!): Bitmap!' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/MemoryManager.kt:166:54 'getBitmap(ContentResolver!, Uri!): Bitmap!' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/AudioAnalyzer.kt:214:65 Parameter 'title' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/AudioAnalyzer.kt:214:85 Parameter 'filePath' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/AudioAnalyzer.kt:214:108 Parameter 'artist' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/AudioAnalyzer.kt:271:17 Variable 'key' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:35:40 'SonicAudioProcessor' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:689:36 Unnecessary safe call on a non-null receiver of type MusicService?
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:690:36 Unnecessary safe call on a non-null receiver of type MusicService?
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:697:29 'requestAudioFocus(AudioManager.OnAudioFocusChangeListener!, Int, Int): Int' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:710:42 'abandonAudioFocus(AudioManager.OnAudioFocusChangeListener!): Int' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1007:25 Variable 'prevButton' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1014:25 Variable 'playPauseButton' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1021:25 Variable 'nextButton' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1632:73 Unnecessary safe call on a non-null receiver of type OboeDirectPlayer.DspMode
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1720:60 Elvis operator (?:) always returns the left operand of non-nullable type Int
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1721:66 Elvis operator (?:) always returns the left operand of non-nullable type Int
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1723:61 Elvis operator (?:) always returns the left operand of non-nullable type String
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:1724:208 Unnecessary safe call on a non-null receiver of type OboeDirectPlayer.DspMode
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2250:13 Variable 'prevIntent' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2253:13 Variable 'playPauseIntent' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2256:13 Variable 'nextIntent' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2295:56 No cast needed
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2577:25 Variable 'prevButton' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2583:25 Variable 'playPauseButton' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/MusicService.kt:2589:25 Variable 'nextButton' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:153:55 Unnecessary safe call on a non-null receiver of type String
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:172:29 Condition 'mi != null' is always 'true'
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:174:48 Unnecessary safe call on a non-null receiver of type String
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:291:49 Parameter 'i' is never used, could be renamed to _
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:299:56 Unnecessary safe call on a non-null receiver of type String
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:531:49 Parameter 'i' is never used, could be renamed to _
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/PlayerConnection.kt:539:53 Unnecessary safe call on a non-null receiver of type String
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacManager.kt:417:30 Parameter 'conn' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacManager.kt:417:57 Parameter 'id' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:397:46 No cast needed
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:397:49 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:403:46 No cast needed
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:403:49 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:412:46 No cast needed
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:412:49 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:424:46 No cast needed
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:424:49 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:495:88 No cast needed
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:495:91 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:563:96 No cast needed
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:563:99 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:638:69 Unnecessary non-null assertion (!!) on a non-null receiver of type ByteArray
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:647:91 Unnecessary non-null assertion (!!) on a non-null receiver of type ByteArray
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:647:110 Unnecessary non-null assertion (!!) on a non-null receiver of type ByteArray
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:673:96 No cast needed
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/audio/UsbDacPlaybackController.kt:673:99 This class shouldn't be used in Kotlin. Use kotlin.Any instead.
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/core/lyrics/LRCLIBProvider.kt:168:65 Parameter 'duration' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/components/AlphabetIndexBar.kt:71:5 Parameter 'onLetterChanged' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/components/LyricViewCompose.kt:66:5 Parameter 'themeColor' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/components/VuMeter.kt:218:9 Variable 'frame' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/components/VuMeter.kt:295:75 Parameter 'rms' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/navigation/SDWNavigation.kt:235:21 Name shadowed: context
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:39:5 Parameter 'currentSongId' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:40:5 Parameter 'isPlaying' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:110:61 Unchecked cast: Any to Pair<String, Any>
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:122:61 Unchecked cast: Any to Pair<String, Any>
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/ArtistListScreen.kt:123:47 Unchecked cast: Any to Pair<List<Song>, String>
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioDiagnosticScreen.kt:61:9 Variable 'outputDeviceLabelSnapshot' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:148:45 Elvis operator (?:) always returns the left operand of non-nullable type String
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/AudioQualityScreen.kt:179:26 'SCREEN_BRIGHT_WAKE_LOCK: Int' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricFullscreenScreen.kt:87:20 'setDecorFitsSystemWindows(Boolean): Unit' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricFullscreenScreen.kt:108:28 'setDecorFitsSystemWindows(Boolean): Unit' is deprecated. Deprecated in Java
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricFullscreenScreen.kt:408:33 Condition 'song != null' is always 'true'
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricFullscreenScreen.kt:410:73 Unnecessary non-null assertion (!!) on a non-null receiver of type Song
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/LyricSearchScreen.kt:48:9 Variable 'expandedLrc' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:62:9 Variable 'accentPurple' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:118:67 Parameter 'index' is never used, could be renamed to _
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:210:5 Parameter 'onPlaySongs' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:211:5 Parameter 'onAddToPlaylist' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlaceholderScreens.kt:408:13 Variable 'pl' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerComponents.kt:78:36 'QueueMusic: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.QueueMusic
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerComponents.kt:584:39 'QueueMusic: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.QueueMusic
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:103:5 Parameter 'fullCoverVisible' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:205:9 Variable 'vuSessionId' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:319:9 Variable 'seedHues' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:330:9 Variable 'bandReactiveBlobs' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:9 Variable 'ease' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:9 Variable 'subBeat' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:9 Variable 'bassBeat' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:357:9 Variable 'midBeat' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:358:9 Variable 'highBeat' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:541:5 Parameter 'onNavigateToArtist' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:906:40 'QueueMusic: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.QueueMusic
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1024:47 Elvis operator (?:) always returns the left operand of non-nullable type String
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1083:21 Variable 'f' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1096:9 Variable 'fallbackHue' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/SongListScreen.kt:69:5 Parameter 'onNavigateBack' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/SongListScreen.kt:879:5 Parameter 'onNavigateToPlayer' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/widget/MusicWidgetProvider.kt:93:84 Parameter 'rounded' is never used
-w: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/widget/MusicWidgetProvider.kt:122:80 Parameter 'rounded' is never used
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :analyzer:extractDeepLinksDebug UP-TO-DATE
+> Task :analyzer:processDebugManifest UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+
+> Task :app:kaptGenerateStubsDebugKotlin
+.\gradlew.bat : e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:13 Expecting
+ a top level declaration
+所在位置 行:1 字符: 16
++ ... E:\SDWMP3 ; .\gradlew.bat compileDebugKotlin --no-build-cache --max-w ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (e: file:///E:/S...vel declaration:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:345:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:22 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:346:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:347:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:22 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:348:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:22 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:349:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:22 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:350:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:22 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:351:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:22 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:352:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:353:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:22 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:26 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:354:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:25 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:355:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:13 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:21 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:22 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:23 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:26 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:34 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:36 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:43 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:48 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:50 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:55 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:57 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:62 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:64 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:69 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:71 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:76 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:78 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:82 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:84 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:85 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:356:86 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:357:9 Expecting a top level decl
+aration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:358:5 Expecting a top level decl
+aration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:5 Expecting a top level decl
+aration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:8 Expecting a top level decl
+aration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:9 Expecting a top level decl
+aration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:18 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:20 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:28 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:29 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:40 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:41 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:42 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:370:44 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:552:1 Expecting a top level decl
+aration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:5 Expecting a top level dec
+laration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:11 Expecting a top level de
+claration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:12 Expecting a top level de
+claration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:20 Expecting a top level de
+claration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:21 Expecting a top level de
+claration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:32 Expecting a top level de
+claration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:33 Expecting a top level de
+claration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:34 Expecting a top level de
+claration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1145:36 Expecting a top level de
+claration
+e: file:///E:/SDWMP3/app/src/main/java/com/sdw/music/player/ui/screens/PlayerScreen.kt:1243:1 Expecting a top level dec
+laration
+
+> Task :app:kaptGenerateStubsDebugKotlin FAILED
 
 [Incubating] Problems report is available at: file:///E:/SDWMP3/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kaptGenerateStubsDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCo
+mpilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
 
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 
@@ -172,5 +675,5 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD SUCCESSFUL in 2m 41s
-29 actionable tasks: 18 executed, 11 up-to-date
+BUILD FAILED in 26s
+28 actionable tasks: 3 executed, 25 up-to-date

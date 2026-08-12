@@ -151,6 +151,15 @@ fun LyricViewCompose(
                     Shadow(ComposeColor(0x40000000), offset = Offset(1f, 1f), blurRadius = 6f)
                 }
 
+                val textStyle = TextStyle(
+                    fontSize = fontSize,
+                    fontWeight = fontWeight,
+                    color = textColor,
+                    shadow = shadow,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 36.sp
+                )
+
                 val lineModifier = Modifier
                     .padding(vertical = LINE_PADDING)
                     .then(
@@ -168,13 +177,7 @@ fun LyricViewCompose(
                 Text(
                     text = text,
                     textAlign = TextAlign.Center,
-                    style = TextStyle(
-                        fontSize = fontSize,
-                        fontWeight = fontWeight,
-                        color = textColor,
-                        shadow = shadow,
-                        textAlign = TextAlign.Center
-                    ),
+                    style = textStyle,
                     modifier = lineModifier
                 )
             }

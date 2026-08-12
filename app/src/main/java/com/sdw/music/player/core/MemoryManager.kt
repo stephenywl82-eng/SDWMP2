@@ -1,4 +1,4 @@
-﻿package com.sdw.music.player
+package com.sdw.music.player
 
 import android.app.ActivityManager
 import android.content.Context
@@ -96,7 +96,11 @@ object MemoryManager {
         return withContext(Dispatchers.IO) {
             try {
                 val uri = Uri.parse(uriString)
-                val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                val bitmap = if (uri.scheme == null || uri.scheme == "file") {
+                    android.graphics.BitmapFactory.decodeFile(uri.path ?: uriString)
+                } else {
+                    MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                }
                 if (bitmap.width <= 0) {
                     bitmap.recycle()
                     return@withContext null
@@ -163,7 +167,11 @@ object MemoryManager {
         return withContext(Dispatchers.IO) {
             try {
                 val uri = Uri.parse(uriString)
-                val bitmap = MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                val bitmap = if (uri.scheme == null || uri.scheme == "file") {
+                    android.graphics.BitmapFactory.decodeFile(uri.path ?: uriString)
+                } else {
+                    MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+                }
                 if (bitmap.width <= 0) { bitmap.recycle(); return@withContext null }
                 val p = Palette.from(bitmap).generate()
                 bitmap.recycle()

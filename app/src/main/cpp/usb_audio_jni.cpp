@@ -229,6 +229,17 @@ Java_com_sdw_music_player_core_audio_UsbDacManager_nativeSetVolume(JNIEnv*, jobj
 
 // ── nativeGetDebugLog ────────────────────────────────────────────────────
 
+// ── nativeForceReset ────────────────────────────────────────────────────
+
+JNIEXPORT void JNICALL
+Java_com_sdw_music_player_core_audio_UsbDacManager_nativeForceReset(JNIEnv*, jobject) {
+    auto* driver = getDriver();
+    if (driver) driver->forceReset();
+    LOGI("nativeForceReset");
+}
+
+// ── nativeGetDebugLog ────────────────────────────────────────────────────
+
 JNIEXPORT jstring JNICALL
 Java_com_sdw_music_player_core_audio_UsbDacManager_nativeGetDebugLog(JNIEnv* env, jobject) {
     auto* driver = getDriver();

@@ -1109,6 +1109,7 @@ static OboeAudioCallback g_audioCallback;
 // NDK Decoder — globals and decode loop
 // ============================================================================
 static AMediaExtractor* g_decoderExtractor = nullptr;
+static std::atomic<int64_t> g_cachedDurationUs{0};  // cached at open; avoids extractor race in getDurationMs
 static AMediaCodec* g_decoderCodec = nullptr;
 static int g_decoderTrackIndex = -1;
 static std::atomic<bool> g_decoderRunning{false};
@@ -1208,7 +1209,7 @@ static void ndkDecodeLoop() {
                 LOGI("NDK Decoder: output EOS → entering drain phase (waiting for RingBuffer empty)");
                 // Drain阶段：等g_ringBuffer彻底空了，Oboe回调会把它消费完
                 while (!g_decoderStopRequested.load()) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(300));
                     int avail = g_ringBuffer ? g_ringBuffer->available() : 0;
                     if (avail <= 0) {
                         LOGI("NDK Decoder: drain complete, RingBuffer empty, exiting loop");
@@ -1380,7 +1381,7 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpen(JNIEnv *env, jobject thiz,
         AMediaCodec_delete(g_decoderCodec);
         g_decoderCodec = nullptr;
         // MediaCodec looper destruction is async — let it release mActivityNotify
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
     if (g_decoderExtractor) {
         AMediaExtractor_delete(g_decoderExtractor);
@@ -1455,6 +1456,7 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpen(JNIEnv *env, jobject thiz,
                 if (sr2 > 0) AMediaFormat_setInt32(configureFormat, AMEDIAFORMAT_KEY_SAMPLE_RATE, sr2);
                 if (ch2 > 0) AMediaFormat_setInt32(configureFormat, AMEDIAFORMAT_KEY_CHANNEL_COUNT, ch2);
                 if (dur > 0) AMediaFormat_setInt64(configureFormat, AMEDIAFORMAT_KEY_DURATION, dur);
+                if (dur > 0) g_cachedDurationUs.store(dur);
             }
             copyCsdBuffers(configureFormat, format);
             AMediaFormat_setInt32(configureFormat, "pcm-encoding", 2);  // PCM16
@@ -1698,7 +1700,7 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeOpenFd(JNIEnv *env, jobject thi
         AMediaCodec_delete(g_decoderCodec);
         g_decoderCodec = nullptr;
         // MediaCodec looper destruction is async — let it release mActivityNotify
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
     if (g_decoderExtractor) {
         AMediaExtractor_delete(g_decoderExtractor);
@@ -2066,7 +2068,7 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeStop(JNIEnv *env, jobject thiz)
         AMediaCodec_delete(g_decoderCodec);
         g_decoderCodec = nullptr;
         // MediaCodec looper destruction is async — let it release mActivityNotify
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
     if (g_decoderExtractor) {
         AMediaExtractor_delete(g_decoderExtractor);
@@ -2098,13 +2100,9 @@ Java_com_sdw_music_player_OboeDirectPlayer_nativeGetPositionMs(JNIEnv *env, jobj
 
 JNIEXPORT jlong JNICALL
 Java_com_sdw_music_player_OboeDirectPlayer_nativeGetDurationMs(JNIEnv *env, jobject thiz) {
-    if (!g_decoderExtractor || g_decoderTrackIndex < 0) return 0;
-    AMediaFormat* format = AMediaExtractor_getTrackFormat(g_decoderExtractor, g_decoderTrackIndex);
-    if (!format) return 0;
-    int64_t duration = 0;
-    AMediaFormat_getInt64(format, AMEDIAFORMAT_KEY_DURATION, &duration);
-    AMediaFormat_delete(format);
-    return duration / 1000;
+    // Return cached duration to avoid AMediaExtractor_getTrackFormat race
+    // (extractor may be torn down concurrently during track switch / release)
+    return g_cachedDurationUs.load() / 1000;
 }
 
 JNIEXPORT jboolean JNICALL

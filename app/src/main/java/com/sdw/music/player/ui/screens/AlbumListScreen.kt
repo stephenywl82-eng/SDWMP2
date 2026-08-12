@@ -28,6 +28,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.launch
 import com.sdw.music.player.Song
+import com.sdw.music.player.MusicService
+import com.sdw.music.player.core.audio.CoverFetcher
 import com.sdw.music.player.ui.components.AlphabetIndexBar
 import com.sdw.music.player.ui.components.DefaultCoverImage
 import com.sdw.music.player.ui.theme.*
@@ -106,7 +108,11 @@ fun AlbumListScreen(
                         AlbumGridItem(
                             albumName = albumName,
                             songCount = songs.size,
-                            coverUri = songs.firstOrNull()?.albumArtUri.orEmpty()
+                            coverUri = songs.firstOrNull()?.let { song ->
+                                MusicService.instance?.getDownloadedCoverPath(song.id)
+                                    ?: CoverFetcher.getCachedCover(LocalContext.current, song.artist, song.album)?.absolutePath
+                                    ?: song.albumArtUri.orEmpty()
+                            } ?: ""
                         ) { onAlbumClick(albumName) }
                     }
                 }

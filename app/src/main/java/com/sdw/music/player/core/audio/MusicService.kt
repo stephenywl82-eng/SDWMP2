@@ -47,6 +47,7 @@ import com.sdw.music.player.core.audio.helpers.VisualizerManager
 import com.sdw.music.player.core.audio.UsbDacManager
 import com.sdw.music.player.core.audio.UsbDacPlaybackController
 import com.sdw.music.player.core.audio.DebugLog
+import com.sdw.music.player.core.audio.CoverFetcher
 import android.app.usage.UsageStatsManager
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
@@ -78,6 +79,90 @@ class MusicService : MediaSessionService() {
     private val TAG = "MusicService"
     private var stopDelayRunnable: Runnable? = null
     private var isDestroyed = false
+
+    // URB wedge watchdog: monitor native stream health, force-recover on stall
+    private val dacHealthRunnable = object : Runnable {
+        private var wedgeSeenAt = 0L
+        override fun run() {
+            if (isDestroyed || usbDacController?.isPlaying != true || !UsbDacManager.isClaimed()) {
+                handler.postDelayed(this, 5000)
+                return
+            }
+            val stats = UsbDacManager.getStats() ?: run { handler.postDelayed(this, 5000); return }
+            if (stats.contains("Health=wedge")) {
+                val now = System.currentTimeMillis()
+                if (wedgeSeenAt == 0L) wedgeSeenAt = now
+                if (now - wedgeSeenAt > 3000) {
+                    Log.w(TAG, "DAC wedge detected (2+ polls), forceReset…")
+                    DebugLog.add(TAG, "DAC wedge → forceReset")
+                    usbDacController?.stop()
+                    UsbDacManager.forceReset()
+                    wedgeSeenAt = 0L
+                    tryClaimUsbDac()
+                    if (currentSong != null) playSong(currentIndex)
+                }
+            } else {
+                wedgeSeenAt = 0L
+            }
+            handler.postDelayed(this, 5000)
+        }
+    }
+
+    // Sleep timer
+    @Volatile private var sleepTimerEndAt = 0L
+    private var sleepTimerMinutes: Long = 0L
+    private val sleepTimerRunnable = object : Runnable {
+        override fun run() {
+            if (isDestroyed) return
+            val remaining = sleepTimerEndAt - System.currentTimeMillis()
+            if (sleepTimerEndAt == 0L || remaining <= 0) {
+                if (sleepTimerEndAt > 0L && remaining <= 0 && isPlaying()) {
+                    Log.i(TAG, "Sleep timer elapsed, pausing")
+                    DebugLog.add(TAG, "\u23f0 Sleep timer → pause")
+                    pause()
+                    notifySleepTimerEnded()
+                }
+                sleepTimerEndAt = 0L
+                return
+            }
+            handler.postDelayed(this, 1000)
+        }
+    }
+
+    private fun notifySleepTimerEnded() {
+        val ctx = applicationContext
+        val manager = ctx.getSystemService(NotificationManager::class.java)
+        val n = NotificationCompat.Builder(ctx, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_music_note)
+            .setContentTitle("\u23f0 Sleep Timer")
+            .setContentText("Playback paused after $sleepTimerMinutes min")
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setAutoCancel(true)
+            .build()
+        try { manager?.notify(999, n) } catch (_: Exception) {}
+    }
+
+    fun setSleepTimer(minutes: Int) {
+        sleepTimerMinutes = minutes.toLong()
+        sleepTimerEndAt = System.currentTimeMillis() + minutes * 60000L
+        handler.removeCallbacks(sleepTimerRunnable)
+        handler.post(sleepTimerRunnable)
+        Log.i(TAG, "Sleep timer set: ${minutes}min")
+        DebugLog.add(TAG, "\u23f0 Sleep timer: ${minutes} min")
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerEndAt = 0L
+        handler.removeCallbacks(sleepTimerRunnable)
+        DebugLog.add(TAG, "\u23f0 Sleep timer cancelled")
+    }
+
+    fun getSleepTimerRemainingMs(): Long {
+        if (sleepTimerEndAt == 0L) return 0L
+        return (sleepTimerEndAt - System.currentTimeMillis()).coerceAtLeast(0)
+    }
+
+    fun isSleepTimerActive(): Boolean = sleepTimerEndAt > 0L
 
     // 
     private val volumeGuard by lazy {
@@ -149,6 +234,7 @@ class MusicService : MediaSessionService() {
     fun getUsbDacController(): UsbDacPlaybackController? = usbDacController
 
     private fun releaseUsbDacController() {
+        handler.removeCallbacks(dacHealthRunnable)
         DebugLog.add(TAG, "releaseUsbDac: stopDecode (keep DAC claim)")
         usbDacController?.stopDecode()
         usbDacController = null
@@ -192,6 +278,146 @@ class MusicService : MediaSessionService() {
     // [V8.x] Cached to avoid SharedPreferences I/O on every call (was causing UI jank in DAC mode)
     private var cachedOboeMode: Boolean = false
     private var oboeModeCacheValid: Boolean = false
+    // Shared ForwardingPlayer for MediaSession - eliminates ~150 lines of duplicate code
+    private inner class MusicForwardingPlayer(
+        player: Player,
+        private val logTag: String,
+        private val oboePauseCallsSuper: Boolean = false
+    ) : androidx.media3.common.ForwardingPlayer(player) {
+        override fun getAvailableCommands(): Player.Commands {
+            return super.getAvailableCommands().buildUpon()
+                .add(Player.COMMAND_PLAY_PAUSE)
+                .add(Player.COMMAND_SEEK_TO_NEXT)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .build()
+        }
+        override fun isCommandAvailable(command: Int): Boolean {
+            if (command == Player.COMMAND_PLAY_PAUSE || command == Player.COMMAND_SEEK_TO_NEXT || command == Player.COMMAND_SEEK_TO_PREVIOUS ||
+                command == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM || command == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) return true
+            return super.isCommandAvailable(command)
+        }
+        override fun seekToPreviousMediaItem() { seekToPrevious() }
+        override fun play() {
+            try {
+                if (usbDacController != null) {
+                    usbDacController?.resume()
+                    notifyPlayStateChanged(true)
+                    updateNotification()
+                    Log.d(TAG, "$logTag.play: USB DAC resume")
+                } else if (isOboeDirectMode()) {
+                    this@MusicService.resume()
+                } else {
+                    super.play()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "$logTag.play crash: ${e.message}", e)
+            }
+        }
+        override fun pause() {
+            try {
+                manualPause = true
+                if (usbDacController != null) {
+                    usbDacController?.pause()
+                    notifyPlayStateChanged(false)
+                    updateNotification()
+                    Log.d(TAG, "$logTag.pause: USB DAC")
+                } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
+                    oboePausePosMs = oboeDirectPlayer?.getCurrentPositionMs() ?: 0L
+                    oboeDirectPlayer?.pause()
+                    oboePlayWhenReady = false
+                    notifyPlayStateChanged(false)
+                    updateNotification()
+                    if (oboePauseCallsSuper) super.pause()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "$logTag.pause crash: ${e.message}", e)
+            }
+        }
+        override fun seekToNext() {
+            if (usbDacController != null) {
+                playNext()
+                Log.d(TAG, "$logTag.seekToNext: playNext() (DAC)")
+            } else if (isOboeDirectMode()) {
+                playNext()
+                Log.d(TAG, "$logTag.seekToNext: playNext() (Oboe)")
+            } else {
+                super.seekToNext()
+            }
+        }
+        override fun seekToPrevious() {
+            if (usbDacController != null) {
+                playPrevious()
+                Log.d(TAG, "$logTag.seekToPrev: playPrevious() (DAC)")
+            } else if (isOboeDirectMode()) {
+                playPrevious()
+                Log.d(TAG, "$logTag.seekToPrev: playPrevious() (Oboe)")
+            } else {
+                super.seekToPrevious()
+            }
+        }
+        override fun isPlaying(): Boolean {
+            if (usbDacController?.isPlaying == true) return true
+            if (isOboeDirectMode() && oboeDirectPlayer != null) {
+                return oboeDirectPlayer!!.isPlaying
+            }
+            return super.isPlaying()
+        }
+        override fun getCurrentPosition(): Long {
+            usbDacController?.let { if (it.isPlaying || it.audiblePositionMs >= 0) return it.audiblePositionMs }
+            if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
+                return oboeDirectPlayer!!.getCurrentPositionMs()
+            }
+            return super.getCurrentPosition()
+        }
+        override fun getDuration(): Long {
+            usbDacController?.let { return it.durationMs }
+            if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
+                return oboeDirectPlayer!!.getDurationMs()
+            }
+            return super.getDuration()
+        }
+        override fun seekTo(positionMs: Long) {
+            try {
+                if (usbDacController != null) {
+                    usbDacController?.seekTo(positionMs)
+                    super.seekTo(positionMs)
+                    Log.d(TAG, "$logTag.seekTo: USB DAC($positionMs)")
+                } else if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
+                    oboeDirectPlayer?.seekTo(positionMs)
+                    super.seekTo(positionMs)
+                    Log.d(TAG, "$logTag.seekTo: Oboe($positionMs)")
+                } else {
+                    super.seekTo(positionMs)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "$logTag.seekTo crash: ${e.message}", e)
+            }
+        }
+        override fun getPlaybackState(): Int {
+            if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) return Player.STATE_READY
+            return super.getPlaybackState()
+        }
+        override fun getPlayWhenReady(): Boolean {
+            if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) return oboePlayWhenReady
+            return super.getPlayWhenReady()
+        }
+        override fun setPlayWhenReady(playWhenReady: Boolean) {
+            if (usbDacController != null) {
+                if (playWhenReady) usbDacController?.resume() else usbDacController?.pause()
+                notifyPlayStateChanged(playWhenReady)
+                updateNotification()
+                return
+            }
+            if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
+                if (playWhenReady) this@MusicService.resume() else this@MusicService.pause()
+                return
+            }
+            super.setPlayWhenReady(playWhenReady)
+        }
+    }
+
 
     private fun refreshOboeModeCache() {
         val mode = getSharedPreferences("settings", MODE_PRIVATE)
@@ -207,6 +433,18 @@ class MusicService : MediaSessionService() {
     }
     // [V8.x] Album art LruCache �� avoids repeated disk I/O on every notification refresh
     private val coverCache = android.util.LruCache<String, android.graphics.Bitmap>(4)
+    // Downloaded cover file paths (songId -> file path)
+    private val downloadedCovers = java.util.concurrent.ConcurrentHashMap<Long, String>()
+    fun getDownloadedCoverPath(songId: Long): String? = downloadedCovers[songId]
+    fun setDownloadedCoverPath(songId: Long, path: String) {
+        downloadedCovers[songId] = path
+        coverUpdateVersion.incrementAndGet()
+        coverUpdateFlow.value = coverUpdateVersion.get()
+    }
+    // Incremented on every cover download — PlayerScreen observes this to auto-refresh
+    internal val coverUpdateVersion = java.util.concurrent.atomic.AtomicInteger(0)
+    // Observable cover version — PlayerScreen collects this to auto-refresh on background download
+    internal val coverUpdateFlow = kotlinx.coroutines.flow.MutableStateFlow(0)
 
     private fun loadCoverAsync(uri: String, onLoaded: (android.graphics.Bitmap?) -> Unit) {
         try {
@@ -507,6 +745,7 @@ class MusicService : MediaSessionService() {
                 savePlaybackState()
                 // "Recent"
                 SongRepository.recordPlayed(song.id)
+                // Cover download is on-demand only (menu → Download Cover), not triggered on every track switch
             }
             synchronized(songChangedListeners) {
                 songChangedListeners.forEach { listener ->
@@ -555,35 +794,37 @@ class MusicService : MediaSessionService() {
             // [v7.121] delay stop foreground when paused; cancel if resumed
             val inst = instance ?: return
             inst.stopDelayRunnable?.let { inst.handler.removeCallbacks(it) }
-            if (!isPlaying && !manualPause) {
-                val r = Runnable {
-                    val i = instance ?: return@Runnable
-                    if (!i.isPlaying()) {
-                        Log.d(inst.TAG, "Idle timeout reached, stopping foreground service")
-                        i.stopForeground(STOP_FOREGROUND_REMOVE)
-                        i.stopSelf()
-                        stoppedByIdlePolicy = true
-                    }
+            val r = Runnable {
+                val i = instance ?: return@Runnable
+                if (!i.isPlaying()) {
+                    Log.d(inst.TAG, "Idle timeout reached, stopping foreground service")
+                    i.stopForeground(STOP_FOREGROUND_REMOVE)
+                    i.stopSelf()
+                    stoppedByIdlePolicy = true
                 }
-                inst.stopDelayRunnable = r
-                val idleMs = when (inst.getSharedPreferences("sdw_music_prefs", MODE_PRIVATE).getString("idle_level", "Frequent")) {
+            }
+            inst.stopDelayRunnable = r
+            // Manual pause: long idle (30 min). Auto-stop (song end): short idle from prefs.
+            val isManual = manualPause
+            val idleMs = if (isManual) {
+                1_800_000L  // 30 min for manual pause
+            } else {
+                when (inst.getSharedPreferences("sdw_music_prefs", MODE_PRIVATE).getString("idle_level", "Frequent")) {
                     "Working Set" -> 1_800_000L  // 30 min
                     "Frequent" -> 300_000L       // 5 min
                     "Rare" -> 3_000L             // 3 sec
                     "Restricted" -> 0L            // immediate
-                    else -> 3_000L
+                    else -> 300_000L
                 }
-                if (idleMs == 0L) {
-                    Log.d(inst.TAG, "Idle level Restricted, stopping immediately")
-                    inst.stopForeground(STOP_FOREGROUND_REMOVE)
-                    stoppedByIdlePolicy = true
-                    inst.stopSelf()
-                    Log.d(inst.TAG, "stopSelf() called after Restricted idle policy")
-                } else {
-                    inst.handler.postDelayed(r, idleMs)
-                }
+            }
+            if (idleMs == 0L) {
+                Log.d(inst.TAG, "Idle level Restricted, stopping immediately")
+                inst.stopForeground(STOP_FOREGROUND_REMOVE)
+                stoppedByIdlePolicy = true
+                inst.stopSelf()
+                Log.d(inst.TAG, "stopSelf() called after Restricted idle policy")
             } else {
-                stoppedByIdlePolicy = false
+                inst.handler.postDelayed(r, idleMs)
             }
         }
         const val CHANNEL_ID = "music_channel"
@@ -820,151 +1061,7 @@ class MusicService : MediaSessionService() {
         // 
         // Oboe , MediaSession (play/pause/next/prev)
         //  OboeDirectPlayer, ExoPlayer()
-        val wrappedPlayer = object : androidx.media3.common.ForwardingPlayer(player) {
-            // V3.3.4: session player holds a single MediaItem, so ExoPlayer never advertises
-            // next/prev commands and the system media card hides those buttons.
-            // Force-advertise them; seekToNext/seekToPrevious overrides route to playNext/playPrevious.
-            override fun getAvailableCommands(): Player.Commands {
-                return super.getAvailableCommands().buildUpon()
-                    .add(Player.COMMAND_PLAY_PAUSE)
-                    .add(Player.COMMAND_SEEK_TO_NEXT)
-                    .add(Player.COMMAND_SEEK_TO_PREVIOUS)
-                    .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                    .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                    .build()
-            }
-            override fun isCommandAvailable(command: Int): Boolean {
-                if (command == Player.COMMAND_PLAY_PAUSE || command == Player.COMMAND_SEEK_TO_NEXT || command == Player.COMMAND_SEEK_TO_PREVIOUS ||
-                    command == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM || command == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) return true
-                return super.isCommandAvailable(command)
-            }
-            override fun seekToPreviousMediaItem() { seekToPrevious() }
-
-            override fun play() {
-                try {
-                    if (usbDacController != null) {
-                        usbDacController?.resume()
-                        notifyPlayStateChanged(true)
-                        updateNotification()
-                        Log.d(TAG, "ForwardingPlayer.play �� USB DAC resume")
-                    } else if (isOboeDirectMode()) {
-                        this@MusicService.resume()
-
-                    } else {
-                        super.play()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "ForwardingPlayer.play crash: ${e.message}", e)
-                }
-            }
-            override fun pause() {
-                try {
-                    manualPause = true
-                    if (usbDacController != null) {
-                        usbDacController?.pause()
-                        notifyPlayStateChanged(false)
-                        updateNotification()
-                        Log.d(TAG, "ForwardingPlayer.pause �� USB DAC")
-                    } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
-                        oboePausePosMs = oboeDirectPlayer?.getCurrentPositionMs() ?: 0L
-                        oboeDirectPlayer?.pause()
-                        oboePlayWhenReady = false
-                        notifyPlayStateChanged(false)
-                        updateNotification()
-                    } else {
-                        super.pause()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "ForwardingPlayer.pause crash: ${e.message}", e)
-                }
-            }
-            override fun seekToNext() {
-                if (usbDacController != null) {
-                    playNext()
-                    Log.d(TAG, "ForwardingPlayer.seekToNext �� playNext() (DAC)")
-                } else if (isOboeDirectMode()) {
-                    playNext()
-                    Log.d(TAG, "ForwardingPlayer.seekToNext ?? playNext() (Oboe)")
-                } else {
-                    super.seekToNext()
-                }
-            }
-            override fun seekToPrevious() {
-                if (usbDacController != null) {
-                    playPrevious()
-                    Log.d(TAG, "ForwardingPlayer.seekToPrev �� playPrevious() (DAC)")
-                } else if (isOboeDirectMode()) {
-                    playPrevious()
-                    Log.d(TAG, "ForwardingPlayer.seekToPrev ?? playPrevious() (Oboe)")
-                } else {
-                    super.seekToPrevious()
-                }
-            }
-            override fun isPlaying(): Boolean {
-                if (usbDacController?.isPlaying == true) return true
-                if (isOboeDirectMode() && oboeDirectPlayer != null) {
-                    return oboeDirectPlayer!!.isPlaying
-                }
-                return super.isPlaying()
-            }
-            override fun getCurrentPosition(): Long {
-                usbDacController?.let { if (it.isPlaying || it.audiblePositionMs >= 0) return it.audiblePositionMs }
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return oboeDirectPlayer!!.getCurrentPositionMs()
-                }
-                return super.getCurrentPosition()
-            }
-            override fun getDuration(): Long {
-                usbDacController?.let { return it.durationMs }
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return oboeDirectPlayer!!.getDurationMs()
-                }
-                return super.getDuration()
-            }
-            override fun seekTo(positionMs: Long) {
-                try {
-                    if (usbDacController != null) {
-                        usbDacController?.seekTo(positionMs)
-                        super.seekTo(positionMs)
-                        Log.d(TAG, "ForwardingPlayer.seekTo �� USB DAC($positionMs)")
-                    } else if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                        oboeDirectPlayer?.seekTo(positionMs)
-                        super.seekTo(positionMs)
-                        Log.d(TAG, "ForwardingPlayer.seekTo ?? OboeDirectPlayer.seekTo($positionMs)")
-                    } else {
-                        super.seekTo(positionMs)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "ForwardingPlayer.seekTo crash: ${e.message}", e)
-                }
-            }
-            override fun getPlaybackState(): Int {
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return Player.STATE_READY
-                }
-                return super.getPlaybackState()
-            }
-            override fun getPlayWhenReady(): Boolean {
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return oboePlayWhenReady
-                }
-                return super.getPlayWhenReady()
-            }
-            override fun setPlayWhenReady(playWhenReady: Boolean) {
-                if (usbDacController != null) {
-                    if (playWhenReady) usbDacController?.resume() else usbDacController?.pause()
-                    notifyPlayStateChanged(playWhenReady)
-                    updateNotification()
-                    return
-                }
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    if (playWhenReady) this@MusicService.resume() else this@MusicService.pause()
-                    return
-                }
-                super.setPlayWhenReady(playWhenReady)
-            }
-        }
-
+        val wrappedPlayer = MusicForwardingPlayer(player, "ForwardingPlayer")
         // 
         player.shuffleModeEnabled = isShuffleMode
         // ��V3.3.22��˫��ͬ����ExoPlayer ���ú�����ͬ�� isShuffleMode��listener ��ûע�ᣩ
@@ -1363,8 +1460,12 @@ class MusicService : MediaSessionService() {
                 }
                 DebugLog.add(TAG, "playSong[$index]: claiming DAC sr=$srcRate bits=${dacProfile.wireBits}")
                 if (!UsbDacManager.claimAndStart(device, srcRate, 2, dacProfile.wireBits)) {
-                    DebugLog.add(TAG, "playSong[$index]: claim FAIL, fallback Exo")
-                    playSongFallbackExo(index, songs)
+                    DebugLog.add(TAG, "playSong[$index]: claim FAIL, fallback Oboe system-route (Salt Player style)")
+                    // Salt Player fallback: Oboe without setDeviceId, kernel USB driver auto-routes
+                    getSharedPreferences("settings", MODE_PRIVATE).edit().putString("audio_output", "AAudio (Direct)").apply()
+                    refreshOboeModeCache()
+                    playSongOboeDirect(index, songs)
+                    notifySongChanged(songs[index])
                     return
                 }
                 DebugLog.add(TAG, "playSong[$index]: DAC claimed, waiting for controller prebuffer")
@@ -1393,8 +1494,11 @@ class MusicService : MediaSessionService() {
                     if (device != null && UsbDacManager.claimAndStart(device, newRate, 2, bits)) {
                         DebugLog.add(TAG, "playSong[$index]: cross-rate reclaim OK")
                     } else {
-                        DebugLog.add(TAG, "playSong[$index]: cross-rate reclaim FAIL, fallback Exo")
-                        playSongFallbackExo(index, songs)
+                        DebugLog.add(TAG, "playSong[$index]: cross-rate reclaim FAIL, fallback Oboe system-route (Salt Player style)")
+                        getSharedPreferences("settings", MODE_PRIVATE).edit().putString("audio_output", "AAudio (Direct)").apply()
+                        refreshOboeModeCache()
+                        playSongOboeDirect(index, songs)
+                        notifySongChanged(songs[index])
                         return
                     }
                 } else {
@@ -1433,6 +1537,8 @@ class MusicService : MediaSessionService() {
                 DebugLog.add(TAG, "USB DAC: opening ${currentSong.title} srcRate=$srcRate (0=self-detect)")
                 if (controller.open(actualPath, srcRate, dacChannels = 2)) {
                     usbDacController = controller
+                    handler.removeCallbacks(dacHealthRunnable)
+                    handler.postDelayed(dacHealthRunnable, 5000)
             val dacProfile = DacProfile.find(UsbDacManager.getDacDevice()?.vendorId ?: 0, UsbDacManager.getDacDevice()?.productId ?: 0)
             controller.playbackWireBits = dacProfile.wireBits
                     controller.play(streamAlreadyRunning = dacStreaming)
@@ -2241,10 +2347,7 @@ class MusicService : MediaSessionService() {
         val artBitmap = if (song.albumArtUri.isNotEmpty()) {
             try { coverCache.get(song.albumArtUri) } catch (_: Exception) { null }
         } else null
-        // Async refresh cache for next time (fire-and-forget, non-blocking)
-        if (song.albumArtUri.isNotEmpty()) {
-            loadCoverAsync(song.albumArtUri) { }
-        }
+        // Cover download is triggered by notifySongChanged on track switch only, not here
 
 val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown Artist") {
             "Moto Music"
@@ -2417,148 +2520,7 @@ val displayArtist = if (song.artist.isNullOrBlank() || song.artist == "Unknown A
             release()
         }
         // 
-        val newWrappedPlayer = object : androidx.media3.common.ForwardingPlayer(newPlayer) {
-            // V3.3.4: session player holds a single MediaItem, so ExoPlayer never advertises
-            // next/prev commands and the system media card hides those buttons.
-            // Force-advertise them; seekToNext/seekToPrevious overrides route to playNext/playPrevious.
-            override fun getAvailableCommands(): Player.Commands {
-                return super.getAvailableCommands().buildUpon()
-                    .add(Player.COMMAND_PLAY_PAUSE)
-                    .add(Player.COMMAND_SEEK_TO_NEXT)
-                    .add(Player.COMMAND_SEEK_TO_PREVIOUS)
-                    .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                    .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                    .build()
-            }
-            override fun isCommandAvailable(command: Int): Boolean {
-                if (command == Player.COMMAND_PLAY_PAUSE || command == Player.COMMAND_SEEK_TO_NEXT || command == Player.COMMAND_SEEK_TO_PREVIOUS ||
-                    command == Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM || command == Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM) return true
-                return super.isCommandAvailable(command)
-            }
-            override fun seekToPreviousMediaItem() { seekToPrevious() }
-
-            override fun play() {
-                try {
-                    if (usbDacController != null) {
-                        usbDacController?.resume()
-                        notifyPlayStateChanged(true)
-                        updateNotification()
-                        Log.d(TAG, "ForwardingPlayer(new).play �� USB DAC resume")
-                    } else if (isOboeDirectMode()) {
-                        this@MusicService.resume()
-                    } else {
-                        super.play()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "ForwardingPlayer.play crash: ${e.message}", e)
-                }
-            }
-            override fun pause() {
-                try {
-                    manualPause = true
-                    if (usbDacController != null) {
-                        usbDacController?.pause()
-                        notifyPlayStateChanged(false)  // [V4.0.2] trigger idle timer for standby policy
-                        updateNotification()
-                        Log.d(TAG, "ForwardingPlayer(new).pause �� USB DAC")
-                    } else if (isOboeDirectMode() && oboeDirectPlayer?.isPlaying == true) {
-                        oboePausePosMs = oboeDirectPlayer?.getCurrentPositionMs() ?: 0L
-                        oboeDirectPlayer?.pause()
-                        oboePlayWhenReady = false
-                        notifyPlayStateChanged(false)
-                        updateNotification()
-                        super.pause()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "ForwardingPlayer.pause crash: ${e.message}", e)
-                }
-            }
-            override fun seekToNext() {
-                if (usbDacController != null) {
-                    playNext()
-                    Log.d(TAG, "ForwardingPlayer(new).seekToNext �� playNext() (DAC)")
-                } else if (isOboeDirectMode()) {
-                    playNext()
-                    Log.d(TAG, "ForwardingPlayer(new).seekToNext ?? playNext()")
-                } else {
-                    super.seekToNext()
-                }
-            }
-            override fun seekToPrevious() {
-                if (usbDacController != null) {
-                    playPrevious()
-                    Log.d(TAG, "ForwardingPlayer(new).seekToPrev �� playPrevious() (DAC)")
-                } else if (isOboeDirectMode()) {
-                    playPrevious()
-                    Log.d(TAG, "ForwardingPlayer(new).seekToPrev ?? playPrevious()")
-                } else {
-                    super.seekToPrevious()
-                }
-            }
-            override fun isPlaying(): Boolean {
-                if (usbDacController?.isPlaying == true) return true
-                if (isOboeDirectMode() && oboeDirectPlayer != null) {
-                    return oboeDirectPlayer!!.isPlaying
-                }
-                return super.isPlaying()
-            }
-            override fun getCurrentPosition(): Long {
-                usbDacController?.let { if (it.isPlaying || it.audiblePositionMs >= 0) return it.audiblePositionMs }
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return oboeDirectPlayer!!.getCurrentPositionMs()
-                }
-                return super.getCurrentPosition()
-            }
-            override fun getDuration(): Long {
-                usbDacController?.let { return it.durationMs }
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return oboeDirectPlayer!!.getDurationMs()
-                }
-                return super.getDuration()
-            }
-            override fun seekTo(positionMs: Long) {
-                try {
-                    if (usbDacController != null) {
-                        usbDacController?.seekTo(positionMs)
-                        super.seekTo(positionMs)
-                        Log.d(TAG, "ForwardingPlayer(new).seekTo �� USB DAC($positionMs)")
-                    } else if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                        oboeDirectPlayer?.seekTo(positionMs)
-                        super.seekTo(positionMs)
-                        Log.d(TAG, "ForwardingPlayer(new).seekTo ?? OboeDirectPlayer.seekTo($positionMs)")
-                    } else {
-                        super.seekTo(positionMs)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "ForwardingPlayer.seekTo crash: ${e.message}", e)
-                }
-            }
-            override fun getPlaybackState(): Int {
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return Player.STATE_READY
-                }
-                return super.getPlaybackState()
-            }
-            override fun getPlayWhenReady(): Boolean {
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    return oboePlayWhenReady
-                }
-                return super.getPlayWhenReady()
-            }
-            override fun setPlayWhenReady(playWhenReady: Boolean) {
-                if (usbDacController != null) {
-                    if (playWhenReady) usbDacController?.resume() else usbDacController?.pause()
-                    notifyPlayStateChanged(playWhenReady)
-                    updateNotification()
-                    return
-                }
-                if (isOboeDirectMode() && oboeDirectPlayer?.isPrepared == true) {
-                    if (playWhenReady) this@MusicService.resume() else this@MusicService.pause()
-                    return
-                }
-                super.setPlayWhenReady(playWhenReady)
-            }
-        }
+        val newWrappedPlayer = MusicForwardingPlayer(newPlayer, "ForwardingPlayer(new)", oboePauseCallsSuper = true)
         mediaSession = MediaSession.Builder(this, newWrappedPlayer)
             .setCallback(object : MediaSession.Callback {
                 override fun onConnect(

@@ -68,6 +68,8 @@ class PlayerConnection(private val context: Context) {
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
+            // In Oboe/USB DAC mode, ExoPlayer is idle; don't let its callback override the actual state
+            if (MusicService.instance?.isOboeDirectMode() == true || MusicService.instance?.isUsbExclusiveMode() == true) return
             _isPlaying.value = isPlaying
             if (isPlaying) startPositionUpdates() else stopPositionUpdates()
         }
@@ -467,17 +469,30 @@ class PlayerConnection(private val context: Context) {
 
     private fun startPositionUpdates() {
         stopPositionUpdates()
+        android.util.Log.d("PC", "[PERF] startPositionUpdates called")
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         positionJob = scope.launch {
+            android.util.Log.d("PC", "[PERF] position loop started")
+            var tick0 = true
+            var tickN = 0
             while (isActive) {
                 val screenOn = pm.isInteractive
                 if (screenOn) {
                     // 銆怴7.82銆慜boe妯″紡涓嬩粠MusicService鐩存帴璇诲彇浣嶇疆锛岃€岄潪MediaController锛堝悗鑰呮潵鑷狤xoPlayer锛?
                     val svc = MusicService.instance
                     val isOboe = svc?.isOboeDirectMode() == true
+                    if (tick0) {
+                        tick0 = false
+                        android.util.Log.d("PC", "[PERF] tick0: isOboe=$isOboe svc=${svc!=null} screenOn=$screenOn prepared=${svc?.oboeDirectPlayer?.isPrepared}")
+                    }
                     if (isOboe && svc != null) {
                         val pos = svc.getCurrentPosition()
-                        val dur = svc.getDuration()
+                        var dur = svc.getDuration()
+                        if (dur <= 0) dur = _currentSong.value?.duration ?: 0  // fallback: MediaStore duration
+                        if (tickN < 3) {
+                            android.util.Log.d("PC", "[PERF] Oboe tick$tickN pos=$pos dur=$dur songDur=${_currentSong.value?.duration}")
+                            tickN++
+                        }
                         _currentPositionMs.value = pos
                         if (dur > 0) _durationMs.value = dur
                     } else {

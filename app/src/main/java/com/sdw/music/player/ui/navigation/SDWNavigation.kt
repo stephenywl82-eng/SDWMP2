@@ -57,20 +57,20 @@ fun SDWNavHost(
 ) {
     val vm: PlayerViewModel = hiltViewModel()
     val state by vm.state.collectAsState()
-    // Hot flows: collected separately so position ticks don't recompose cold UI
-    val positionMs by vm.positionMs.collectAsState()
-    val durationMs by vm.durationMs.collectAsState()
-    val isPlaying by vm.isPlaying.collectAsState()
+    val isPlaying = state.isPlaying
     val sharedCoverState = remember { SharedCoverState() }
 
-    android.util.Log.i("SDWNavHost", "state.songList.size=${state.songList.size}, scanStatus=${state.scanStatus}, scanProgress=${state.scanProgress}")
+    // Remove verbose recomposition log to reduce CPU overhead
+    // android.util.Log.i("SDWNavHost", "state.songList.size=...")
 
-    // Detect large screen via window width class
+    // Detect large screen — never split in portrait, only landscape + width >= 600dp
     val context = androidx.compose.ui.platform.LocalContext.current
-    val isTablet = remember {
+    val config = androidx.compose.ui.platform.LocalConfiguration.current
+    val isTablet = remember(config) {
         val displayMetrics = context.resources.displayMetrics
         val widthDp = displayMetrics.widthPixels / displayMetrics.density
-        widthDp >= 600f
+        val heightDp = displayMetrics.heightPixels / displayMetrics.density
+        widthDp >= 600f && widthDp >= heightDp
     }
 
     // Handle notification tap: navigate to PlayerScreen
@@ -111,9 +111,12 @@ fun SDWNavHost(
                     }
                 }
 
+                val currentPlayingSong = remember(state.currentSongId, state.songList) {
+                    state.songList.find { it.id == state.currentSongId }
+                }
                 SongListScreen(
                     songs = state.songList,
-                    currentPlayingSong = state.songList.find { it.id == state.currentSongId },
+                    currentPlayingSong = currentPlayingSong,
                     isPlaying = isPlaying,
                     accentColor = state.accentColor,
                     sharedCoverState = sharedCoverState,
@@ -141,8 +144,6 @@ fun SDWNavHost(
                     isTablet = isTablet,
                     onNavigateBack = { navController.popBackStack() },
                     // Tablet detail pane controls
-                    positionMs = positionMs,
-                    durationMs = durationMs,
                     shuffleEnabled = state.shuffleEnabled,
                     repeatMode = state.repeatMode,
                     eqEnabled = state.showEqSheet,
@@ -204,6 +205,9 @@ fun SDWNavHost(
                 popEnterTransition = { fadeIn(tween(200)) },
                 popExitTransition = { fadeOut(tween(150)) }
             ) {
+                // Collect hot flows inside player scope to isolate from song list recomposition
+                val positionMs by vm.positionMs.collectAsState()
+                val durationMs by vm.durationMs.collectAsState()
                 val context = androidx.compose.ui.platform.LocalContext.current
 
                 // === 系统级删除（Android 11+） ===
@@ -235,9 +239,9 @@ fun SDWNavHost(
                 }
 
                 PlayerScreen(
-                    state = state,
                     positionMs = positionMs,
                     durationMs = durationMs,
+                    state = state,
                     isPlaying = isPlaying,
                     sharedCoverState = sharedCoverState,
                     fullCoverVisible = !sharedCoverState.isAnimating || sharedCoverState.isEntering,
@@ -360,11 +364,12 @@ fun SDWNavHost(
                 )
             }
             composable(Screen.LyricFullscreen.route) {
+                val lyricsPositionMs by vm.positionMs.collectAsState()
                 LyricFullscreenScreen(
                     songId = state.currentSongId,
                     songArtist = state.currentSongArtist,
                     accentColor = state.accentColor,
-                    positionMs = positionMs,
+                    positionMs = lyricsPositionMs,
                     onSeekTo = { pos -> vm.handleIntent(PlayerIntent.SeekTo(pos)) },
                     onNavigateBack = { navController.popBackStack() },
                     onLyricsSaved = { lyrics -> vm.handleIntent(PlayerIntent.SaveLyrics(lyrics)) }

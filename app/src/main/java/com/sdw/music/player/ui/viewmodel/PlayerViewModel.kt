@@ -13,9 +13,11 @@ import com.sdw.music.player.core.audio.PlayerConnection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.sdw.music.player.MemoryManager
+import com.sdw.music.player.core.audio.CoverFetcher
 import com.sdw.music.player.widget.MusicWidgetProvider
 import com.sdw.music.player.lyric.LyricRepository
 import com.sdw.music.player.core.audio.PlayerStateStore
@@ -66,7 +68,7 @@ data class PlayerState(
     val dspMode: Int = -1,
     val showEqSheet: Boolean = false,
     val accentColor: Long = 0L,  // 0 = no cover color, PlayerScreen falls back to system primary
-    val coverColors: IntArray = intArrayOf(),  // 5色 for Edge灯
+    val coverColors: List<Int> = emptyList(),  // 5色 for Edge灯 (List has value equality, IntArray had ref equality causing false recomposition)
     val songCount: Int = 0,
     val songList: List<Song> = emptyList(),
     val queue: List<Song> = emptyList(),
@@ -149,9 +151,9 @@ class PlayerViewModel @Inject constructor(
             _state.update { it.copy(scanStatus = "loading", scanProgress = 0.05f) }
         }
 
-        // === SLOW PATH: background rescan (skip when opened from widget/notification with cache) ===
-        if (skipInitScan && cachedSongs.isNotEmpty()) {
-            android.util.Log.i("PlayerViewModel", "init: SKIP SLOW PATH (widget entry, ${cachedSongs.size} cached)")
+        // === SLOW PATH: background rescan (skip when cache already loaded) ===
+        if (cachedSongs.isNotEmpty()) {
+            android.util.Log.i("PlayerViewModel", "init: SKIP SLOW PATH (${cachedSongs.size} cached)")
         } else {
             viewModelScope.launch {
                 try {
@@ -193,12 +195,7 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 SongRepository.scanProgress.collect { progress ->
-                    android.util.Log.i("PlayerViewModel", "scanProgress collect: progress=$progress, _state.value.songList.size=${_state.value.songList.size}")
-                    _state.update { it ->
-                        android.util.Log.i("PlayerViewModel", "scanProgress update lambda: it.songList.size=${it.songList.size}, it.hashCode=${it.hashCode()}")
-                        it.copy(scanProgress = progress)
-                    }
-                    android.util.Log.i("PlayerViewModel", "scanProgress after update: _state.value.songList.size=${_state.value.songList.size}")
+                    _state.update { it -> it.copy(scanProgress = progress) }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("PlayerViewModel", "scanProgress collect failed", e)
@@ -208,7 +205,7 @@ class PlayerViewModel @Inject constructor(
         // 鐩戝惉 PlayerConnection 鐘舵€佸彉鍖?
         viewModelScope.launch {
             try {
-                connection.isPlaying.collect { playing ->
+                connection.isPlaying.drop(1).collect { playing ->
                     _isPlaying.value = playing
                     _state.update { it.copy(isPlaying = playing) }
                 }
@@ -268,28 +265,56 @@ class PlayerViewModel @Inject constructor(
                                 } catch (_: Exception) {}
                             }
                         }
-                        // 提取Cover强调色（过滤黑白；无Cover时Shuffle色）
-                        if (it.albumArtUri.isNotEmpty()) {
-                            viewModelScope.launch {
-                                val color = MemoryManager.extractAccentColor(application, it.albumArtUri, it.id)
+                        // 提取Cover强调色（优先级：下载封面 > 内嵌封面 > 随机色）
+                        viewModelScope.launch {
+                            val cachedCover = CoverFetcher.getCachedCover(application, it.artist, it.album)
+                            val coverUri = cachedCover?.absolutePath?.takeIf {
+                                java.io.File(it).exists()
+                            } ?: it.albumArtUri.takeIf { uri -> uri.isNotEmpty() }
+                            
+                            if (coverUri != null) {
+                                val color = MemoryManager.extractAccentColor(application, coverUri, it.id)
                                 if (color != null) {
                                     _state.update { s -> s.copy(accentColor = color.toLong() and 0xFFFFFFFFL) }
                                     MusicWidgetProvider.updateAllWidgets(application)
                                 }
-                            }
-                            viewModelScope.launch {
-                                val colors = MemoryManager.extractCoverColors(application, it.albumArtUri, it.id)
+                                val colors = MemoryManager.extractCoverColors(application, coverUri, it.id)
                                 if (colors != null) {
-                                    _state.update { s -> s.copy(coverColors = colors) }
+                                    _state.update { s -> s.copy(coverColors = colors.toList()) }
                                 }
+                            } else {
+                                _state.update { s -> s.copy(accentColor = randomAccentColor()) }
                             }
-                        } else {
-                            _state.update { s -> s.copy(accentColor = randomAccentColor()) }
                         }
                     }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("PlayerViewModel", "currentSong collect failed", e)
+            }
+        }
+        // Re-extract colors when a cover is downloaded in background
+        viewModelScope.launch {
+            try {
+                MusicService.instance?.coverUpdateFlow?.collect {
+                    val song = _state.value.let { s ->
+                        s.songList.find { song -> song.id == s.currentSongId }
+                    } ?: return@collect
+                    val cachedCover = CoverFetcher.getCachedCover(application, song.artist, song.album)
+                    val coverUri = cachedCover?.absolutePath?.takeIf { java.io.File(it).exists() }
+                    if (coverUri != null) {
+                        val color = MemoryManager.extractAccentColor(application, coverUri, song.id)
+                        if (color != null) {
+                            _state.update { s -> s.copy(accentColor = color.toLong() and 0xFFFFFFFFL) }
+                            MusicWidgetProvider.updateAllWidgets(application)
+                        }
+                        val colors = MemoryManager.extractCoverColors(application, coverUri, song.id)
+                        if (colors != null) {
+                            _state.update { s -> s.copy(coverColors = colors.toList()) }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PlayerViewModel", "coverUpdateFlow collect failed", e)
             }
         }
         viewModelScope.launch {
@@ -505,10 +530,15 @@ class PlayerViewModel @Inject constructor(
         if (idx < 0) return
         android.util.Log.d("PlayerViewModel", "restoreOrAutoPlay[$tag]: found ${songs[idx].title} at index $idx")
         connection.setSongs(songs, updateGlobal = true)
-        connection.playSong(idx)
-        // 通知 Service 同步，确保 Oboe 独占模式下不走 ExoPlayer
-        MusicService.instance?.refreshServicePlaylist()
-        // UI 同步更新
+        // Read auto-play preference
+        val autoPlayEnabled = getApplication<android.app.Application>()
+            .getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE)
+            .getBoolean("auto_play_on_launch", false)
+        if (autoPlayEnabled) {
+            connection.playSong(idx)
+            MusicService.instance?.refreshServicePlaylist()
+            _isPlaying.value = true
+        }
         val song = songs[idx]
         val isFav = SongRepository.isFavorite(song.id)
         _state.update { s ->
@@ -522,7 +552,7 @@ class PlayerViewModel @Inject constructor(
                 currentSongId = song.id,
                 currentSongContentUri = song.path,
                 currentSongFilePath = song.filePath.ifBlank { song.path },
-                isPlaying = true,
+                isPlaying = autoPlayEnabled,
                 isCurrentSongFavorite = isFav,
                 currentLyrics = null
             )

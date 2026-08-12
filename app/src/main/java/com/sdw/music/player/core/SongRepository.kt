@@ -41,6 +41,7 @@ object SongRepository {
     val scanProgress: StateFlow<Float> = _scanProgress.asStateFlow()
 
     private var appCtx: Context? = null
+    private var lastSavedHash: Int = 0  // debounce saveSongsToDiskCache
 
 
     fun init(context: Context) {
@@ -94,6 +95,9 @@ object SongRepository {
     private fun saveSongsToDiskCache(songList: List<Song>): Unit = synchronized(this) {
         val ctx = appCtx ?: return
         try {
+            // Debounce: skip if song list hasn't changed since last save
+            val newHash = songList.hashCode()
+            if (newHash == lastSavedHash) return
             val arr = org.json.JSONArray()
             for (s in songList) {
                 arr.put(songToJson(s))
@@ -117,6 +121,7 @@ object SongRepository {
                 return
             }
             android.util.Log.i(TAG, "saveSongsToDiskCache: ✓ saved ${songList.size} songs (${cacheFile.length()} bytes)")
+            lastSavedHash = newHash
         } catch (e: Exception) {
             android.util.Log.e(TAG, "saveSongsToDiskCache failed: ${e.message}", e)
         }

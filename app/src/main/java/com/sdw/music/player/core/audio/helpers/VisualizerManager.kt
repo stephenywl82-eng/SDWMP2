@@ -14,22 +14,27 @@ class VisualizerManager(
     private var visualizer: Visualizer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var retryCount = 0
+    private var givenUp = false // once Oboe mode fails, stop retrying until process restart
 
     fun setup() {
-        retryCount = 0
+        if (givenUp) return // Oboe mode: no audio session, don't bother
         release()
-        val player = getPlayer() as? androidx.media3.exoplayer.ExoPlayer ?: return
-        val audioSessionId = player.audioSessionId
+        // Get audioSessionId from underlying ExoPlayer (falls back to 0 in Oboe mode)
+        val audioSessionId = (getPlayer() as? androidx.media3.exoplayer.ExoPlayer)?.audioSessionId ?: 0
         if (audioSessionId == 0) {
-            if (retryCount < 10) {
+            if (retryCount < 3) {
                 retryCount++
-                Log.d(tag, "Audio session ID not ready, retry $retryCount/10 in 500ms")
-                handler.postDelayed({ setup() }, 500)
+                Log.d(tag, "Audio session ID not ready, retry $retryCount/3 in 800ms")
+                handler.postDelayed({ setup() }, 800)
             } else {
-                Log.w(tag, "Audio session ID never ready after 10 retries, giving up")
+                Log.w(tag, "Audio session ID never ready after $retryCount retries, giving up permanently")
+                givenUp = true
+                retryCount = 0
             }
             return
         }
+        givenUp = false
+        retryCount = 0 // success, reset
 
         try {
             visualizer = Visualizer(audioSessionId).apply {
@@ -44,13 +49,14 @@ class VisualizerManager(
             }
             Log.d(tag, "Visualizer initialized with session ID: $audioSessionId")
         } catch (e: Exception) {
-            Log.w(tag, "Visualizer construction failed (${e.message}), retrying in 800ms")
+            Log.w(tag, "Visualizer construction failed (${e.message})")
             visualizer = null
-            if (retryCount < 8) {
+            if (retryCount < 3) {
                 retryCount++
                 handler.postDelayed({ setup() }, 800)
             } else {
-                Log.e(tag, "Visualizer failed after 8 retries")
+                Log.e(tag, "Visualizer failed after $retryCount retries, giving up permanently")
+                givenUp = true
                 retryCount = 0
             }
         }
@@ -68,6 +74,7 @@ class VisualizerManager(
     fun isReady(): Boolean = visualizer != null && visualizer?.enabled == true
 
     fun retry() {
+        if (givenUp) return
         if (getFftCallback() != null && visualizer == null) {
             setup()
         }

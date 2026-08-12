@@ -60,13 +60,13 @@ data class DacProfile(
          *  clock source still auto-syncs — Salt Player confirmed working via endpoint
          *  fallback with clockVerified=false.  Hand-rolled USB Host Exclusive. */
         val TTGK_NOTE = DacProfile(0x3302, 0x201D, "TTGK Note",
-            useSystemRoute = false, lacks44k1Clock = true, skipSetCur = true)
+            useSystemRoute = false, lacks44k1Clock = false, skipSetCur = true)
 
         /** vid=2972 pid=0047 — ALAC-capable DAC with broken Clock Entity.
          *  SET_CUR always returns Broken pipe (errno=32).
          *  Try BIT_PERFECT API first; fall back to Oboe system-route. */
         val VID2972_0047 = DacProfile(0x2972, 0x0047, "Unknown DAC (2972:0047)",
-            useSystemRoute = false, lacks44k1Clock = true, skipSetCur = true)
+            useSystemRoute = false, lacks44k1Clock = false, skipSetCur = true)
 
         /** 2D13:A001 "USB HiFi Audio" — S32_LE wire, buggy SET_CUR.
          *  Hardware supports 44.1k but SET_CUR locks clock at 384k.

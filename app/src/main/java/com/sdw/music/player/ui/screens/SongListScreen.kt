@@ -57,6 +57,14 @@ import androidx.media3.common.Player
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import com.sdw.music.player.core.audio.CoverFetcher
+import com.sdw.music.player.ui.viewmodel.PlayerViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+
+import com.sdw.music.player.MusicService
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -91,8 +99,6 @@ fun SongListScreen(
     onToggleEqualizer: () -> Unit = {},
     onShare: () -> Unit = {},
     onNavigateToLyrics: () -> Unit = {},
-    positionMs: Long = 0L,
-    durationMs: Long = 0L,
     eqEnabled: Boolean = false,
     shuffleEnabled: Boolean = false,
     repeatMode: Int = Player.REPEAT_MODE_OFF,
@@ -101,8 +107,13 @@ fun SongListScreen(
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
     var filterMode by remember { mutableStateOf("all") }
-    val activeColor = Color(accentColor)
+    val activeColor = if (accentColor != 0L) Color(accentColor) else MaterialTheme.colorScheme.primary
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // Observe cover download version - auto-refresh list items when a cover finishes downloading
+    val coverVersion by produceState(0) {
+        MusicService.instance?.coverUpdateFlow?.collect { value = it }
+    }
 
     val recentThreshold = System.currentTimeMillis() / 1000 - 7 * 24 * 3600
 
@@ -259,7 +270,8 @@ fun SongListScreen(
                         detailPaneVisible = true
                         onSongClick(song)
                     },
-                    scope = scope
+                    scope = scope,
+                    coverVersion = coverVersion
                 )
             }
 
@@ -268,8 +280,6 @@ fun SongListScreen(
                 currentPlayingSong = currentPlayingSong,
                 isPlaying = isPlaying,
                 accentColor = activeColor,
-                positionMs = positionMs,
-                durationMs = durationMs,
                 shuffleEnabled = shuffleEnabled,
                 repeatMode = repeatMode,
                 eqEnabled = eqEnabled,
@@ -441,6 +451,7 @@ fun SongListScreen(
                                 index = idx,
                                 isPlaying = currentPlayingSong?.id == song.id && isPlaying,
                                 accentColor = activeColor,
+                                coverVersion = coverVersion,
                                 onClick = { onSongClick(song) },
                                 onLongClick = { }
                             )
@@ -513,12 +524,16 @@ fun SongListScreen(
 
         // === Mini Player ===
         if (currentPlayingSong != null) {
+            val miniCoverUri = run {
+                val dlPath = MusicService.instance?.getDownloadedCoverPath(currentPlayingSong.id)
+                if (dlPath != null && java.io.File(dlPath).exists()) dlPath
+                else CoverFetcher.getCachedCover(context, currentPlayingSong.artist, currentPlayingSong.album)?.absolutePath
+            }
             MiniPlayer(
                 song = currentPlayingSong,
                 isPlaying = isPlaying,
-                positionMs = positionMs,
-                durationMs = durationMs,
                 accentColor = activeColor,
+                coverUri = miniCoverUri,
                 coverVisible = miniCoverVisible,
                 onClick = onNavigateToPlayer,
                 onCoverPositioned = { offset, size ->
@@ -563,7 +578,8 @@ private fun TabletSongListContent(
     isPlaying: Boolean,
     activeColor: Color,
     onSongClick: (Song) -> Unit,
-    scope: kotlinx.coroutines.CoroutineScope
+    scope: kotlinx.coroutines.CoroutineScope,
+    coverVersion: Int = 0
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -586,6 +602,7 @@ private fun TabletSongListContent(
                         index = songs.indexOf(song),
                         isPlaying = currentPlayingSong?.id == song.id && isPlaying,
                         accentColor = activeColor,
+                        coverVersion = coverVersion,
                         onClick = { onSongClick(song) },
                         onLongClick = { }
                     )
@@ -690,9 +707,11 @@ fun SongItem(
     index: Int,
     isPlaying: Boolean,
     accentColor: Color,
+    coverVersion: Int = 0,
     onClick: (Int) -> Unit,
     onLongClick: (Int) -> Unit
 ) {
+    val context = LocalContext.current
     val textColor = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
     val subColor = if (isPlaying) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
     
@@ -709,12 +728,13 @@ fun SongItem(
         // Cover art — DefaultCoverImage underneath, actual cover on top
         Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             DefaultCoverImage(song.title, song.artist, Modifier.size(48.dp), CircleShape)
-            val coverPainter = rememberAsyncImagePainter(
-                model = song.albumArtUri,
-                contentScale = ContentScale.Crop
-            )
-            Image(
-                painter = coverPainter,
+            val coverUri = remember(song.id, coverVersion) {
+                MusicService.instance?.getDownloadedCoverPath(song.id)
+                    ?: CoverFetcher.getCachedCover(context, song.artist, song.album)?.absolutePath
+                    ?: song.albumArtUri
+            }
+            AsyncImage(
+                model = coverUri,
                 contentDescription = null,
                 modifier = Modifier.size(48.dp).clip(CircleShape),
                 contentScale = ContentScale.Crop
@@ -757,15 +777,19 @@ fun SongItem(
 fun MiniPlayer(
     song: Song?,
     isPlaying: Boolean,
-    positionMs: Long,
-    durationMs: Long,
     accentColor: Color,
+    coverUri: String? = null,
     coverVisible: Boolean = true,
     onClick: () -> Unit,
     onCoverPositioned: ((Offset, Size) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     if (song == null) return
+    
+    // Collect position/duration internally to avoid tick-triggering parent recomposition
+    val vm: PlayerViewModel = hiltViewModel()
+    val positionMs by vm.positionMs.collectAsState()
+    val durationMs by vm.durationMs.collectAsState()
     
     val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -807,7 +831,7 @@ fun MiniPlayer(
             ) {
                 DefaultCoverImage(song.title, song.artist, Modifier.size(40.dp), RoundedCornerShape(4.dp))
                 val painter = rememberAsyncImagePainter(
-                    model = song.albumArtUri,
+                    model = coverUri ?: song.albumArtUri,
                     contentScale = ContentScale.Crop
                 )
                 Image(
@@ -888,8 +912,6 @@ private fun TabletPlayerDetailPanel(
     currentPlayingSong: Song?,
     isPlaying: Boolean,
     accentColor: Color,
-    positionMs: Long,
-    durationMs: Long,
     shuffleEnabled: Boolean,
     repeatMode: Int,
     eqEnabled: Boolean,
@@ -908,6 +930,9 @@ private fun TabletPlayerDetailPanel(
     modifier: Modifier = Modifier
 ) {
     val song = currentPlayingSong ?: return
+    val vm: PlayerViewModel = hiltViewModel()
+    val positionMs by vm.positionMs.collectAsState()
+    val durationMs by vm.durationMs.collectAsState()
     val progressFraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
     Column(

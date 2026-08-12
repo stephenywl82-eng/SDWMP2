@@ -345,6 +345,7 @@ object UsbDacManager {
         if (isNativeLoaded) try { nativeGetCurrentBits() } catch (_: Throwable) { 0 } else 0
     fun getDetailedDacInfo(): String? = if (isNativeLoaded) nativeGetDetailedInfo() else null
     fun getNativeDebugLog(): String? = if (isNativeLoaded) nativeGetDebugLog() else null
+    fun getStats(): String? = if (isNativeLoaded) nativeGetStats() else null
 
     fun setVolume(v: Float) {
         // 【V3.2.8】立方 audio taper：线性 1/15 档 = -23dB 对灵敏耳机仍很响；
@@ -568,8 +569,11 @@ object UsbDacManager {
     private external fun nativeGetCurrentSampleRate(): Int
     private external fun nativeGetCurrentBits(): Int
     private external fun nativeGetDetailedInfo(): String?
+    private external fun nativeGetStats(): String?
     private external fun nativeGetDebugLog(): String?
     private external fun nativeSetVolume(volume: Float)
+    private external fun nativeForceReset()
+    fun forceReset() { if (isNativeLoaded) nativeForceReset() }
 
     // 【V3.3.0】native libFLAC 硬解(绕开 Moto MediaCodec 24bit→16bit 降级)
     private external fun nativeFlacOpen(path: String): Boolean

@@ -60,6 +60,8 @@ fun PlayerTopBar(
     onDismissMenu: () -> Unit,
     onNavigateBack: () -> Unit,
     onDelete: () -> Unit,
+    onSleepTimer: () -> Unit = {},
+    onDownloadCover: () -> Unit = {},
     onNavigateToQueue: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -71,7 +73,7 @@ fun PlayerTopBar(
         IconButton(onClick = onNavigateBack, modifier = Modifier.size(36.dp)) {
             Icon(Icons.Default.KeyboardArrowDown, "Back", tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(24.dp))
         }
-        Text("Now Playing", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
+        Text("", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onNavigateToQueue, modifier = Modifier.size(36.dp)) {
                 Icon(Icons.Default.QueueMusic, "Queue", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
@@ -81,6 +83,16 @@ fun PlayerTopBar(
                     Icon(Icons.Default.MoreVert, "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = onDismissMenu) {
+                    DropdownMenuItem(
+                        text = { Text("Sleep Timer") },
+                        onClick = { onDismissMenu(); onSleepTimer() },
+                        leadingIcon = { Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Download Cover") },
+                        onClick = { onDismissMenu(); onDownloadCover() },
+                        leadingIcon = { Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    )
                     DropdownMenuItem(
                         text = { Text("Delete Song", color = Color.Red) },
                         onClick = { onDismissMenu(); onDelete() },

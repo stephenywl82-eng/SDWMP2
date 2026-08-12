@@ -21,6 +21,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import android.util.Log
@@ -28,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -87,6 +90,7 @@ import com.sdw.music.player.ui.viewmodel.PlayerState
 import com.sdw.music.player.ui.animation.CoverPosition
 import com.sdw.music.player.ui.animation.SharedCoverState
 import androidx.media3.common.Player
+import com.sdw.music.player.core.audio.CoverFetcher
 
 data class BandLevels(val sub: Float = 0f, val bass: Float = 0f, val mid: Float = 0f, val high: Float = 0f, val rms: Float = 0f)
 
@@ -124,8 +128,20 @@ fun PlayerScreen(
     onDismiss: (() -> Unit)? = null,
     audioSessionId: Int = 0,
 ) {
-    val coverUri = state.currentSongAlbumArt
-    val hasCoverColor = state.accentColor != 0L && coverUri != null && coverUri.isNotEmpty()
+    val context = LocalContext.current
+
+    // Resolve cover URI: downloaded > embedded > cache
+    fun resolveCoverUri(): String? {
+        val dlPath = MusicService.instance?.getDownloadedCoverPath(state.currentSongId)
+        if (dlPath != null && java.io.File(dlPath).exists()) return dlPath
+        state.currentSongAlbumArt.takeIf { !it.isNullOrEmpty() }?.let { return it }
+        return CoverFetcher.getCachedCover(context, state.currentSongArtist, state.currentSongAlbum)?.absolutePath
+    }
+    var coverUri by remember { mutableStateOf(resolveCoverUri()) }
+    // Re-resolve when song changes, or when a background cover download finishes
+    val coverDownloadVersion by (MusicService.instance?.coverUpdateFlow ?: kotlinx.coroutines.flow.MutableStateFlow(0)).collectAsState()
+    LaunchedEffect(state.currentSongId, coverDownloadVersion) { coverUri = resolveCoverUri() }
+    val hasCoverColor = state.accentColor != 0L && coverUri?.isNotEmpty() == true
     val accentColor by animateColorAsState(
         targetValue = if (hasCoverColor) Color(state.accentColor) else MaterialTheme.colorScheme.primary,
         animationSpec = tween(600, easing = FastOutSlowInEasing),
@@ -143,6 +159,45 @@ fun PlayerScreen(
     }
     var showMenu by remember { mutableStateOf(false) }
     var showQueue by remember { mutableStateOf(false) }
+    var showSleepDialog by remember { mutableStateOf(false) }
+    var isDownloadingCover by remember { mutableStateOf(false) }
+    var coverProgress by remember { mutableStateOf<CoverFetcher.Progress?>(null) }
+
+    // Manual cover download + refresh with progress
+    val scope = rememberCoroutineScope()
+    val onDownloadCover: () -> Unit = {
+        scope.launch {
+            isDownloadingCover = true
+            coverProgress = CoverFetcher.Progress.Searching
+            CoverFetcher.fetchCover(
+                context,
+                state.currentSongArtist,
+                state.currentSongAlbum,
+                onProgress = { coverProgress = it }
+            )?.also { file ->
+                MusicService.instance?.setDownloadedCoverPath(state.currentSongId, file.absolutePath)
+                coverUri = resolveCoverUri() // re-resolve to pick up downloaded file
+            }
+        }
+    }
+    // Reset progress when Done or Failed
+    LaunchedEffect(coverProgress) {
+        val p = coverProgress ?: return@LaunchedEffect
+        if (p is CoverFetcher.Progress.Saved || p is CoverFetcher.Progress.Failed) {
+            kotlinx.coroutines.delay(1500)
+            coverProgress = null
+            isDownloadingCover = false
+        }
+    }
+
+    // Sleep timer countdown display (poll every second while active)
+    var sleepTimerRemaining by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            sleepTimerRemaining = MusicService.instance?.getSleepTimerRemainingMs() ?: 0L
+            delay(1000)
+        }
+    }
 
     // Lyrics
     val lyricsLines = remember(state.currentLyrics) {
@@ -172,12 +227,12 @@ fun PlayerScreen(
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val isFoldable = screenWidthDp >= 420 && (screenWidthDp.toFloat() / screenHeightDp.toFloat()) in 0.7f..1.4f
 
-    val artSize = if (isLandscape) (screenHeightDp * 0.68f).dp.coerceAtMost(260.dp)
+    val artSize = if (isFoldable && isLandscape) (screenHeightDp * 0.68f).dp.coerceAtMost(260.dp)
+                  else if (isLandscape) (screenHeightDp * 0.55f).dp.coerceAtMost(220.dp)
                   else (screenWidthDp * 0.55f).dp.coerceAtMost(240.dp)
 
     // 【V7.97】屏幕状态感知：熄屏时停掉60fps动画，主线程CPU从~16%压到~1%
     val screenOn = remember { mutableStateOf(true) }
-    val context = LocalContext.current
     LaunchedEffect(Unit) {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
         while (isActive) {
@@ -210,7 +265,7 @@ fun PlayerScreen(
 
     val vuPrefs = remember { context.getSharedPreferences("sdw_music_prefs", android.content.Context.MODE_PRIVATE) }
     var vuEnabled by remember { mutableStateOf(vuPrefs.getBoolean("vu_meter_enabled", true)) }
-    var vuStyleIdx by remember { mutableIntStateOf(vuPrefs.getInt("vu_meter_style", 3).coerceIn(0, 3)) }
+    var vuStyleIdx by remember { mutableIntStateOf(vuPrefs.getInt("vu_meter_style", 1).coerceIn(0, VuMeterStyle.entries.lastIndex)) }
     LaunchedEffect(Unit) {
         while (true) {
             try {
@@ -443,6 +498,7 @@ fun PlayerScreen(
         // Layout switch
         if (isLandscape && isFoldable) {
             FoldableLayout(
+                coverUri = coverUri,
                 state = state,
                 sharedCoverState = sharedCoverState,
                 accentColor = accentColor,
@@ -472,10 +528,13 @@ fun PlayerScreen(
                 onToggleEqualizer = onToggleEqualizer,
                 onShare = onShare,
                 onNavigateToLyrics = onNavigateToLyrics,
+                onSleepTimer = { showSleepDialog = true },
+                onDownloadCover = onDownloadCover,
                 onNavigateToQueue = { showQueue = true }
             )
         } else if (isLandscape) {
             LandscapeLayout(
+                coverUri = coverUri,
                 state = state,
                 accentColor = accentColor,
                 textAccentColor = textAccentColor,
@@ -508,10 +567,13 @@ fun PlayerScreen(
                 onToggleEqualizer = onToggleEqualizer,
                 onShare = onShare,
                 onNavigateToLyrics = onNavigateToLyrics,
+                onSleepTimer = { showSleepDialog = true },
+                onDownloadCover = onDownloadCover,
                 onNavigateToQueue = { showQueue = true }
             )
         } else {
             PortraitLayout(
+                coverUri = coverUri,
                 state = state,
                 accentColor = accentColor,
                 textAccentColor = textAccentColor,
@@ -546,8 +608,32 @@ fun PlayerScreen(
                 onToggleEqualizer = onToggleEqualizer,
                 onShare = onShare,
                 onNavigateToLyrics = onNavigateToLyrics,
+                onSleepTimer = { showSleepDialog = true },
+                onDownloadCover = onDownloadCover,
                 onNavigateToQueue = { showQueue = true }
             )
+        }
+
+        // Sleep timer countdown bar
+        if (sleepTimerRemaining > 0L) {
+            val remainingMin = sleepTimerRemaining / 60000
+            val remainingSec = (sleepTimerRemaining % 60000) / 1000
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xCC_000000))
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "⏳ Sleep in ${remainingMin}:${remainingSec.toString().padStart(2, '0')}  ·  Tap to cancel",
+                    color = Color(0xFF_FF8A65),
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        MusicService.instance?.cancelSleepTimer()
+                    }
+                )
+            }
         }
 
         if (showQueue) {
@@ -559,6 +645,88 @@ fun PlayerScreen(
                 onDismiss = { showQueue = false }
             )
         }
+
+        // Sleep Timer Dialog
+        if (showSleepDialog) {
+            AlertDialog(
+                onDismissRequest = { showSleepDialog = false },
+                title = { Text("Sleep Timer") },
+                text = {
+                    Column {
+                        listOf(15, 30, 60).forEach { min ->
+                            TextButton(
+                                onClick = {
+                                    MusicService.instance?.setSleepTimer(min)
+                                    showSleepDialog = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("${min} minutes", modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                        if (MusicService.instance?.isSleepTimerActive() == true) {
+                            TextButton(
+                                onClick = {
+                                    MusicService.instance?.cancelSleepTimer()
+                                    showSleepDialog = false
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                            ) {
+                                Text("Cancel Timer", modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = { TextButton(onClick = { showSleepDialog = false }) { Text("Close") } }
+            )
+        }
+
+        // Cover Download Progress Dialog
+        val cp = coverProgress
+        if (cp != null) {
+            AlertDialog(
+                onDismissRequest = { coverProgress = null; isDownloadingCover = false },
+                title = {
+                    Text(when (cp) {
+                        is CoverFetcher.Progress.Searching -> "🔍 Searching cover art…"
+                        is CoverFetcher.Progress.Downloading -> "⬇ Downloading cover…"
+                        is CoverFetcher.Progress.Saved -> "✅ Cover saved!"
+                        is CoverFetcher.Progress.Failed -> "❌ Failed"
+                    })
+                },
+                text = {
+                    Column {
+                        when (cp) {
+                            is CoverFetcher.Progress.Searching -> {
+                                Text("Searching ${state.currentSongArtist} - ${state.currentSongAlbum}")
+                            }
+                            is CoverFetcher.Progress.Downloading -> {
+                                Text("Downloading… ${cp.percent}%")
+                                Spacer(Modifier.height(8.dp))
+                                LinearProgressIndicator(
+                                    progress = { cp.percent / 100f },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            is CoverFetcher.Progress.Saved -> {
+                                Text("Cover saved to cache.")
+                            }
+                            is CoverFetcher.Progress.Failed -> {
+                                Text(cp.reason, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { coverProgress = null; isDownloadingCover = false }) {
+                        Text("Close")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -567,7 +735,7 @@ fun PlayerScreen(
 // ============================================================================
 
 @Composable
-private fun FoldableLayout(
+private fun FoldableLayout(coverUri: String?, 
     state: PlayerState,
     sharedCoverState: SharedCoverState?,
     accentColor: Color,
@@ -597,6 +765,8 @@ private fun FoldableLayout(
     onToggleEqualizer: () -> Unit,
     onShare: () -> Unit,
     onNavigateToLyrics: () -> Unit,
+    onSleepTimer: () -> Unit = {},
+    onDownloadCover: () -> Unit = {},
     onNavigateToQueue: () -> Unit = {}
 ) {
     Row(
@@ -613,6 +783,8 @@ private fun FoldableLayout(
                 onDismissMenu = onDismissMenu,
                 onNavigateBack = onNavigateBack,
                 onDelete = onDeleteSong,
+                onSleepTimer = onSleepTimer,
+                onDownloadCover = onDownloadCover,
                 onNavigateToQueue = onNavigateToQueue,
                 modifier = Modifier.padding(horizontal = 0.dp, vertical = 4.dp)
             )
@@ -636,7 +808,7 @@ private fun FoldableLayout(
                 ) {
                     Box(modifier = Modifier.size(140.dp).clip(CircleShape).background(accentColor.copy(alpha = 0.08f)))
                     PlayerCoverArt(
-                        artUri = state.currentSongAlbumArt,
+                        artUri = coverUri,
                         songTitle = state.currentSongTitle,
                         songArtist = state.currentSongArtist,
                         accentColor = accentColor,
@@ -765,7 +937,7 @@ private fun FoldableLayout(
 }
 
 @Composable
-private fun LandscapeLayout(
+private fun LandscapeLayout(coverUri: String?, 
     state: PlayerState,
     accentColor: Color,
     textAccentColor: Color,
@@ -798,36 +970,42 @@ private fun LandscapeLayout(
     onToggleEqualizer: () -> Unit,
     onShare: () -> Unit,
     onNavigateToLyrics: () -> Unit,
+    onSleepTimer: () -> Unit = {},
+    onDownloadCover: () -> Unit = {},
     onNavigateToQueue: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout)
     ) {
-        // Left: controls
+        // Left: controls — top bar fixed, content scrollable
         Column(
-            modifier = Modifier.weight(1.05f).fillMaxHeight().padding(horizontal = 16.dp),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Fixed top bar (always visible)
             PlayerTopBar(
                 showMenu = showMenu,
                 onToggleMenu = onToggleMenu,
                 onDismissMenu = onDismissMenu,
                 onNavigateBack = onNavigateBack,
                 onDelete = onDeleteSong,
+                onSleepTimer = onSleepTimer,
+                onDownloadCover = onDownloadCover,
                 onNavigateToQueue = onNavigateToQueue
             )
 
-            // Center: song info
+            // Scrollable content area
             Column(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // Center: song info
+                Spacer(Modifier.height(12.dp))
                 Text(
                     state.currentSongTitle.ifEmpty { "Not Playing" },
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
                 )
                 PlayerSongInfo(
@@ -836,20 +1014,20 @@ private fun LandscapeLayout(
                     textAccentColor = textAccentColor,
                     onArtistClick = { onNavigateToArtist(state.currentSongArtist) }
                 )
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(6.dp))
                 PlayerInlineLyric(currentLyricLine, textAccentColor)
-            }
 
-            // Bottom: controls
-            // VU Meter
+                // Controls
+                Spacer(Modifier.height(8.dp))
+            // VU Meter — compact in landscape
             if (vuEnabled) {
-                VuMeter(sub = bandLevels.sub, bass = bandLevels.bass, mid = bandLevels.mid, high = bandLevels.high, rms = bandLevels.rms, isActive = isPlaying, style = VuMeterStyle.entries[vuStyleIdx], accentColor = accentColor, modifier = Modifier.padding(horizontal = 8.dp).heightIn(max = 80.dp))
-                Spacer(Modifier.height(12.dp))
+                VuMeter(sub = bandLevels.sub, bass = bandLevels.bass, mid = bandLevels.mid, high = bandLevels.high, rms = bandLevels.rms, isActive = isPlaying, style = VuMeterStyle.entries[vuStyleIdx.coerceIn(0, VuMeterStyle.entries.lastIndex)], accentColor = accentColor, modifier = Modifier.padding(horizontal = 8.dp).heightIn(max = 50.dp))
+                Spacer(Modifier.height(6.dp))
             }
             PlayerEqLabel(eqPresetName, accentColor, textAccentColor)
             DacInfoBar(accentColor, textAccentColor, isPlaying,
                 modifier = Modifier.align(Alignment.CenterHorizontally))
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(2.dp))
             PlayerProgress(
                 progressFraction, durationMs, positionMs, accentColor,
                 onSeekTo = { onSeekTo((durationMs * it).toLong()) }
@@ -882,26 +1060,28 @@ private fun LandscapeLayout(
             )
 
             MotorolaWatermark(accentColor = accentColor)
-        }
+            } // close scrollable inner Column
+        } // close outer left Column
 
-        // Right: album art
-        PlayerCoverArt(
-            artUri = state.currentSongAlbumArt,
-            songTitle = state.currentSongTitle,
-            songArtist = state.currentSongArtist,
-            accentColor = accentColor,
-            isPlaying = isPlaying,
-            rotation = rotation,
-            sizeDp = artSize,
-            glowSizeDp = artSize + 32.dp,
-            onClick = { onNavigateToAlbum(state.currentSongAlbum) },
-            modifier = Modifier.weight(1f).fillMaxHeight().padding(24.dp)
-        )
+        // Right: album art — height capped by artSize, centered vertically
+        Box(modifier = Modifier.weight(1f).fillMaxHeight().padding(24.dp), contentAlignment = Alignment.Center) {
+            PlayerCoverArt(
+                artUri = coverUri,
+                songTitle = state.currentSongTitle,
+                songArtist = state.currentSongArtist,
+                accentColor = accentColor,
+                isPlaying = isPlaying,
+                rotation = rotation,
+                sizeDp = artSize,
+                glowSizeDp = artSize + 32.dp,
+                onClick = { onNavigateToAlbum(state.currentSongAlbum) }
+            )
+        }
     }
 }
 
 @Composable
-private fun PortraitLayout(
+private fun PortraitLayout(coverUri: String?, 
     state: PlayerState,
     accentColor: Color,
     textAccentColor: Color,
@@ -936,6 +1116,8 @@ private fun PortraitLayout(
     onToggleEqualizer: () -> Unit,
     onShare: () -> Unit,
     onNavigateToLyrics: () -> Unit,
+    onSleepTimer: () -> Unit = {},
+    onDownloadCover: () -> Unit = {},
     onNavigateToQueue: () -> Unit = {}
 ) {
     val hPadding = if (isCompact) 24.dp else 48.dp
@@ -964,6 +1146,16 @@ private fun PortraitLayout(
                         Icon(Icons.Default.MoreVert, "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = onDismissMenu) {
+                    DropdownMenuItem(
+                        text = { Text("Sleep Timer") },
+                        onClick = { onDismissMenu(); onSleepTimer() },
+                        leadingIcon = { Icon(Icons.Default.Timer, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Download Cover") },
+                        onClick = { onDismissMenu(); onDownloadCover() },
+                        leadingIcon = { Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    )
                     DropdownMenuItem(
                         text = { Text("Delete Song", color = Color.Red) },
                         onClick = { onDismissMenu(); onDeleteSong() },
@@ -1001,7 +1193,7 @@ private fun PortraitLayout(
 
         // Album art — fixed position, does not move with lyrics
         PlayerCoverArt(
-            artUri = state.currentSongAlbumArt,
+            artUri = coverUri,
             songTitle = state.currentSongTitle,
             songArtist = state.currentSongArtist,
             accentColor = accentColor,
@@ -1113,7 +1305,7 @@ private fun MotorolaWatermark(accentColor: Color) {
 private fun EdgeVuBars(
     bandLevels: BandLevels,
     isPlaying: Boolean,
-    coverColors: IntArray,
+    coverColors: List<Int>,
     accentColor: Color,
     isLandscape: Boolean
 ) {

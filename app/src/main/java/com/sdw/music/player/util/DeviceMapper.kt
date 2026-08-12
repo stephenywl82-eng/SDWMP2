@@ -29,6 +29,8 @@ object DeviceMapper {
         "XT2501-5" to "Edge 60 Ultra",
         "XT2507-5" to "Edge 60 Pro",
         "XT2503" to "ThinkPhone 25 (2025)",
+        "XT2533" to "G67 Power",
+        "XT2533-4" to "G67 Power",
         "XT2537" to "Edge 50 Neo",
         "XT2511" to "Moto G Stylus 5G",
 

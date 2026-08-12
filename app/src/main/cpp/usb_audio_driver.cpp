@@ -9,6 +9,7 @@
 #include <sched.h>
 #include <pthread.h>
 #include <linux/usbdevice_fs.h>
+#include <time.h>
 #include <linux/usb/ch9.h>
 #include <errno.h>
 #include <cstdarg>
@@ -237,6 +238,9 @@ bool UsbAudioDriver::open(int fd, int epAddress, int maxPacketSize, int interval
         LOGI("Feedback endpoint: 0x%02X", fbEp);
     }
 
+    // Parse Feature Unit for hardware volume control
+    parseFeatureUnit();
+
     return true;
 }
 
@@ -398,12 +402,23 @@ void UsbAudioDriver::stopThreadOnly() {
     }
 
     if (streamThread_.joinable()) {
-        // Detach a waiter so the caller (often the main/UI thread) never blocks
-        // if REAPURB is stuck on a misconfigured endpoint. The waiter joins the
-        // real stream thread once it exits; this prevents an ANR/freeze while
-        // accepting a bounded thread leak in the pathological stuck-REAPURB case.
-        std::thread waiter([t = std::move(streamThread_)]() mutable {
-            t.join();
+        // If device is unplugged, DISCARDURB fails (ENODEV) and REAPURB is stuck
+        // forever. Close fd so kernel cancels pending URBs, unblocking streamThread.
+        // We still detach to avoid blocking the caller on a stuck kernel ioctl.
+        std::thread waiter([this, t = std::move(streamThread_)]() mutable {
+            // Wait up to 2 seconds for REAPURB to fail after DISCARDURB
+            // On device disconnect, the close(fd_) above frees the URB.
+            auto start = std::chrono::steady_clock::now();
+            while (std::chrono::steady_clock::now() - start < std::chrono::seconds(2)) {
+                // Poll: if thread joinable after 100ms, check again
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            if (t.joinable()) {
+                LOGW("stopThreadOnly: streamThread still alive after 2s, detaching");
+                t.detach();
+            } else {
+                LOGI("stopThreadOnly: streamThread exited within timeout");
+            }
         });
         waiter.detach();
     }
@@ -609,6 +624,42 @@ int UsbAudioDriver::setSampleRate(int rate) {
 
 
 
+// ┌── forceReset ─
+
+void UsbAudioDriver::forceReset() {
+    LOGI("forceReset: emergency wedge recovery triggered");
+    streaming_.store(false, std::memory_order_release);
+    wedgeCount_.fetch_add(1, std::memory_order_relaxed);
+    // Close fd FIRST -- kernel cancels all pending URBs on close,
+    // unblocking REAPURB so streamThread can exit naturally.
+    if (fd_ >= 0) {
+        close(fd_);
+        fd_ = -1;
+        claimed_.store(false, std::memory_order_release);
+        LOGI("forceReset: fd closed, kernel will cancel pending URBs");
+    }
+    // Give streamThread 500ms to exit after REAPURB fails
+    if (streamThread_.joinable()) {
+        std::thread waiter([this, t = std::move(streamThread_)]() mutable {
+            // Native thread join with timeout via detach
+            // We can't join-with-timeout in C++11, so detach and let it die
+            t.detach();
+            LOGI("forceReset: old streamThread detached (will exit on REAPURB failure)");
+        });
+        waiter.detach();
+    }
+    if (feedbackThread_.joinable()) {
+        feedbackThread_.join();
+    }
+    // Reset stats for clean slate
+    urbSubmitted_.store(0);
+    urbCompleted_.store(0);
+    urbErrors_.store(0);
+    underrunCount_.store(0);
+    lastUrbCompletionTimeMs_.store(0);
+    LOGI("forceReset: done, ready for fresh open()");
+}
+
 void UsbAudioDriver::streamLoop() {
     // 銆怴3.2.7銆戦煶棰戝疄鏃朵紭鍏堢骇锟?19 = ANDROID URGENT_AUDIO锛夛紝闄嶄綆琚皟搴﹀櫒棰勫崰瀵艰嚧锟?DAC 鏂伯
     setpriority(PRIO_PROCESS, 0, -19);
@@ -658,6 +709,10 @@ void UsbAudioDriver::streamLoop() {
         }
         urbCompletions++;
         urbCompleted_.fetch_add(1, std::memory_order_relaxed);
+        // Stamp wall-clock for health monitoring (wedge detection)
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        lastUrbCompletionTimeMs_.store(static_cast<int64_t>(ts.tv_sec) * 1000 + ts.tv_nsec / 1000000, std::memory_order_release);
         if (urbCompletions <= 4 || urbCompletions % 100 == 0) {
             LOGI("REAPURB #%d OK", urbCompletions);
         }
@@ -1336,6 +1391,78 @@ int UsbAudioDriver::controlTransfer(uint8_t bmRequestType, uint8_t bRequest,
 
 // 鈹€鈹€ submitUrb 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
 
+// ---- Hardware Volume: Feature Unit parse & SET_CUR ----------------------
+
+void UsbAudioDriver::parseFeatureUnit() {
+    hardwareVolumeReady_ = false;
+    featureUnitId_ = 0;
+
+    uint8_t desc[4096];
+    int len = readConfigDescriptor(0, desc, sizeof(desc));
+    if (len <= 0) return;
+
+    int pos = 0;
+    while (pos < len && pos + 6 < (int)sizeof(desc)) {
+        uint8_t dLen  = desc[pos];
+        uint8_t dType = desc[pos + 1];
+        if (dType == 0x25 && dLen >= 7) {
+            uint8_t dSub = desc[pos + 2];
+            if (dSub == 0x06) {
+                uint8_t unitId       = desc[pos + 3];
+                uint8_t bControlSize = desc[pos + 5];
+                if (bControlSize >= 1 && dLen >= static_cast<uint8_t>(7 + bControlSize)) {
+                    uint8_t ctrlBits = desc[pos + 6];
+                    if (ctrlBits & 0x02) {
+                        featureUnitId_ = unitId;
+                        featureUnitChannels_ = (dLen - 7) / bControlSize;
+                        featureUnitControlSize_ = bControlSize;
+                        nativeLog("VOL", "Feature Unit id=%d ch=%d ctrlSize=%d",
+                                  featureUnitId_, featureUnitChannels_, featureUnitControlSize_);
+                        break;
+                    }
+                }
+            }
+        }
+        pos += (dLen > 0) ? dLen : 1;
+        if (dLen == 0) break;
+    }
+
+    if (featureUnitId_ > 0) {
+        uint8_t range[4] = {};
+        uint16_t wValue = (0x03 << 8) | (1 << 8);
+        uint16_t wIndex  = (featureUnitId_ << 8) | acIface_;
+        int r = controlTransfer(0xA1, 0x02, wValue, wIndex, range, 2, 100);
+        if (r >= 2 && (range[0] != 0 || range[1] != 0)) {
+            float maxDb = static_cast<int8_t>(range[0]) + range[1] / 256.0f;
+            nativeLog("VOL", "GET_MAX(Volume) -> %.1f dB", maxDb);
+            if (maxDb <= 0.0f && maxDb > -128.0f) {
+                featureUnitMaxDb_ = maxDb;
+                featureUnitMinDb_ = -127.0f;
+            }
+        } else {
+            nativeLog("VOL", "GET_MAX failed (r=%d), default -127..0 dB", r);
+        }
+        hardwareVolumeReady_ = true;
+        LOGI("Hardware volume: FU id=%d, range=[%.1f, %.1f] dB",
+             featureUnitId_, featureUnitMinDb_, featureUnitMaxDb_);
+    }
+}
+
+bool UsbAudioDriver::setHardwareVolume(float pct) {
+    if (!hardwareVolumeReady_ || featureUnitId_ <= 0 || fd_ < 0) return false;
+    float db = featureUnitMinDb_ + (featureUnitMaxDb_ - featureUnitMinDb_) * pct;
+    int16_t dBval = static_cast<int16_t>(db * 256.0f);
+    uint16_t wValue = (0x01 << 8) | 1;
+    uint16_t wIndex = (featureUnitId_ << 8) | acIface_;
+    int r = controlTransfer(0x21, 0x01, wValue, wIndex,
+                            &dBval, featureUnitControlSize_, 50);
+    if (r >= 0) {
+        nativeLog("VOL", "SET_CUR vol=%.0f%% (%.1f dB) ok", pct * 100, db);
+        return true;
+    }
+    return false;
+}
+
 bool UsbAudioDriver::submitUrb(int slot, int numBytes) {
     if (slot < 0 || slot >= kMaxUrbCount) return false;
 
@@ -1420,10 +1547,21 @@ void UsbAudioDriver::getStats(UsbDacStats& out) const {
     out.bufferWatermarkMs = bufferWatermarkMs_.load();
     out.targetWatermarkMs = 200;
     int wm = out.bufferWatermarkMs;
-    if (wm <= 0) out.healthState = "idle";
-    else if (wm >= 160 && wm <= 240) out.healthState = "stable";
-    else if (wm >= 80) out.healthState = "fluctuating";
-    else out.healthState = "critical";
+    // Wedge detection: streaming but no URB completion for >3s = stalled
+    int64_t nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    int64_t lastMs = lastUrbCompletionTimeMs_.load();
+    if (streaming_.load(std::memory_order_acquire) && lastMs > 0 && (nowMs - lastMs) > 3000) {
+        out.healthState = "wedge";
+    } else if (wm <= 0) {
+        out.healthState = "idle";
+    } else if (wm >= 160 && wm <= 240) {
+        out.healthState = "stable";
+    } else if (wm >= 80) {
+        out.healthState = "fluctuating";
+    } else {
+        out.healthState = "critical";
+    }
 }
 
 void* UsbAudioDriver::feedbackThreadEntry(void* arg) {
